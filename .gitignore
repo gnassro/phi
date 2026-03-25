@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Packaged extension
+*.vsix
+
+# VS Code test runner
+.vscode-test/
+
+# JetBrains IDE
+.idea/
+
+# TypeScript incremental compilation
+*.tsbuildinfo
+
+# Source maps (generated)
+*.js.map
+*.d.ts.map
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+
+# Logs
+*.log
+npm-debug.log*

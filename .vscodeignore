@@ -1,0 +1,12 @@
+node_modules
+dist
+.vscode-test
+*.vsix
+src
+public
+docs
+assets
+*.ts
+*.md
+tsconfig.json
+.eslintrc.json

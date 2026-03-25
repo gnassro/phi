@@ -1,0 +1,293 @@
+# Phi (φ) — AI Agent Guidelines
+
+## CRITICAL: Documentation Is Your Responsibility
+
+**Before making any change, read this section. Before finishing any task, verify this section.**
+
+As an AI agent working on this project, you have an ACTIVE DUTY to keep all documentation in sync with the codebase. This is not optional.
+
+### When You MUST Update Docs
+
+| Change You Made | Files to Update |
+|---|---|
+| Added/removed/renamed a source file | `AGENTS.md` (file list), `docs/architecture.md` (file responsibilities), `docs/TASKS.md` |
+| Changed the IPC message protocol | `docs/ipc-protocol.md`, `AGENTS.md` (protocol section) |
+| Changed how Pi SDK is used | `docs/pi-sdk.md` |
+| Added/removed a VS Code command | `AGENTS.md` (commands list), `README.md` (usage table), `package.json` |
+| Changed the webview ↔ extension host communication pattern | `docs/ipc-protocol.md`, `docs/architecture.md` |
+| Added a new public/ UI file | `AGENTS.md` (file list), `docs/architecture.md`, `docs/TASKS.md` |
+| Changed the build system | `AGENTS.md` (build section), `docs/architecture.md` |
+| Completed a task | Check it off in `docs/TASKS.md`, update `docs/ROADMAP.md` if a milestone is reached |
+| Discovered a rule that prevented a bug | Add it to "Development Rules" in `AGENTS.md` |
+| Changed any CSS variable name | `AGENTS.md` (styling rules) |
+| Started or completed a milestone | Update `docs/ROADMAP.md` |
+
+### The Update Rule Is Simple
+
+```
+You touched it → You document it.
+You broke it → You document the fix and why.
+You added it → You describe it.
+You removed it → You remove its description.
+```
+
+Do NOT leave documentation out of sync with the code. Future agents (and humans) depend on these docs being accurate.
+
+---
+
+## What Is Phi?
+
+**Phi** (φ, the golden ratio) is a **VS Code extension** that brings the full power of the **Pi AI coding agent** (`@mariozechner/pi-coding-agent`) natively into VS Code.
+
+- **It is not a mirror** of a terminal session (that is Tau's job)
+- **It is the agent itself**, running inside VS Code's Node.js extension host
+
+The name Phi (φ) is deliberately in the same Greek-letter family as Pi (π), signaling that this is a companion product.
+
+---
+
+## Goal
+
+Get the full Pi agent experience inside VS Code — boots automatically when VS Code opens, chat panel accessible via `Cmd+Shift+L`, deep editor integration (selection, diagnostics, open file), and session continuity across restarts.
+
+```
+Users install Phi → Pi SDK boots inside VS Code → full agent, full sessions,
+full streaming, deep editor integration (selection, diagnostics, open file)
+```
+
+---
+
+## Project Structure
+
+```
+phi/
+├── src/                          ← Extension Host (TypeScript, Node.js)
+│   ├── extension.ts              ← Entry point: activate() / deactivate()
+│   ├── agent-manager.ts          ← Pi SDK session lifecycle (ONLY file that imports Pi SDK)
+│   ├── panel-manager.ts          ← WebviewPanel creation, lifecycle, asset loading
+│   ├── ipc-bridge.ts             ← Routes messages: Webview ↔ Extension Host
+│   ├── editor-context.ts         ← Reads VS Code editor state (read-only)
+│   ├── commands.ts               ← All vscode.commands.registerCommand() calls
+│   └── utils.ts                  ← Shared helpers (getNonce for CSP)
+├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
+│   ├── index.html                ← Webview HTML shell with CSP nonce
+│   ├── app.js                    ← Main UI coordinator (adapted from Tau)
+│   ├── vscode-ipc.js             ← VS Code IPC wrapper (replaces WebSocket)
+│   ├── chat-input.js             ← ContentEditable rich-text input (from Tau)
+│   ├── message-renderer.js       ← Renders user/assistant messages (from Tau)
+│   ├── markdown.js               ← Markdown → HTML renderer (from Tau)
+│   └── style.css                 ← All styles using CSS variables (from Tau)
+├── docs/
+│   ├── architecture.md           ← Full system design and data flows
+│   ├── ipc-protocol.md           ← Complete message protocol specification
+│   └── pi-sdk.md                 ← Pi SDK usage patterns for this project
+├── assets/
+│   └── phi-icon.png              ← Extension icon (128x128, dark background)
+├── AGENTS.md                     ← THIS FILE — master guide for AI agents
+├── README.md                     ← User-facing documentation
+├── package.json                  ← Extension manifest + dependencies
+├── tsconfig.json                 ← TypeScript compiler config
+└── .vscodeignore                 ← Files excluded from extension package
+```
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Reason |
+|---|---|---|
+| Extension host language | TypeScript | Type-safe VS Code API access |
+| Pi agent engine | `@mariozechner/pi-coding-agent` | The Pi SDK — runs in extension host only |
+| UI framework | Vanilla JS + CSS | No build complexity for webview; matches Tau |
+| Webview bundler | `esbuild` | Fast, zero-config, single-file output |
+| TypeScript compiler | `tsc` | Compiles `src/` to `dist/` |
+| VS Code types | `@types/vscode` | Full type coverage for VS Code API |
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        VS CODE PROCESS                           │
+│                                                                   │
+│  ┌───────────────────────────────────────────────────────────┐   │
+│  │              EXTENSION HOST  (Node.js)                    │   │
+│  │                                                           │   │
+│  │  extension.ts      ← activate() / deactivate()           │   │
+│  │  agent-manager.ts  ← createAgentSession(), Pi events     │   │
+│  │  panel-manager.ts  ← WebviewPanel lifecycle               │   │
+│  │  ipc-bridge.ts     ← message routing                     │   │
+│  │  editor-context.ts ← vscode.window, workspace, git       │   │
+│  │  commands.ts       ← vscode.commands                     │   │
+│  │                                                           │   │
+│  └───────────────┬───────────────────────────────────────────┘   │
+│                  │  panel.webview.postMessage()                   │
+│                  │  panel.webview.onDidReceiveMessage()           │
+│                  │  (VS Code IPC — THE ONLY CHANNEL)             │
+│  ┌───────────────▼───────────────────────────────────────────┐   │
+│  │              WEBVIEW  (Chromium sandbox)                  │   │
+│  │                                                           │   │
+│  │  index.html        ← HTML shell with CSP nonce           │   │
+│  │  app.js            ← UI coordinator                      │   │
+│  │  vscode-ipc.js     ← acquireVsCodeApi() wrapper          │   │
+│  │  chat-input.js     ← ContentEditable input               │   │
+│  │  message-renderer.js ← Chat message DOM rendering        │   │
+│  │  markdown.js       ← Markdown → HTML                     │   │
+│  │  style.css         ← All visual styles                   │   │
+│  └───────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**The two environments cannot share memory or modules.** Communication is message-only.
+
+---
+
+## IPC Message Protocol (Summary)
+
+Full specification: `docs/ipc-protocol.md`
+
+### Webview → Extension Host
+
+| Message type | Purpose |
+|---|---|
+| `prompt` | Send user message (text + optional images) to Pi |
+| `abort` | Cancel the current Pi turn |
+| `request_sync` | Request full state snapshot on webview load |
+| `get_sessions` | Fetch session list for current project |
+| `switch_session` | Switch to a different session file |
+| `new_session` | Create a new Pi session |
+
+### Extension Host → Webview
+
+| Message type | Purpose |
+|---|---|
+| `pi_event` | Raw Pi SDK `AgentSessionEvent` forwarded to webview |
+| `sync` | Full state snapshot (history, isStreaming, model, cwd) |
+| `sessions_list` | Array of `SessionInfo` for the current project |
+| `editor_context` | Active file, selection, language, diagnostics from VS Code |
+
+---
+
+## VS Code Commands
+
+| Command ID | Title | Keybinding | When |
+|---|---|---|---|
+| `phi.openChat` | Phi: Open Chat | `Cmd+Shift+L` / `Ctrl+Shift+L` | Always |
+| `phi.askAboutSelection` | Phi: Ask About Selection | — | `editorHasSelection` |
+| `phi.newSession` | Phi: New Session | — | Always |
+| `phi.abortSession` | Phi: Abort Current Turn | `Escape` | Panel focused |
+
+---
+
+## Pi SDK Integration Rules
+
+Full reference: `docs/pi-sdk.md`
+
+1. **Only `src/agent-manager.ts` imports from `@mariozechner/pi-coding-agent`.** No other file may import the Pi SDK directly.
+
+2. **`session.prompt()` throws if called during streaming** without a `streamingBehavior` option. Always check `session.isStreaming` first, or use `steer()` / `followUp()`.
+
+3. **Sessions persist automatically** to `~/.pi/agent/sessions/`. No manual save needed.
+
+4. **`SessionManager.list(cwd)` returns only sessions for the current project.** Do not filter client-side.
+
+5. **Image data must have the `data:` prefix stripped** before passing to the SDK. The SDK expects raw base64, not data URIs.
+
+6. **Call `session.dispose()` in `deactivate()`.** Failing to do so leaks the agent process.
+
+---
+
+## Development Rules
+
+1. **No WebSocket.** IPC is the only communication channel. `WebSocketClient` from Tau is not used. The equivalent in Phi is `public/vscode-ipc.js`.
+
+2. **No React, no Vue, no framework.** The webview uses vanilla JS. This avoids a build pipeline for the frontend and keeps things simple. If a component pattern is needed, use plain ES6 classes like Tau does.
+
+3. **Pi SDK stays in the extension host.** Never import `@mariozechner/pi-coding-agent` in any `public/` file. It is a Node.js library and will fail in Chromium.
+
+4. **CSS variables for everything.** Every color, spacing value, border radius, and shadow must use a CSS variable defined in `public/style.css`. No hardcoded `#hex` or `rgb()` in component styles.
+
+5. **One panel at a time.** `panel-manager.ts` enforces that only one Phi WebviewPanel exists. If `phi.openChat` is called while a panel already exists, reveal the existing one — never create a second.
+
+6. **Content Security Policy is mandatory.** The webview HTML must include a strict CSP with a nonce. All `<script>` tags must use the same nonce. No inline event handlers (`onclick=`, `onerror=`, etc.). VS Code enforces this.
+
+7. **All assets load from `extensionUri`.** No CDN imports. No external URLs. VS Code's CSP and offline requirements both demand this. Use `webview.asWebviewUri()` to convert file paths to webview-safe URIs.
+
+8. **`editor-context.ts` is read-only.** It reads VS Code state but never modifies the editor, never calls `vscode.workspace.applyEdit()`, never writes files. All file modifications go through Pi's built-in tools (`bash`, `edit`, `write`).
+
+9. **`sendMessage(text)` must always receive a string.** Guard against Event objects being passed accidentally — use `typeof text === 'string' ? text : chatInput.getText()`.
+
+10. **Update docs when you change things.** See the "Documentation Is Your Responsibility" section at the top.
+
+---
+
+## Styling Rules
+
+- All styles live in `public/style.css`
+- CSS variables are defined on `:root` and per theme via `[data-theme="..."]`
+- Theme is applied by setting `document.documentElement.setAttribute('data-theme', name)`
+- Available themes inherited from Tau: `night` (default), `midnight`, `dawn`, `clean`, `terracotta`, `sage`
+- The webview body has `background: transparent` — VS Code sets the window background
+- Scrollbars: use `::-webkit-scrollbar` with `width: 4px`, transparent track, `var(--border)` thumb
+
+---
+
+## Build System
+
+```bash
+# Install dependencies (pnpm preferred — uses hard-linked global store, saves disk & time)
+pnpm install              # or: npm install
+
+# Compile TypeScript (src/ → dist/)
+pnpm exec tsc             # or: npx tsc
+
+# Bundle webview assets (public/ → dist/public/)
+pnpm exec esbuild public/app.js --bundle --outdir=dist/public --format=esm
+
+# Both in one command
+pnpm run build            # or: npm run build
+
+# Watch mode during development
+pnpm run watch            # or: npm run watch
+
+# Package into a .vsix for local install
+pnpm run package          # or: npm run package
+
+# Install locally (no marketplace needed)
+code --install-extension phi-agent-0.1.0.vsix
+
+# Launch Extension Development Host (press F5 in VS Code)
+# Configured in .vscode/launch.json
+```
+
+**Output structure after build:**
+```
+dist/
+├── extension.js       ← compiled extension host entry point
+└── public/
+    ├── app.js         ← bundled webview JS
+    └── style.css      ← (copied, not bundled)
+```
+
+---
+
+## Reference Projects
+
+| Project | Path | What to Borrow |
+|---|---|---|
+| **Tau** | `/Users/macbook/StudioProjects/tau/` | `public/` UI files, CSS variables, message renderer, markdown, chat input, typing indicator patterns |
+| **Pi SDK docs** | `/Users/macbook/.nvm/versions/node/v24.14.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/sdk.md` | All Pi SDK patterns and event types |
+| **Pi extension API** | `/Users/macbook/.nvm/versions/node/v24.14.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/extensions.md` | AgentSessionEvent shapes |
+
+---
+
+## Task & Roadmap Tracking
+
+Tasks and roadmap are tracked in dedicated files. **Always update them when you complete work or identify new tasks.**
+
+- **`docs/TASKS.md`** — granular checklist of everything done and everything pending
+- **`docs/ROADMAP.md`** — milestone-level view of where the project is heading
+
+When you finish a task: check it off in `docs/TASKS.md` and update the "Current Status" line in `docs/ROADMAP.md` if a milestone has been reached.
+
