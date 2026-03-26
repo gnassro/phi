@@ -1,10 +1,15 @@
 import {
   createAgentSession,
   SessionManager,
+  AuthStorage,
+  ModelRegistry,
   type AgentSession,
   type AgentSessionEvent,
   type SessionInfo,
+  type SessionStats,
 } from '@mariozechner/pi-coding-agent';
+import * as path from 'path';
+import * as os from 'os';
 
 /**
  * AgentManager
@@ -15,13 +20,29 @@ import {
  * Owns the Pi AgentSession lifecycle:
  *   initialize() → prompt/steer/abort → dispose()
  *
+ * Auth separation:
+ *   - Phi uses its own auth file: ~/.phi/auth.json
+ *   - Sessions are shared with the pi CLI: ~/.pi/agent/sessions/
+ *   This means Phi has its own API keys independent from the pi CLI,
+ *   but both can access the same conversation history.
+ *
  * Rule: session.prompt() throws if called during streaming without
  * streamingBehavior. Always check isStreaming() first or use steer()/followUp().
  */
 
+// ─── Auth paths ──────────────────────────────────────────────────────────────
+
+/** Phi's own config directory — separate from pi CLI's ~/.pi/agent/ */
+const PHI_CONFIG_DIR = path.join(os.homedir(), '.phi');
+
+/** Phi stores its API keys here, independent from the pi CLI */
+const PHI_AUTH_FILE = path.join(PHI_CONFIG_DIR, 'auth.json');
+
 // ─── Internal state ──────────────────────────────────────────────────────────
 
 let session: AgentSession | null = null;
+let authStorage: AuthStorage | null = null;
+let modelRegistry: ModelRegistry | null = null;
 let cwd: string = process.cwd();
 const listeners: Array<(event: AgentSessionEvent) => void> = [];
 
@@ -38,9 +59,16 @@ const listeners: Array<(event: AgentSessionEvent) => void> = [];
 export async function initialize(workspaceCwd: string): Promise<void> {
   cwd = workspaceCwd;
 
+  // Phi uses its own auth file, separate from the pi CLI
+  // Sessions are still shared (default ~/.pi/agent/sessions/)
+  authStorage = AuthStorage.create(PHI_AUTH_FILE);
+  modelRegistry = new ModelRegistry(authStorage);
+
   const { session: s } = await createAgentSession({
     sessionManager: SessionManager.continueRecent(cwd),
     cwd,
+    authStorage,
+    modelRegistry,
   });
 
   session = s;
@@ -113,16 +141,9 @@ export async function prompt(
 
   const imagePayloads = images?.map((img) => ({
     type: 'image' as const,
-    source: {
-      type: 'base64' as const,
-      mediaType: img.mimeType as
-        | 'image/png'
-        | 'image/jpeg'
-        | 'image/gif'
-        | 'image/webp',
-      // Strip "data:mime;base64," prefix if present
-      data: img.data.replace(/^data:[^;]+;base64,/, ''),
-    },
+    // Strip "data:mime;base64," prefix if present — SDK expects raw base64
+    data: img.data.replace(/^data:[^;]+;base64,/, ''),
+    mimeType: img.mimeType,
   }));
 
   if (session.isStreaming) {
@@ -197,4 +218,199 @@ export function getModel(): string {
 
 export function getCwd(): string {
   return cwd;
+}
+
+// ─── Model & thinking ─────────────────────────────────────────────────────────
+
+/**
+ * Get current agent state for the webview.
+ */
+export function getState() {
+  if (!session) return null;
+  const model = session.model;
+  return {
+    model: model
+      ? { id: model.id, provider: model.provider, contextWindow: model.contextWindow }
+      : null,
+    thinkingLevel: session.thinkingLevel,
+    autoCompactionEnabled: session.autoCompactionEnabled,
+    sessionName: session.sessionName ?? null,
+  };
+}
+
+/**
+ * Get all available models from the model registry.
+ */
+export function getAvailableModels() {
+  if (!session) return [];
+  return session.modelRegistry.getAvailable().map((m) => ({
+    id: m.id,
+    provider: m.provider,
+    contextWindow: m.contextWindow,
+  }));
+}
+
+/**
+ * Switch to a different model by provider + modelId.
+ */
+export async function setModel(provider: string, modelId: string): Promise<boolean> {
+  if (!session) return false;
+  const models = session.modelRegistry.getAvailable();
+  const target = models.find((m) => m.id === modelId && m.provider === provider);
+  if (!target) return false;
+  await session.setModel(target);
+  return true;
+}
+
+/**
+ * Cycle thinking level. Returns the new level, or undefined if not supported.
+ */
+export function cycleThinkingLevel(): string | undefined {
+  if (!session) return undefined;
+  return session.cycleThinkingLevel();
+}
+
+/**
+ * Get session statistics (message counts, tokens, cost).
+ */
+export function getSessionStats(): SessionStats | null {
+  if (!session) return null;
+  return session.getSessionStats();
+}
+
+/**
+ * Get context usage info (tokens used / context window).
+ */
+export function getContextUsage() {
+  if (!session) return null;
+  return session.getContextUsage() ?? null;
+}
+
+/**
+ * Trigger manual context compaction.
+ */
+export async function compact(): Promise<void> {
+  if (!session) return;
+  await session.compact();
+}
+
+/**
+ * Enable or disable auto-compaction.
+ */
+export function setAutoCompaction(enabled: boolean): void {
+  if (!session) return;
+  session.setAutoCompactionEnabled(enabled);
+}
+
+// ─── OAuth login ──────────────────────────────────────────────────────────────
+
+/** Predefined API key providers (name → auth.json key) */
+const API_KEY_PROVIDERS: Array<{ name: string; id: string }> = [
+  { name: 'Anthropic', id: 'anthropic' },
+  { name: 'OpenAI', id: 'openai' },
+  { name: 'Google Gemini', id: 'google' },
+  { name: 'Azure OpenAI Responses', id: 'azure-openai-responses' },
+  { name: 'Mistral', id: 'mistral' },
+  { name: 'Groq', id: 'groq' },
+  { name: 'Cerebras', id: 'cerebras' },
+  { name: 'xAI', id: 'xai' },
+  { name: 'OpenRouter', id: 'openrouter' },
+  { name: 'Vercel AI Gateway', id: 'vercel-ai-gateway' },
+  { name: 'ZAI', id: 'zai' },
+  { name: 'OpenCode Zen', id: 'opencode' },
+  { name: 'OpenCode Go', id: 'opencode-go' },
+  { name: 'Hugging Face', id: 'huggingface' },
+  { name: 'Kimi For Coding', id: 'kimi-coding' },
+  { name: 'MiniMax', id: 'minimax' },
+  { name: 'MiniMax (China)', id: 'minimax-cn' },
+];
+
+export interface OAuthProviderInfo {
+  id: string;
+  name: string;
+  loggedIn: boolean;
+}
+
+/**
+ * Get list of available OAuth providers with login status.
+ */
+export function getOAuthProviders(): OAuthProviderInfo[] {
+  if (!authStorage) return [];
+  const providers = authStorage.getOAuthProviders();
+  return providers.map(p => ({
+    id: p.id,
+    name: p.name,
+    loggedIn: authStorage!.has(p.id),
+  }));
+}
+
+/**
+ * Login to an OAuth provider.
+ * Returns callbacks interface so the caller (commands.ts) can wire up
+ * VS Code UI (open browser, show input boxes, progress notifications).
+ */
+export async function login(
+  providerId: string,
+  callbacks: {
+    onAuth: (info: { url: string; instructions?: string }) => void;
+    onPrompt: (prompt: { message: string; placeholder?: string; allowEmpty?: boolean }) => Promise<string>;
+    onProgress?: (message: string) => void;
+    onManualCodeInput?: () => Promise<string>;
+    signal?: AbortSignal;
+  }
+): Promise<void> {
+  if (!authStorage) throw new Error('[Phi] AgentManager not initialized');
+  await authStorage.login(providerId, callbacks);
+}
+
+/**
+ * Logout from a provider (clears stored OAuth credentials).
+ */
+export function logout(providerId: string): void {
+  if (!authStorage) return;
+  authStorage.logout(providerId);
+}
+
+/**
+ * Check if a provider has credentials (API key or OAuth).
+ */
+export function hasAuth(providerId: string): boolean {
+  if (!authStorage) return false;
+  return authStorage.hasAuth(providerId);
+}
+
+// ─── API key management ───────────────────────────────────────────────────────
+
+export interface ApiKeyProviderInfo {
+  name: string;
+  id: string;
+  hasKey: boolean;
+}
+
+/**
+ * Get list of predefined API key providers with their status.
+ */
+export function getApiKeyProviders(): ApiKeyProviderInfo[] {
+  if (!authStorage) return [];
+  return API_KEY_PROVIDERS.map(p => ({
+    name: p.name,
+    id: p.id,
+    hasKey: authStorage!.has(p.id),
+  }));
+}
+
+/**
+ * Set an API key for a provider. Saved directly to ~/.phi/auth.json.
+ */
+export function setApiKey(providerId: string, key: string): void {
+  if (!authStorage) throw new Error('[Phi] AgentManager not initialized');
+  authStorage.set(providerId, { type: 'api_key', key });
+}
+
+/**
+ * Remove an API key for a provider.
+ */
+export function removeApiKey(providerId: string): void {
+  if (!authStorage) return;
+  authStorage.remove(providerId);
 }

@@ -70,17 +70,22 @@ phi/
 │   ├── commands.ts               ← All vscode.commands.registerCommand() calls
 │   └── utils.ts                  ← Shared helpers (getNonce for CSP)
 ├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
-│   ├── index.html                ← Webview HTML shell with CSP nonce
 │   ├── app.js                    ← Main UI coordinator (adapted from Tau)
 │   ├── vscode-ipc.js             ← VS Code IPC wrapper (replaces WebSocket)
 │   ├── chat-input.js             ← ContentEditable rich-text input (from Tau)
 │   ├── message-renderer.js       ← Renders user/assistant messages (from Tau)
+│   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write (from Tau)
+│   ├── state.js                  ← StateManager for tool execution tracking (from Tau)
+│   ├── session-sidebar.js        ← Session history panel (adapted from Tau for IPC)
+│   ├── themes.js                 ← No-op stub (VS Code handles theming natively)
 │   ├── markdown.js               ← Markdown → HTML renderer (from Tau)
 │   └── style.css                 ← All styles using CSS variables (from Tau)
 ├── docs/
 │   ├── architecture.md           ← Full system design and data flows
 │   ├── ipc-protocol.md           ← Complete message protocol specification
-│   └── pi-sdk.md                 ← Pi SDK usage patterns for this project
+│   ├── pi-sdk.md                 ← Pi SDK usage patterns for this project
+│   ├── TASKS.md                  ← Granular task checklist
+│   └── ROADMAP.md                ← Milestone-level project roadmap
 ├── assets/
 │   └── phi-icon.png              ← Extension icon (128x128, dark background)
 ├── AGENTS.md                     ← THIS FILE — master guide for AI agents
@@ -133,6 +138,10 @@ phi/
 │  │  vscode-ipc.js     ← acquireVsCodeApi() wrapper          │   │
 │  │  chat-input.js     ← ContentEditable input               │   │
 │  │  message-renderer.js ← Chat message DOM rendering        │   │
+│  │  tool-card.js      ← Tool execution cards                │   │
+│  │  state.js          ← Tool execution state tracking       │   │
+│  │  session-sidebar.js ← Session history panel              │   │
+│  │  themes.js         ← No-op (VS Code theming)             │   │
 │  │  markdown.js       ← Markdown → HTML                     │   │
 │  │  style.css         ← All visual styles                   │   │
 │  └───────────────────────────────────────────────────────────┘   │
@@ -157,6 +166,18 @@ Full specification: `docs/ipc-protocol.md`
 | `get_sessions` | Fetch session list for current project |
 | `switch_session` | Switch to a different session file |
 | `new_session` | Create a new Pi session |
+| `get_state` | Request model, thinking level, auto-compaction state |
+| `get_available_models` | Fetch list of all available models |
+| `set_model` | Switch to a different model (provider + modelId) |
+| `cycle_thinking_level` | Cycle thinking level, returns new level |
+| `compact` | Trigger context compaction |
+| `set_auto_compaction` | Enable/disable auto-compaction |
+| `get_session_stats` | Fetch session statistics (messages, tokens, cost) |
+| `login` | Trigger OAuth login (opens VS Code QuickPick) |
+| `logout` | Trigger OAuth logout (opens VS Code QuickPick) |
+| `get_accounts` | Fetch OAuth + API key provider status |
+| `add_api_key` | Add API key (opens VS Code QuickPick + masked input) |
+| `remove_api_key` | Remove API key (opens VS Code QuickPick) |
 
 ### Extension Host → Webview
 
@@ -166,6 +187,10 @@ Full specification: `docs/ipc-protocol.md`
 | `sync` | Full state snapshot (history, isStreaming, model, cwd) |
 | `sessions_list` | Array of `SessionInfo` for the current project |
 | `editor_context` | Active file, selection, language, diagnostics from VS Code |
+| `add_context` | Context block from editor selection or file (right-click / Cmd+Shift+L) |
+| `prefill_input` | Prefill the chat input with text (Ask About Selection) |
+| `rpc_response` | Response to RPC commands (get_state, set_model, etc.) |
+| `accounts_list` | OAuth providers + API key providers with active status |
 
 ---
 
@@ -174,9 +199,17 @@ Full specification: `docs/ipc-protocol.md`
 | Command ID | Title | Keybinding | When |
 |---|---|---|---|
 | `phi.openChat` | Phi: Open Chat | `Cmd+Shift+L` / `Ctrl+Shift+L` | Always |
+| `phi.addSelectionToChat` | Phi: Add to Chat | `Cmd+Shift+=` / `Ctrl+Shift+=` | `editorHasSelection` |
+| `phi.addFileToChat` | Phi: Add File to Chat | — | Explorer right-click (files only) |
 | `phi.askAboutSelection` | Phi: Ask About Selection | — | `editorHasSelection` |
 | `phi.newSession` | Phi: New Session | — | Always |
 | `phi.abortSession` | Phi: Abort Current Turn | `Escape` | Panel focused |
+| `phi.login` | Phi: Login | — | Always |
+| `phi.logout` | Phi: Logout | — | Always |
+| `phi.addApiKey` | Phi: Add API Key | — | Always |
+| `phi.removeApiKey` | Phi: Remove API Key | — | Always |
+| `phi.login` | Phi: Login | — | Always |
+| `phi.logout` | Phi: Logout | — | Always |
 
 ---
 
@@ -206,7 +239,7 @@ Full reference: `docs/pi-sdk.md`
 
 3. **Pi SDK stays in the extension host.** Never import `@mariozechner/pi-coding-agent` in any `public/` file. It is a Node.js library and will fail in Chromium.
 
-4. **CSS variables for everything.** Every color, spacing value, border radius, and shadow must use a CSS variable defined in `public/style.css`. No hardcoded `#hex` or `rgb()` in component styles.
+4. **Use `--vscode-*` CSS variables for everything.** Every color, border, and shadow must use VS Code's built-in CSS variables (e.g. `var(--vscode-editor-background)`, `var(--vscode-foreground)`). No hardcoded `#hex` or `rgb()` in component styles. No custom theme definitions — the extension follows the user's VS Code theme automatically.
 
 5. **One panel at a time.** `panel-manager.ts` enforces that only one Phi WebviewPanel exists. If `phi.openChat` is called while a panel already exists, reveal the existing one — never create a second.
 
@@ -220,16 +253,18 @@ Full reference: `docs/pi-sdk.md`
 
 10. **Update docs when you change things.** See the "Documentation Is Your Responsibility" section at the top.
 
+11. **No inline event handlers — ever.** VS Code's CSP blocks `onclick="..."`, `onerror="..."`, etc. in webview HTML. Always use `element.addEventListener('click', ...)`. This applies to both generated HTML strings and DOM element creation. If you use `innerHTML`, the content must not contain event handler attributes.
+
 ---
 
 ## Styling Rules
 
 - All styles live in `public/style.css`
-- CSS variables are defined on `:root` and per theme via `[data-theme="..."]`
-- Theme is applied by setting `document.documentElement.setAttribute('data-theme', name)`
-- Available themes inherited from Tau: `night` (default), `midnight`, `dawn`, `clean`, `terracotta`, `sage`
-- The webview body has `background: transparent` — VS Code sets the window background
-- Scrollbars: use `::-webkit-scrollbar` with `width: 4px`, transparent track, `var(--border)` thumb
+- **All CSS uses VS Code's built-in `--vscode-*` CSS variables** — no custom theme definitions
+- The extension automatically follows the user's VS Code theme (dark, light, high contrast)
+- There is no theme picker — theming is handled entirely by VS Code
+- `themes.js` exists as a no-op stub (exports empty functions to avoid breaking imports)
+- Scrollbars: use `::-webkit-scrollbar` with `width: 6px`, `var(--vscode-scrollbarSlider-background)` thumb
 
 ---
 

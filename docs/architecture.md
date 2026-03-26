@@ -26,11 +26,16 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  ┌──────────────▼──────────────────┐                             │
 │  │      WEBVIEW (Chromium)         │                             │
 │  │                                 │                             │
-│  │  public/index.html              │                             │
+│  │  (no index.html — generated)    │                             │
 │  │  public/app.js    (coordinator) │                             │
+│  │  public/vscode-ipc.js           │                             │
 │  │  public/chat-input.js           │                             │
 │  │  public/message-renderer.js     │                             │
+│  │  public/tool-card.js            │                             │
+│  │  public/state.js                │                             │
+│  │  public/session-sidebar.js      │                             │
 │  │  public/markdown.js             │                             │
+│  │  public/themes.js  (no-op)      │                             │
 │  │  public/style.css               │                             │
 │  │                                 │                             │
 │  │  acquireVsCodeApi() → vscode    │                             │
@@ -119,7 +124,11 @@ Commands registered:
 - `phi.openChat` — open/reveal the Phi panel
 - `phi.askAboutSelection` — get selection context → send to Pi
 - `phi.newSession` — create a new Pi session
-- `phi.switchSession` — triggered from webview session list
+- `phi.abortSession` — abort the current Pi turn
+- `phi.login` — OAuth login (QuickPick → browser auth)
+- `phi.logout` — OAuth logout (QuickPick)
+- `phi.addApiKey` — add API key (QuickPick → masked input → `~/.phi/auth.json`)
+- `phi.removeApiKey` — remove API key (QuickPick → `~/.phi/auth.json`)
 
 ---
 
@@ -165,7 +174,7 @@ export const VscodeIPC = {
 ```
 
 ### CSS / Styling
-Identical approach to Tau. All colors use CSS variables. Theme switching works by changing `data-theme` attribute on `:root`.
+All styles use VS Code's built-in `--vscode-*` CSS variables exclusively. The extension automatically follows the user's VS Code theme (dark, light, high contrast). There is no custom theme system — `themes.js` is a no-op stub.
 
 ---
 
