@@ -873,27 +873,6 @@ body.hide-thinking .thinking-block { display: none; }
   border-radius: 2px;
 }
 
-.input-mic-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  margin: 2px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--vscode-descriptionForeground);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 0.1s;
-}
-
-.input-mic-btn:hover {
-  background: var(--vscode-toolbar-hoverBackground);
-}
-
 .input-actions {
   display: flex;
   flex-shrink: 0;
