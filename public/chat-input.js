@@ -58,23 +58,44 @@ export class ChatInput {
 
     // Paste intercept
     this.element.addEventListener('paste', (e) => {
+      const clipData = e.clipboardData;
+      if (!clipData) return;
+
       const files = [];
-      let isImage = false;
-      for (const item of e.clipboardData.items) {
+      for (const item of clipData.items) {
         if (item.type.startsWith('image/')) {
           files.push(item.getAsFile());
-          isImage = true;
         }
       }
 
       if (this.onImagePaste && files.length) {
+        e.preventDefault();
         this.onImagePaste(files);
+        return;
       }
 
       // Intercept text paste to insert plain text only
-      if (!isImage && e.clipboardData.getData('text/plain')) {
+      const text = clipData.getData('text/plain');
+      if (text) {
         e.preventDefault();
-        document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+        // insertText via execCommand is deprecated but works in most webviews
+        const success = document.execCommand('insertText', false, text);
+        if (!success) {
+          // Fallback: insert at selection using Range API
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const textNode = document.createTextNode(text);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+          // Trigger input event for auto-resize
+          this.element.dispatchEvent(new Event('input', { bubbles: true }));
+        }
       }
     });
 
