@@ -63,8 +63,8 @@ export class MessageRenderer {
     }
 
     div.innerHTML = `
-      <div class="message-content">${imagesHtml}${renderUserMarkdown(message.content)}</div>
       <button class="message-copy-btn" aria-label="Copy message"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <div class="message-content">${imagesHtml}${renderUserMarkdown(message.content)}</div>
     `;
     this._setupCopyBtn(div);
     this.container.appendChild(div);
@@ -82,6 +82,7 @@ export class MessageRenderer {
 
     let contentHtml = '';
     let usageHtml = '';
+    const thinkingBlocks = []; // DOM elements from renderThinkingBlock
 
     if (typeof message.content === 'string') {
       contentHtml = isStreaming ? this.escapeHtml(message.content) : renderMarkdown(message.content);
@@ -90,9 +91,18 @@ export class MessageRenderer {
         if (block.type === 'text') {
           contentHtml += isStreaming ? this.escapeHtml(block.text) : renderMarkdown(block.text);
         } else if (block.type === 'thinking') {
-          contentHtml += this.renderThinkingBlock(block.thinking);
+          thinkingBlocks.push(this.renderThinkingBlock(block.thinking));
         }
       }
+    }
+
+    // Show error message if present
+    const hasError = message.stopReason === 'error' && message.errorMessage;
+    const isErrorOnly = hasError && !contentHtml && thinkingBlocks.length === 0;
+
+    if (hasError) {
+      const escaped = this.escapeHtml(message.errorMessage);
+      contentHtml += `<div class="assistant-error" data-error="${escaped}">Error: ${escaped}</div>`;
     }
 
     // Usage/cost info
@@ -104,16 +114,38 @@ export class MessageRenderer {
     }
 
     const streamingClass = isStreaming ? ' streaming' : '';
+    const copyBtnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 
-    const copyBtnHtml = !isStreaming ? '<button class="message-copy-btn" aria-label="Copy message"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>' : '';
+    if (isErrorOnly && !isStreaming) {
+      // Error-only: single row with error text + copy button at right
+      div.innerHTML = `
+        <div class="assistant-error-row">
+          <div class="assistant-error" data-error="${this.escapeHtml(message.errorMessage)}">Error: ${this.escapeHtml(message.errorMessage)}</div>
+          <button class="message-copy-btn" aria-label="Copy message">${copyBtnSvg}</button>
+        </div>
+      `;
+    } else {
+      const copyBtnHtml = !isStreaming ? `<button class="message-copy-btn" aria-label="Copy message">${copyBtnSvg}</button>` : '';
 
-    div.innerHTML = `
-      <div class="message-actions-row">
-        ${usageHtml}
-        ${copyBtnHtml}
-      </div>
-      <div class="message-content${streamingClass}">${contentHtml}</div>
-    `;
+      div.innerHTML = `
+        <div class="message-actions-row">
+          ${usageHtml}
+          ${copyBtnHtml}
+        </div>
+        <div class="message-content${streamingClass}"></div>
+      `;
+
+      // Append thinking blocks (DOM elements) then HTML content
+      const contentDiv = div.querySelector('.message-content');
+      for (const tb of thinkingBlocks) {
+        contentDiv.appendChild(tb);
+      }
+      if (contentHtml) {
+        const textContainer = document.createElement('div');
+        textContainer.innerHTML = contentHtml;
+        contentDiv.appendChild(textContainer);
+      }
+    }
 
     if (!isStreaming) this._setupCopyBtn(div);
     this.container.appendChild(div);
@@ -123,14 +155,35 @@ export class MessageRenderer {
   }
 
   renderThinkingBlock(thinking) {
-    const id = 'thinking-' + Math.random().toString(36).slice(2, 8);
-    return `<div class="thinking-block">
-<div class="thinking-toggle" onclick="var c=document.getElementById('${id}');c.classList.toggle('expanded');this.classList.toggle('expanded')">
-<span class="chevron"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg></span>
-<span class="thinking-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/><path d="M6.5 9h11"/><path d="M7 13h10"/></svg> Thinking</span>
-</div>
-<div class="thinking-content" id="${id}">${this.escapeHtml(thinking)}</div>
-</div>`;
+    const block = document.createElement('div');
+    block.className = 'thinking-block';
+
+    const toggle = document.createElement('div');
+    toggle.className = 'thinking-toggle';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg>';
+    toggle.appendChild(chevron);
+
+    const label = document.createElement('span');
+    label.className = 'thinking-label';
+    label.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/><path d="M6.5 9h11"/><path d="M7 13h10"/></svg> Thinking';
+    toggle.appendChild(label);
+
+    const content = document.createElement('div');
+    content.className = 'thinking-content';
+    content.textContent = thinking;
+
+    toggle.addEventListener('click', () => {
+      content.classList.toggle('expanded');
+      toggle.classList.toggle('expanded');
+    });
+
+    block.appendChild(toggle);
+    block.appendChild(content);
+
+    return block;
   }
 
   updateStreamingThinking(messageElement, thinking) {
@@ -138,14 +191,33 @@ export class MessageRenderer {
     if (!thinkingDiv) {
       const contentDiv = messageElement.querySelector('.message-content');
       if (!contentDiv) return;
+
       thinkingDiv = document.createElement('div');
       thinkingDiv.className = 'thinking-block streaming-thinking';
-      thinkingDiv.innerHTML = `
-        <div class="thinking-toggle expanded" onclick="var c=this.nextElementSibling;c.classList.toggle('expanded');this.classList.toggle('expanded')">
-          <span class="chevron"><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg></span>
-          <span class="thinking-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/><path d="M6.5 9h11"/><path d="M7 13h10"/></svg> Thinking</span>
-        </div>
-        <div class="thinking-content expanded"></div>`;
+
+      const toggle = document.createElement('div');
+      toggle.className = 'thinking-toggle expanded';
+
+      const chevron = document.createElement('span');
+      chevron.className = 'chevron';
+      chevron.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg>';
+      toggle.appendChild(chevron);
+
+      const label = document.createElement('span');
+      label.className = 'thinking-label';
+      label.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/><path d="M6.5 9h11"/><path d="M7 13h10"/></svg> Thinking';
+      toggle.appendChild(label);
+
+      const content = document.createElement('div');
+      content.className = 'thinking-content expanded';
+
+      toggle.addEventListener('click', () => {
+        content.classList.toggle('expanded');
+        toggle.classList.toggle('expanded');
+      });
+
+      thinkingDiv.appendChild(toggle);
+      thinkingDiv.appendChild(content);
       contentDiv.prepend(thinkingDiv);
     }
     const contentEl = thinkingDiv.querySelector('.thinking-content');
@@ -158,40 +230,86 @@ export class MessageRenderer {
   updateStreamingMessage(messageElement, content) {
     const contentDiv = messageElement.querySelector('.message-content');
     if (contentDiv) {
+      // Store raw text for finalization
+      messageElement.dataset.rawText = content;
+
+      const rendered = renderMarkdown(content);
       // Keep any thinking block, update only the text part
       const thinkingBlock = contentDiv.querySelector('.streaming-thinking');
-      const escaped = this.escapeHtml(content);
       if (thinkingBlock) {
-        // Remove everything after the thinking block and re-add text
         let textNode = contentDiv.querySelector('.streaming-text');
         if (!textNode) {
           textNode = document.createElement('div');
           textNode.className = 'streaming-text';
           contentDiv.appendChild(textNode);
         }
-        textNode.innerHTML = escaped;
+        textNode.innerHTML = rendered;
       } else {
-        contentDiv.innerHTML = escaped;
+        // Preserve any existing streaming-text wrapper or create one
+        let textNode = contentDiv.querySelector('.streaming-text');
+        if (!textNode) {
+          textNode = document.createElement('div');
+          textNode.className = 'streaming-text';
+          contentDiv.innerHTML = '';
+          contentDiv.appendChild(textNode);
+        }
+        textNode.innerHTML = rendered;
       }
       this.scrollToBottom();
     }
   }
 
-  finalizeStreamingMessage(messageElement, usage = null, thinking = '') {
+  finalizeStreamingMessage(messageElement, usage = null, thinking = '', errorMessage = null) {
     const contentDiv = messageElement.querySelector('.message-content');
+    const rawText = messageElement.dataset.rawText || '';
+    delete messageElement.dataset.rawText;
+    const isErrorOnly = errorMessage && !rawText.trim() && !thinking;
+    const copyBtnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+    if (isErrorOnly) {
+      // Replace entire message content with inline error row
+      messageElement.innerHTML = '';
+      const row = document.createElement('div');
+      row.className = 'assistant-error-row';
+
+      const errorEl = document.createElement('div');
+      errorEl.className = 'assistant-error';
+      errorEl.textContent = `Error: ${errorMessage}`;
+      errorEl.dataset.error = errorMessage;
+      row.appendChild(errorEl);
+
+      const btn = document.createElement('button');
+      btn.className = 'message-copy-btn';
+      btn.setAttribute('aria-label', 'Copy message');
+      btn.innerHTML = copyBtnSvg;
+      row.appendChild(btn);
+
+      messageElement.appendChild(row);
+      this._setupCopyBtn(messageElement);
+      return;
+    }
+
     if (contentDiv) {
       contentDiv.classList.remove('streaming');
-      // Get the raw text (exclude thinking block text)
-      const streamingText = contentDiv.querySelector('.streaming-text');
-      const rawText = streamingText ? streamingText.textContent : contentDiv.textContent;
       
-      // Rebuild with thinking block (if any) + markdown text
-      let html = '';
+      // Clear and rebuild with thinking block (DOM) + markdown text (HTML)
+      contentDiv.innerHTML = '';
       if (thinking) {
-        html += this.renderThinkingBlock(thinking);
+        contentDiv.appendChild(this.renderThinkingBlock(thinking));
       }
-      html += renderMarkdown(rawText);
-      contentDiv.innerHTML = html;
+      if (rawText && rawText.trim()) {
+        const textDiv = document.createElement('div');
+        textDiv.innerHTML = renderMarkdown(rawText);
+        contentDiv.appendChild(textDiv);
+      }
+      // Show error message if present (after text content)
+      if (errorMessage) {
+        const errorEl = document.createElement('div');
+        errorEl.className = 'assistant-error';
+        errorEl.textContent = `Error: ${errorMessage}`;
+        errorEl.dataset.error = errorMessage;
+        contentDiv.appendChild(errorEl);
+      }
     }
 
     // Add copy button after streaming finishes
@@ -242,8 +360,9 @@ export class MessageRenderer {
     if (!btn) return;
     btn.addEventListener('click', () => {
       const content = messageEl.querySelector('.message-content');
-      if (!content) return;
-      const text = content.textContent;
+      const errorEl = messageEl.querySelector('.assistant-error');
+      const text = content ? content.textContent : errorEl ? errorEl.dataset.error || errorEl.textContent : '';
+      if (!text) return;
       // Fallback for non-HTTPS (LAN access)
       const copyText = (t) => {
         if (navigator.clipboard) return navigator.clipboard.writeText(t);

@@ -249,7 +249,24 @@ function renderInline(text) {
   const codeSpans = [];
   text = text.replace(/`([^`]+)`/g, (_, code) => {
     const idx = codeSpans.length;
-    codeSpans.push(`<code>${escapeHtml(code)}</code>`);
+    // Detect file path references: contains / and looks like a path (optionally with :line-line)
+    const pathMatch = code.match(/^(.+\/.+?)(?::(\d+)-(\d+))?$/);
+    if (pathMatch && pathMatch[1].length > 1 && !pathMatch[1].includes(' ')) {
+      // It's a file path reference — show only filename
+      const fullPath = pathMatch[1];
+      const fileName = fullPath.split('/').pop();
+      const lineRange = pathMatch[2] && pathMatch[3] ? `:${pathMatch[2]}-${pathMatch[3]}` : '';
+      const label = escapeHtml(fileName + lineRange);
+      codeSpans.push(
+        `<code class="context-ref-inline" title="${escapeHtml(code)}">` +
+        `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px;opacity:0.6">` +
+        `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>` +
+        `<polyline points="14 2 14 8 20 8"/>` +
+        `</svg>${label}</code>`
+      );
+    } else {
+      codeSpans.push(`<code>${escapeHtml(code)}</code>`);
+    }
     return `%%ICODE${idx}%%`;
   });
 

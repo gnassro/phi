@@ -52,6 +52,67 @@ export interface EditorContextShape {
 let selectionDebounce: ReturnType<typeof setTimeout> | null = null;
 let diagnosticsDebounce: ReturnType<typeof setTimeout> | null = null;
 
+// ─── Floating "Chat ⌘L" button decoration ────────────────────────────────────
+
+const isMac = process.platform === 'darwin';
+const shortcutHint = isMac ? '⌘+' : 'Ctrl+';
+
+const chatButtonDecoration = vscode.window.createTextEditorDecorationType({
+  after: {
+    contentText: ` Chat ${shortcutHint} `,
+    backgroundColor: new vscode.ThemeColor('toolbar.activeBackground'),
+    color: new vscode.ThemeColor('editorWidget.foreground'),
+    margin: '0 0 0 16px',
+    // textDecoration hack for CSS properties VS Code doesn't expose directly
+    textDecoration: `none;
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-family: system-ui, -apple-system, sans-serif;
+      border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.25));
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);`,
+  },
+});
+
+let chatButtonDebounce: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Register the floating "Chat ⌘L" button that appears near text selections.
+ * Returns disposables to push into extension context subscriptions.
+ */
+export function registerSelectionButton(): vscode.Disposable[] {
+  const onSelectionChange = vscode.window.onDidChangeTextEditorSelection((e) => {
+    if (chatButtonDebounce) clearTimeout(chatButtonDebounce);
+    chatButtonDebounce = setTimeout(() => {
+      const editor = e.textEditor;
+      const sel = editor.selection;
+
+      if (sel.isEmpty) {
+        editor.setDecorations(chatButtonDecoration, []);
+        return;
+      }
+
+      // Place the button at the end of the selection's last line
+      const endLine = sel.end.line;
+      const lineLen = editor.document.lineAt(endLine).text.length;
+      const pos = new vscode.Position(endLine, lineLen);
+      editor.setDecorations(chatButtonDecoration, [
+        { range: new vscode.Range(pos, pos) },
+      ]);
+    }, 150);
+  });
+
+  const onEditorChange = vscode.window.onDidChangeActiveTextEditor((editor) => {
+    // Clear decoration when switching editors
+    if (editor) {
+      editor.setDecorations(chatButtonDecoration, []);
+    }
+  });
+
+  return [chatButtonDecoration, onSelectionChange, onEditorChange];
+}
+
 /**
  * Watch for active editor selection changes.
  * Debounced to 300ms to avoid flooding the webview while the user drags.
@@ -162,4 +223,61 @@ export function buildSelectionPrompt(): string | null {
   const lines = `lines ${ctx.selection.startLine}-${ctx.selection.endLine}`;
 
   return `In \`${ctx.file}\` ${lines} (${lang}):\n\`\`\`${lang}\n${ctx.selection.text}\n\`\`\``;
+}
+
+/**
+ * Build a context block object from the current selection.
+ * Used by "phi.addSelectionToChat" to insert a lightweight reference in the chat input.
+ * Only sends path + line numbers — Pi can read the file itself.
+ */
+export function buildSelectionContext(): {
+  type: 'selection';
+  filePath: string;
+  startLine: number;
+  endLine: number;
+} | null {
+  const ctx = getContext();
+  if (!ctx.file || !ctx.selection) return null;
+
+  // Make path workspace-relative for display
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  let displayPath = ctx.file;
+  if (workspaceFolders?.[0]) {
+    const root = workspaceFolders[0].uri.fsPath;
+    if (ctx.file.startsWith(root)) {
+      displayPath = ctx.file.substring(root.length + 1);
+    }
+  }
+
+  return {
+    type: 'selection',
+    filePath: displayPath,
+    startLine: ctx.selection.startLine,
+    endLine: ctx.selection.endLine,
+  };
+}
+
+/**
+ * Build a context block object from a file URI.
+ * Used by "phi.addFileToChat" to insert a lightweight file reference in the chat input.
+ * Only sends the path — Pi can read the file itself.
+ */
+export function buildFileContext(uri: vscode.Uri): {
+  type: 'file';
+  filePath: string;
+} | null {
+  // Make path workspace-relative
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  let displayPath = uri.fsPath;
+  if (workspaceFolders?.[0]) {
+    const root = workspaceFolders[0].uri.fsPath;
+    if (uri.fsPath.startsWith(root)) {
+      displayPath = uri.fsPath.substring(root.length + 1);
+    }
+  }
+
+  return {
+    type: 'file',
+    filePath: displayPath,
+  };
 }

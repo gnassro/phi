@@ -8,11 +8,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/phi-agent/phi"
+    "url": "https://github.com/gnassro/phi"
   },
   "engines": {
     "vscode": "^1.85.0"
   },
+  "type": "module",
   "categories": [
     "AI",
     "Chat",
@@ -32,11 +33,39 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "phi-sidebar",
+          "title": "Phi",
+          "icon": "assets/phi-chat.svg"
+        }
+      ]
+    },
+    "views": {
+      "phi-sidebar": [
+        {
+          "type": "webview",
+          "id": "phi.chatView",
+          "name": "Phi"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "phi.openChat",
         "title": "Phi: Open Chat",
         "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "phi.addSelectionToChat",
+        "title": "Phi: Add to Chat",
+        "icon": "$(add)"
+      },
+      {
+        "command": "phi.addFileToChat",
+        "title": "Phi: Add File to Chat",
+        "icon": "$(add)"
       },
       {
         "command": "phi.askAboutSelection",
@@ -52,6 +81,31 @@
         "command": "phi.abortSession",
         "title": "Phi: Abort Current Turn",
         "icon": "$(stop-circle)"
+      },
+      {
+        "command": "phi.login",
+        "title": "Phi: Login",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "phi.logout",
+        "title": "Phi: Logout",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "phi.addApiKey",
+        "title": "Phi: Add API Key",
+        "icon": "$(key)"
+      },
+      {
+        "command": "phi.removeApiKey",
+        "title": "Phi: Remove API Key",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "phi.openTree",
+        "title": "Phi: Open Conversation Tree",
+        "icon": "$(git-branch)"
       }
     ],
     "keybindings": [
@@ -59,20 +113,27 @@
         "command": "phi.openChat",
         "key": "ctrl+shift+l",
         "mac": "cmd+shift+l"
+      },
+      {
+        "command": "phi.addSelectionToChat",
+        "key": "ctrl+shift+=",
+        "mac": "cmd+shift+=",
+        "when": "editorHasSelection"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "phi.askAboutSelection",
+          "command": "phi.addSelectionToChat",
           "when": "editorHasSelection",
-          "group": "navigation@1"
+          "group": "phi@1"
         }
       ],
-      "editor/title": [
+      "explorer/context": [
         {
-          "command": "phi.openChat",
-          "group": "navigation"
+          "command": "phi.addFileToChat",
+          "when": "!explorerResourceIsFolder",
+          "group": "phi@1"
         }
       ]
     },
@@ -83,12 +144,6 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically send editor context (active file, selection) to Pi when opening the chat panel."
-        },
-        "phi.theme": {
-          "type": "string",
-          "default": "night",
-          "enum": ["night", "midnight", "dawn", "clean", "terracotta", "sage"],
-          "description": "Visual theme for the Phi chat panel."
         }
       }
     }
@@ -96,9 +151,9 @@
   "scripts": {
     "build": "pnpm run build:ext && pnpm run build:web",
     "build:ext": "tsc --outDir dist",
-    "build:web": "esbuild public/app.js --bundle --outdir=dist/public --format=esm && cp public/style.css dist/public/style.css && cp public/index.html dist/public/index.html",
+    "build:web": "esbuild public/app.js --bundle --outdir=dist/public --format=esm && cp public/style.css dist/public/style.css",
     "watch": "concurrently \"tsc --watch --outDir dist\" \"esbuild public/app.js --bundle --outdir=dist/public --format=esm --watch\"",
-    "package": "npm run build && npx vsce package --no-dependencies",
+    "package": "pnpm run build && pnpm exec vsce package --no-dependencies",
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
