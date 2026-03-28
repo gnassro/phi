@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/phi-agent/phi"
+    "url": "https://github.com/gnassro/phi"
   },
   "engines": {
     "vscode": "^1.85.0"
