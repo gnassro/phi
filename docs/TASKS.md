@@ -193,6 +193,7 @@ This file tracks all tasks for the Phi project.
 - [x] Paste broken in chat input: added Range API fallback when `document.execCommand('insertText')` fails in VS Code webview
 - [x] Image paste: added missing `e.preventDefault()` to prevent double-paste
 - [x] Stray `w` character in app.js line 8 caused entire webview JS to fail silently — removed
+- [x] Mic/voice button removed — Web Speech API not available in VS Code webviews (Electron limitation)
 
 ### Context Ref Display ✅
 - [x] File path references in rendered user messages show filename only (not full path)
@@ -255,8 +256,14 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify session continuity: close and reopen VS Code → session history preserved
 
 ### Packaging & Local Install
-- [ ] Create a 128×128 `assets/phi-icon.png` icon
-- [ ] Run `pnpm run build` (or `npm run build`) with no errors
-- [ ] Run `pnpm exec vsce package` (or `npx vsce package`) → produces a valid `.vsix`
+- [x] Create a 128×128 `assets/phi-icon.png` icon
+- [x] Run `pnpm run build` (or `npm run build`) with no errors
+- [x] Extension host bundled with esbuild (Pi SDK included, no `node_modules` needed)
+- [x] Run `pnpm run package` → produces a valid `.vsix` (1.5 MB, 11 files)
+- [x] `CHANGELOG.md` created (required by Open VSX)
+- [x] `LICENSE` file (MIT) created
+- [x] Publisher set to `gnassro`
+- [x] Pi SDK pinned to `^0.62.0`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window
+- [ ] Test on Windows and Linux
