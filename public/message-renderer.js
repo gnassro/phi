@@ -63,8 +63,8 @@ export class MessageRenderer {
     }
 
     div.innerHTML = `
-      <div class="message-content">${imagesHtml}${renderUserMarkdown(message.content)}</div>
       <button class="message-copy-btn" aria-label="Copy message"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <div class="message-content">${imagesHtml}${renderUserMarkdown(message.content)}</div>
     `;
     this._setupCopyBtn(div);
     this.container.appendChild(div);
@@ -96,6 +96,15 @@ export class MessageRenderer {
       }
     }
 
+    // Show error message if present
+    const hasError = message.stopReason === 'error' && message.errorMessage;
+    const isErrorOnly = hasError && !contentHtml && thinkingBlocks.length === 0;
+
+    if (hasError) {
+      const escaped = this.escapeHtml(message.errorMessage);
+      contentHtml += `<div class="assistant-error" data-error="${escaped}">Error: ${escaped}</div>`;
+    }
+
     // Usage/cost info
     if (message.usage && message.usage.cost) {
       const cost = message.usage.cost.total;
@@ -105,26 +114,37 @@ export class MessageRenderer {
     }
 
     const streamingClass = isStreaming ? ' streaming' : '';
+    const copyBtnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
 
-    const copyBtnHtml = !isStreaming ? '<button class="message-copy-btn" aria-label="Copy message"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>' : '';
+    if (isErrorOnly && !isStreaming) {
+      // Error-only: single row with error text + copy button at right
+      div.innerHTML = `
+        <div class="assistant-error-row">
+          <div class="assistant-error" data-error="${this.escapeHtml(message.errorMessage)}">Error: ${this.escapeHtml(message.errorMessage)}</div>
+          <button class="message-copy-btn" aria-label="Copy message">${copyBtnSvg}</button>
+        </div>
+      `;
+    } else {
+      const copyBtnHtml = !isStreaming ? `<button class="message-copy-btn" aria-label="Copy message">${copyBtnSvg}</button>` : '';
 
-    div.innerHTML = `
-      <div class="message-actions-row">
-        ${usageHtml}
-        ${copyBtnHtml}
-      </div>
-      <div class="message-content${streamingClass}"></div>
-    `;
+      div.innerHTML = `
+        <div class="message-actions-row">
+          ${usageHtml}
+          ${copyBtnHtml}
+        </div>
+        <div class="message-content${streamingClass}"></div>
+      `;
 
-    // Append thinking blocks (DOM elements) then HTML content
-    const contentDiv = div.querySelector('.message-content');
-    for (const tb of thinkingBlocks) {
-      contentDiv.appendChild(tb);
-    }
-    if (contentHtml) {
-      const textContainer = document.createElement('div');
-      textContainer.innerHTML = contentHtml;
-      contentDiv.appendChild(textContainer);
+      // Append thinking blocks (DOM elements) then HTML content
+      const contentDiv = div.querySelector('.message-content');
+      for (const tb of thinkingBlocks) {
+        contentDiv.appendChild(tb);
+      }
+      if (contentHtml) {
+        const textContainer = document.createElement('div');
+        textContainer.innerHTML = contentHtml;
+        contentDiv.appendChild(textContainer);
+      }
     }
 
     if (!isStreaming) this._setupCopyBtn(div);
@@ -210,41 +230,86 @@ export class MessageRenderer {
   updateStreamingMessage(messageElement, content) {
     const contentDiv = messageElement.querySelector('.message-content');
     if (contentDiv) {
+      // Store raw text for finalization
+      messageElement.dataset.rawText = content;
+
+      const rendered = renderMarkdown(content);
       // Keep any thinking block, update only the text part
       const thinkingBlock = contentDiv.querySelector('.streaming-thinking');
-      const escaped = this.escapeHtml(content);
       if (thinkingBlock) {
-        // Remove everything after the thinking block and re-add text
         let textNode = contentDiv.querySelector('.streaming-text');
         if (!textNode) {
           textNode = document.createElement('div');
           textNode.className = 'streaming-text';
           contentDiv.appendChild(textNode);
         }
-        textNode.innerHTML = escaped;
+        textNode.innerHTML = rendered;
       } else {
-        contentDiv.innerHTML = escaped;
+        // Preserve any existing streaming-text wrapper or create one
+        let textNode = contentDiv.querySelector('.streaming-text');
+        if (!textNode) {
+          textNode = document.createElement('div');
+          textNode.className = 'streaming-text';
+          contentDiv.innerHTML = '';
+          contentDiv.appendChild(textNode);
+        }
+        textNode.innerHTML = rendered;
       }
       this.scrollToBottom();
     }
   }
 
-  finalizeStreamingMessage(messageElement, usage = null, thinking = '') {
+  finalizeStreamingMessage(messageElement, usage = null, thinking = '', errorMessage = null) {
     const contentDiv = messageElement.querySelector('.message-content');
+    const rawText = messageElement.dataset.rawText || '';
+    delete messageElement.dataset.rawText;
+    const isErrorOnly = errorMessage && !rawText.trim() && !thinking;
+    const copyBtnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+    if (isErrorOnly) {
+      // Replace entire message content with inline error row
+      messageElement.innerHTML = '';
+      const row = document.createElement('div');
+      row.className = 'assistant-error-row';
+
+      const errorEl = document.createElement('div');
+      errorEl.className = 'assistant-error';
+      errorEl.textContent = `Error: ${errorMessage}`;
+      errorEl.dataset.error = errorMessage;
+      row.appendChild(errorEl);
+
+      const btn = document.createElement('button');
+      btn.className = 'message-copy-btn';
+      btn.setAttribute('aria-label', 'Copy message');
+      btn.innerHTML = copyBtnSvg;
+      row.appendChild(btn);
+
+      messageElement.appendChild(row);
+      this._setupCopyBtn(messageElement);
+      return;
+    }
+
     if (contentDiv) {
       contentDiv.classList.remove('streaming');
-      // Get the raw text (exclude thinking block text)
-      const streamingText = contentDiv.querySelector('.streaming-text');
-      const rawText = streamingText ? streamingText.textContent : contentDiv.textContent;
       
       // Clear and rebuild with thinking block (DOM) + markdown text (HTML)
       contentDiv.innerHTML = '';
       if (thinking) {
         contentDiv.appendChild(this.renderThinkingBlock(thinking));
       }
-      const textDiv = document.createElement('div');
-      textDiv.innerHTML = renderMarkdown(rawText);
-      contentDiv.appendChild(textDiv);
+      if (rawText && rawText.trim()) {
+        const textDiv = document.createElement('div');
+        textDiv.innerHTML = renderMarkdown(rawText);
+        contentDiv.appendChild(textDiv);
+      }
+      // Show error message if present (after text content)
+      if (errorMessage) {
+        const errorEl = document.createElement('div');
+        errorEl.className = 'assistant-error';
+        errorEl.textContent = `Error: ${errorMessage}`;
+        errorEl.dataset.error = errorMessage;
+        contentDiv.appendChild(errorEl);
+      }
     }
 
     // Add copy button after streaming finishes
@@ -295,8 +360,9 @@ export class MessageRenderer {
     if (!btn) return;
     btn.addEventListener('click', () => {
       const content = messageEl.querySelector('.message-content');
-      if (!content) return;
-      const text = content.textContent;
+      const errorEl = messageEl.querySelector('.assistant-error');
+      const text = content ? content.textContent : errorEl ? errorEl.dataset.error || errorEl.textContent : '';
+      if (!text) return;
       // Fallback for non-HTTPS (LAN access)
       const copyText = (t) => {
         if (navigator.clipboard) return navigator.clipboard.writeText(t);
