@@ -101,6 +101,11 @@
         "command": "phi.removeApiKey",
         "title": "Phi: Remove API Key",
         "icon": "$(trash)"
+      },
+      {
+        "command": "phi.openTree",
+        "title": "Phi: Open Conversation Tree",
+        "icon": "$(git-branch)"
       }
     ],
     "keybindings": [

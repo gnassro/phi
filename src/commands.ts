@@ -288,4 +288,15 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
       );
     })
   );
+
+  // ── phi.openTree ──────────────────────────────────────────────────────────
+  ctx.subscriptions.push(
+    vscode.commands.registerCommand('phi.openTree', () => {
+      PanelManager.openPanel();
+      // Small delay to ensure webview is ready
+      setTimeout(() => {
+        PanelManager.send({ type: 'open_tree' });
+      }, 200);
+    })
+  );
 }

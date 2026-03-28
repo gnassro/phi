@@ -289,9 +289,9 @@ export function getContextUsage() {
 /**
  * Trigger manual context compaction.
  */
-export async function compact(): Promise<void> {
+export async function compact(): Promise<any> {
   if (!session) return;
-  await session.compact();
+  return await session.compact();
 }
 
 /**
@@ -413,4 +413,133 @@ export function setApiKey(providerId: string, key: string): void {
 export function removeApiKey(providerId: string): void {
   if (!authStorage) return;
   authStorage.remove(providerId);
+}
+
+// ─── Tree / branching ─────────────────────────────────────────────────────────
+
+/** Local mirror of SessionTreeNode (not re-exported from pi SDK package root) */
+interface SessionTreeNode {
+  entry: any; // SessionEntry
+  children: SessionTreeNode[];
+  label?: string;
+}
+
+/**
+ * Serialized tree node for IPC (strips non-serializable data).
+ */
+export interface SerializedTreeNode {
+  id: string;
+  parentId: string | null;
+  type: string;
+  label?: string;
+  preview: string;        // short text preview for display
+  role?: string;          // 'user' | 'assistant' for message entries
+  children: SerializedTreeNode[];
+}
+
+/**
+ * Get the session tree structure + current leaf ID.
+ */
+export function getTree(): { tree: SerializedTreeNode[]; leafId: string | null } {
+  if (!session) return { tree: [], leafId: null };
+  const sm = session.sessionManager;
+  const rawTree = sm.getTree();
+  const leafId = sm.getLeafId();
+  return {
+    tree: rawTree.map(serializeTreeNode),
+    leafId,
+  };
+}
+
+function serializeTreeNode(node: SessionTreeNode): SerializedTreeNode {
+  const entry = node.entry;
+  let preview = '';
+  let role: string | undefined;
+
+  switch (entry.type) {
+    case 'message': {
+      const msg = entry.message;
+      role = msg.role;
+      if (typeof msg.content === 'string') {
+        preview = msg.content.substring(0, 120);
+      } else if (Array.isArray(msg.content)) {
+        // Collect text content
+        const textParts: string[] = [];
+        const toolNames: string[] = [];
+        for (const block of msg.content as any[]) {
+          if (block.type === 'text' && block.text) {
+            textParts.push(block.text);
+          } else if (block.type === 'tool_use' && block.name) {
+            const argPreview = block.input?.path || block.input?.command?.substring(0, 50) || '';
+            toolNames.push(argPreview ? `${block.name}(${argPreview})` : block.name);
+          } else if (block.type === 'tool_result') {
+            // Skip tool results in preview
+          }
+        }
+        if (textParts.length > 0) {
+          preview = textParts.join(' ').substring(0, 120);
+        } else if (toolNames.length > 0) {
+          preview = toolNames.join(', ').substring(0, 120);
+        }
+      }
+      // Fallback: if preview is still empty, show role
+      if (!preview) {
+        preview = role === 'user' ? '(empty)' : '(tool calls)';
+      }
+      break;
+    }
+    case 'compaction':
+      preview = 'Context compacted';
+      break;
+    case 'branch_summary':
+      preview = entry.summary?.substring(0, 80) || 'Branch summary';
+      break;
+    case 'model_change':
+      preview = `Model → ${entry.modelId}`;
+      break;
+    case 'thinking_level_change':
+      preview = `Thinking → ${entry.thinkingLevel}`;
+      break;
+    case 'custom_message':
+      preview = (entry as any).content?.substring(0, 80) || 'Custom message';
+      break;
+    default:
+      preview = entry.type;
+  }
+
+  return {
+    id: entry.id,
+    parentId: entry.parentId,
+    type: entry.type,
+    label: node.label,
+    preview,
+    role,
+    children: node.children.map(serializeTreeNode),
+  };
+}
+
+/**
+ * Navigate to a different point in the tree.
+ */
+export async function navigateTree(
+  targetId: string,
+  options: {
+    summarize?: boolean;
+    customInstructions?: string;
+  } = {}
+): Promise<{ cancelled: boolean }> {
+  if (!session) return { cancelled: true };
+  const result = await session.navigateTree(targetId, {
+    summarize: options.summarize,
+    customInstructions: options.customInstructions,
+  });
+  return { cancelled: result.cancelled };
+}
+
+/**
+ * Set or clear a label on an entry.
+ */
+export function setLabel(entryId: string, label: string | undefined): void {
+  if (!session) return;
+  session.sessionManager.appendLabelChange(entryId, label ?? '');
 }

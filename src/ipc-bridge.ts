@@ -38,7 +38,12 @@ type WebviewMessage =
   | { type: 'logout' }
   | { type: 'get_accounts' }
   | { type: 'add_api_key' }
-  | { type: 'remove_api_key' };
+  | { type: 'remove_api_key' }
+
+  // Tree
+  | { type: 'get_tree' }
+  | { type: 'navigate_tree'; targetId: string; summarize: boolean; customInstructions?: string }
+  | { type: 'set_label'; entryId: string; label: string };
 
 let initialized = false;
 
@@ -132,9 +137,15 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
     // ── Agent controls ──
     case 'compact':
       try {
-        await AgentManager.compact();
+        // Notify webview that compaction has started
+        PanelManager.send({ type: 'pi_event', event: { type: 'auto_compaction_start' } });
+        const result = await AgentManager.compact();
+        // Notify webview with the result
+        PanelManager.send({ type: 'pi_event', event: { type: 'auto_compaction_end', result } });
         sendRpcResponse('compact', true);
       } catch (err) {
+        // Clear the spinner on error
+        PanelManager.send({ type: 'pi_event', event: { type: 'auto_compaction_end', result: undefined } });
         sendRpcResponse('compact', false, undefined, (err as Error).message);
       }
       break;
@@ -174,6 +185,40 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
     case 'remove_api_key':
       vscode.commands.executeCommand('phi.removeApiKey');
       break;
+
+    // ── Tree ──
+    case 'get_tree': {
+      const treeData = AgentManager.getTree();
+      PanelManager.send({ type: 'tree_data', ...treeData });
+      break;
+    }
+
+    case 'navigate_tree': {
+      const navMsg = message as { targetId: string; summarize: boolean; customInstructions?: string };
+      try {
+        const result = await AgentManager.navigateTree(navMsg.targetId, {
+          summarize: navMsg.summarize,
+          customInstructions: navMsg.customInstructions,
+        });
+        PanelManager.send({ type: 'navigate_result', success: !result.cancelled, cancelled: result.cancelled });
+        if (!result.cancelled) {
+          // Sync chat after navigation
+          sendSync();
+        }
+      } catch (err) {
+        PanelManager.send({ type: 'navigate_result', success: false, error: (err as Error).message });
+      }
+      break;
+    }
+
+    case 'set_label': {
+      const labelMsg = message as { entryId: string; label: string };
+      AgentManager.setLabel(labelMsg.entryId, labelMsg.label || undefined);
+      // Refresh tree after label change
+      const updated = AgentManager.getTree();
+      PanelManager.send({ type: 'tree_data', ...updated });
+      break;
+    }
 
     default:
       console.warn('[Phi] IpcBridge received unknown message type:', (message as { type: string }).type);
