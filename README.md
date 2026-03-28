@@ -18,6 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/VS%20Code-^1.85.0-007ACC?logo=visual-studio-code" alt="VS Code">
+  <img src="https://img.shields.io/badge/Pi%20SDK-0.62.0-purple" alt="Pi SDK">
   <img src="https://img.shields.io/badge/TypeScript-ESM-3178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/vibe-coded%20🤙-ff69b4" alt="Vibe Coded">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
@@ -124,6 +125,18 @@ code --install-extension phi-agent-0.1.0.vsix
 
 ---
 
+## ⚠️ Disclaimer
+
+This extension is in **early development** and comes with no warranty. Please be aware:
+
+- **Not all features have been fully tested** — some may behave unexpectedly
+- **Only tested on macOS** — Windows and Linux are untested and may have issues
+- **Use at your own risk** — always review AI-generated code changes before accepting them
+
+If you encounter any bugs or issues, please [open an issue](https://github.com/gnassro/phi/issues) on GitHub. Your feedback helps improve the extension for everyone.
+
+---
+
 ## 🏗️ Architecture
 
 Phi is a VS Code extension built with TypeScript + vanilla JS:
@@ -143,7 +156,9 @@ The Pi SDK runs in the same Node.js process as the extension host — no externa
 | [**Pi**](https://github.com/badlogic/pi-mono) | The CLI AI coding agent (`pi` command) |
 | **Phi** | A VS Code extension that brings Pi into the editor |
 
-Phi uses the [Pi SDK](https://www.npmjs.com/package/@mariozechner/pi-coding-agent) (`@mariozechner/pi-coding-agent`) to run the agent directly inside VS Code's extension host.
+Phi uses the [Pi SDK](https://www.npmjs.com/package/@mariozechner/pi-coding-agent) (`@mariozechner/pi-coding-agent@0.62.0`) to run the agent directly inside VS Code's extension host.
+
+> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.62.0`. Newer versions may work but are not guaranteed until tested.
 
 ---
 

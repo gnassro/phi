@@ -104,7 +104,7 @@ phi/
 | Pi agent engine | `@mariozechner/pi-coding-agent` | The Pi SDK — runs in extension host only |
 | UI framework | Vanilla JS + CSS | No build complexity for webview |
 | Webview bundler | `esbuild` | Fast, zero-config, single-file output |
-| TypeScript compiler | `tsc` | Compiles `src/` to `dist/` |
+| TypeScript compiler | `tsc` | Type checking (`pnpm run typecheck`) |
 | VS Code types | `@types/vscode` | Full type coverage for VS Code API |
 
 ---
@@ -286,14 +286,11 @@ Full reference: `docs/pi-sdk.md`
 # Install dependencies (pnpm preferred — uses hard-linked global store, saves disk & time)
 pnpm install              # or: npm install
 
-# Compile TypeScript (src/ → dist/)
-pnpm exec tsc             # or: npx tsc
-
-# Bundle webview assets (public/ → dist/public/)
-pnpm exec esbuild public/app.js --bundle --outdir=dist/public --format=esm
-
-# Both in one command
+# Build everything (extension host + webview)
 pnpm run build            # or: npm run build
+
+# Type check only (no output)
+pnpm run typecheck        # or: npx tsc --noEmit
 
 # Watch mode during development
 pnpm run watch            # or: npm run watch
@@ -308,10 +305,15 @@ code --install-extension phi-agent-0.1.0.vsix
 # Configured in .vscode/launch.json
 ```
 
+**Build details:**
+- `build:ext` — bundles `src/extension.ts` + all dependencies (including Pi SDK) into a single `dist/extension.js` via esbuild (ESM, Node.js, minified)
+- `build:web` — bundles `public/app.js` into `dist/public/app.js` via esbuild (ESM) + copies `style.css`
+- `vscode` is marked as external (provided by VS Code at runtime)
+
 **Output structure after build:**
 ```
 dist/
-├── extension.js       ← compiled extension host entry point
+├── extension.js       ← bundled extension host (includes Pi SDK)
 └── public/
     ├── app.js         ← bundled webview JS
     └── style.css      ← (copied, not bundled)
