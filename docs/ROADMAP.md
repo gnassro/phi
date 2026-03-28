@@ -23,7 +23,10 @@ to prevent stale JS/CSS after rebuilds.
 Auth system: OAuth login via browser + API key management via VS Code QuickPick. Saved to
 `~/.phi/auth.json`. Sessions shared with pi CLI at `~/.pi/agent/sessions/`.
 
-Current focus: Milestone 3 (editor integration) and manual testing.
+Build: Extension host bundled with esbuild (Pi SDK `0.62.0` included). Self-contained `.vsix`
+at 1.5 MB — no `node_modules` required. Published as `gnassro` on Open VSX.
+
+Current focus: Milestone 4 (packaging) nearly complete. Manual testing ongoing.
 
 ---
 
@@ -104,5 +107,5 @@ File browser, code editor, project launcher, PWA, mobile UI, auth, Tailscale.
 **Planned features:**
 - "Active file" context badge above the input area
 - Auto-inject workspace errors into context when there are active diagnostics
-- Voice input (mic button)
+- ~~Voice input~~ (Web Speech API not available in VS Code webviews — removed)
 - Model switcher with search and provider labels

@@ -218,8 +218,8 @@ All styles use VS Code's built-in `--vscode-*` CSS variables exclusively. The ex
 ## Build System
 
 ```bash
-# Compile TypeScript (src/ → dist/)
-tsc --outDir dist
+# Bundle extension host (src/ + Pi SDK → dist/extension.js)
+esbuild src/extension.ts --bundle --outfile=dist/extension.js --format=esm --platform=node --external:vscode --minify
 
 # Bundle webview assets (public/ → dist/public/)
 esbuild public/app.js --bundle --outdir=dist/public
@@ -227,11 +227,14 @@ esbuild public/app.js --bundle --outdir=dist/public
 # Both together
 pnpm run build            # or: npm run build
 
+# Type check only (no output)
+pnpm run typecheck        # or: npx tsc --noEmit
+
 # Watch mode for development
 pnpm run watch            # or: npm run watch
 ```
 
-VS Code launches the extension from `dist/extension.js` (defined in package.json `"main"` field).
+VS Code launches the extension from `dist/extension.js` (defined in package.json `"main"` field). The Pi SDK and all dependencies are bundled into this single file — no `node_modules` needed at runtime.
 
 ---
 
