@@ -117,6 +117,7 @@ function buildWebviewHtml(
   extensionUri: vscode.Uri
 ): string {
   const nonce = getNonce();
+  const cacheBust = Date.now();
 
   // Convert local file URIs to webview-safe URIs
   const scriptUri = webview.asWebviewUri(
@@ -139,7 +140,7 @@ function buildWebviewHtml(
       img-src ${webview.cspSource} data: blob:;
       font-src ${webview.cspSource};
     ">
-  <link rel="stylesheet" href="${styleUri}">
+  <link rel="stylesheet" href="${styleUri}?v=${cacheBust}">
   <title>Phi</title>
 </head>
 <body>
@@ -161,26 +162,33 @@ function buildWebviewHtml(
       </div>
 
       <div class="header-right">
-        <button class="icon-btn" id="new-chat-btn" title="New Chat" aria-label="New Chat">
+        <button class="icon-btn has-tooltip" id="new-chat-btn" aria-label="New Chat" data-tooltip="New Chat">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 5v14"/><path d="M5 12h14"/>
           </svg>
         </button>
-        <button class="icon-btn" id="history-btn" title="Session History" aria-label="Session History">
+        <button class="icon-btn has-tooltip" id="history-btn" aria-label="Session History" data-tooltip="History">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
           </svg>
         </button>
-        <button class="icon-btn" id="settings-btn" title="Settings" aria-label="Settings">
+        <button class="icon-btn has-tooltip" id="tree-btn" aria-label="Conversation Tree" data-tooltip="Tree">
+          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"></path>
+          </svg>
+        </button>
+        <button class="icon-btn has-tooltip" id="settings-btn" aria-label="Settings" data-tooltip="Settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
         </button>
-        <button class="icon-btn" id="accounts-btn" title="Accounts" aria-label="Accounts">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+        <button class="icon-btn has-tooltip" id="accounts-btn" aria-label="Accounts" data-tooltip="Accounts">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/>
+            <path d="M12.1207 12.78C12.0507 12.77 11.9607 12.77 11.8807 12.78C10.1207 12.72 8.7207 11.28 8.7207 9.50998C8.7207 7.69998 10.1807 6.22998 12.0007 6.22998C13.8107 6.22998 15.2807 7.69998 15.2807 9.50998C15.2707 11.28 13.8807 12.72 12.1207 12.78Z"/>
+            <path d="M18.7398 19.3801C16.9598 21.0101 14.5998 22.0001 11.9998 22.0001C9.39977 22.0001 7.03977 21.0101 5.25977 19.3801C5.35977 18.4401 5.95977 17.5201 7.02977 16.8001C9.76977 14.9801 14.2498 14.9801 16.9698 16.8001C18.0398 17.5201 18.6398 18.4401 18.7398 19.3801Z"/>
           </svg>
         </button>
       </div>
@@ -361,6 +369,32 @@ function buildWebviewHtml(
     </div>
   </div>
 
+  <!-- ── Tree Panel ── -->
+  <div class="settings-overlay hidden" id="tree-overlay"></div>
+  <div class="settings-panel hidden" id="tree-panel">
+    <div class="settings-header">
+      <h3>Conversation Tree</h3>
+      <button class="settings-close" id="tree-close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="settings-body" style="padding: 0;">
+      <div class="tree-toolbar">
+        <select id="tree-filter" class="tree-filter-select">
+          <option value="default">User + Assistant</option>
+          <option value="user-only">User only</option>
+          <option value="labeled-only">Labeled only</option>
+          <option value="all">All entries</option>
+        </select>
+      </div>
+      <div class="tree-view" id="tree-view">
+        <div class="tree-loading">Loading tree...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Command Palette ── -->
   <div class="command-palette-overlay hidden" id="command-palette-overlay"></div>
   <div class="command-palette hidden" id="command-palette">
@@ -368,7 +402,7 @@ function buildWebviewHtml(
     <div class="command-list" id="command-list"></div>
   </div>
 
-  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
+  <script type="module" nonce="${nonce}" src="${scriptUri}?v=${cacheBust}"></script>
 </body>
 </html>`;
 }
