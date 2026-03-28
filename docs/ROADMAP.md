@@ -7,12 +7,18 @@ This file describes what Phi is building toward, milestone by milestone.
 
 ## Current Status: Milestone 2 Complete — Milestone 3 In Progress
 
-Milestone 2 is complete: all Tau feature parity implemented including header bar, tool cards
+Milestone 2 is complete: all features implemented including header bar, tool cards
 (with collapse, spinner, diff view, copy button), session history, settings panel, accounts
 panel (OAuth + API keys), scroll-to-bottom, cost/token display, context visualizer, command
 palette, keyboard shortcuts, and thinking block toggle. CSS uses VS Code's native `--vscode-*`
 variables exclusively. All inline onclick handlers replaced with addEventListener for CSP
 compliance. Context refs show filename-only in rendered messages.
+
+Recent polish: CSS tooltips on all header buttons (native `title` unreliable in VS Code
+webviews), accounts icon changed to person-in-circle SVG, error message tooltips via CSS
+`::after` pseudo-element with `data-error` attribute, copy button works on error-only messages,
+paste fixed in chat input (Range API fallback for VS Code webview), webview asset cache-busting
+to prevent stale JS/CSS after rebuilds.
 
 Auth system: OAuth login via browser + API key management via VS Code QuickPick. Saved to
 `~/.phi/auth.json`. Sessions shared with pi CLI at `~/.pi/agent/sessions/`.
@@ -35,14 +41,13 @@ Current focus: Milestone 3 (editor integration) and manual testing.
 
 ---
 
-## Milestone 2 — Feature Parity with Tau (In Progress)
+## Milestone 2 — Full Feature Set ✅
 
-**Goal:** Phi has all the UI features of Tau, adapted for the VS Code extension context. Users get the same rich experience — tool cards, session management, model switching, settings — without needing to run `pi` in a terminal first.
+**Goal:** Phi has a complete, rich UI — tool cards, session management, model switching, settings — running the Pi SDK directly in the extension host.
 
-**Key architectural difference from Tau:**
-Tau connects to a running Pi CLI via WebSocket + HTTP API.
-Phi runs the Pi SDK directly in the extension host — no external process needed.
-All features that Tau implements via `fetch('/api/...')` must use VS Code IPC instead.
+**Architecture:**
+Pi SDK runs directly in the extension host — no external process needed.
+All communication uses VS Code IPC.
 
 **Features excluded (handled by VS Code natively):**
 File browser, code editor, project launcher, PWA, mobile UI, auth, Tailscale.
@@ -64,6 +69,7 @@ File browser, code editor, project launcher, PWA, mobile UI, auth, Tailscale.
 - Tool cards in session history restore
 - Thinking blocks collapsible (CSP-compliant DOM event listeners)
 - Context refs show filename only in rendered messages (full path on hover)
+- Conversation tree panel: browse branches, navigate with optional summary, label entries
 
 ---
 

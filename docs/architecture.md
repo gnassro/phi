@@ -129,33 +129,33 @@ Commands registered:
 - `phi.logout` — OAuth logout (QuickPick)
 - `phi.addApiKey` — add API key (QuickPick → masked input → `~/.phi/auth.json`)
 - `phi.removeApiKey` — remove API key (QuickPick → `~/.phi/auth.json`)
+- `phi.openTree` — open conversation tree panel (browse/navigate branches)
 
 ---
 
 ## Webview (public/)
 
-The webview is a full HTML page that runs inside VS Code's sandboxed Chromium. It is adapted from Tau's frontend with WebSocket replaced by VS Code IPC.
+The webview is a full HTML page that runs inside VS Code's sandboxed Chromium. All communication uses VS Code IPC (message passing via `acquireVsCodeApi()`).
 
-### Key Difference from Tau
+### Architecture
 
 ```
-Tau:                            Phi:
-Browser                         Webview
-  ↕ WebSocket                     ↕ acquireVsCodeApi().postMessage
-HTTP/WS Server                  Extension Host IPC
-  ↕ Pi Extension API               ↕ Direct function calls
-Pi (separate process)           Pi SDK (same Node.js process)
+Webview                         Extension Host
+  ↕ acquireVsCodeApi().postMessage
+Extension Host IPC
+  ↕ Direct function calls
+Pi SDK (same Node.js process)
 ```
 
 ### `public/app.js`
-Main coordinator. Differences from Tau's app.js:
-- No `WebSocketClient` — replaced by `VscodeIPC` singleton
-- `VscodeIPC.send(msg)` replaces `wsClient.send(msg)`
-- `VscodeIPC.on('message', handler)` replaces WebSocket event listeners
+Main coordinator:
+- Uses `VscodeIPC` singleton for all communication
+- `VscodeIPC.send(msg)` sends messages to extension host
+- `VscodeIPC.on('type', handler)` receives messages from extension host
 - On load: sends `request_sync` to get current state
 - Handles `pi_event` messages from extension host
 
-### `public/vscode-ipc.js` (NEW — does not exist in Tau)
+### `public/vscode-ipc.js`
 Thin wrapper around VS Code's message API:
 
 ```javascript
@@ -193,7 +193,7 @@ All styles use VS Code's built-in `--vscode-*` CSS variables exclusively. The ex
 10. ipc-bridge.ts receives event, calls PanelManager.send({ type: 'pi_event', event })
 11. Webview receives message via window.addEventListener('message')
 12. app.js handlePiEvent(event) routes to message-renderer.js
-13. message-renderer.js updates DOM (same as Tau)
+13. message-renderer.js updates DOM
 ```
 
 ---

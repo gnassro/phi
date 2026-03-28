@@ -64,12 +64,11 @@ See `AGENTS.md` for the full technical reference.
 
 ---
 
-## Relation to Pi and Tau
+## Relation to Pi
 
 | Project | What it is |
 |---|---|
 | **Pi** | The CLI AI coding agent (`pi` command) |
-| **Tau** | A browser mirror of a running Pi terminal session (web UI) |
 | **Phi** | A VS Code extension that runs Pi natively inside VS Code |
 
 Phi is not a mirror. It **is** the agent.

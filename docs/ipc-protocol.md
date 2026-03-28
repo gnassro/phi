@@ -2,8 +2,7 @@
 
 All communication between the Webview (public/) and the Extension Host (src/) uses VS Code's built-in message passing. There is no WebSocket, no HTTP, no external server.
 
-> **Key difference from Tau:** Tau uses `fetch('/api/rpc', ...)` and WebSocket events.
-> Phi routes everything through `VscodeIPC.send()` → `panel.webview.onDidReceiveMessage()`
+> All messages are routed through `VscodeIPC.send()` → `panel.webview.onDidReceiveMessage()`
 > → `ipc-bridge.ts` → `agent-manager.ts` → Pi SDK.
 
 ---
@@ -42,7 +41,12 @@ type WebviewMessage =
   | { type: "logout" }
   | { type: "get_accounts" }
   | { type: "add_api_key" }
-  | { type: "remove_api_key" };
+  | { type: "remove_api_key" }
+
+  // Tree navigation
+  | { type: "get_tree" }
+  | { type: "navigate_tree"; targetId: string; summarize: boolean; customInstructions?: string }
+  | { type: "set_label"; entryId: string; label: string };
 
 interface ImagePayload {
   type: "image";
@@ -203,7 +207,10 @@ type ExtensionMessage =
   | { type: "add_context"; context: ContextBlock }
   | { type: "prefill_input"; text: string }
   | { type: "rpc_response"; command: string; success: boolean; data?: unknown; error?: string }
-  | { type: "accounts_list"; providers: OAuthProviderStatus[]; apiKeyProviders: ApiKeyProviderStatus[] };
+  | { type: "accounts_list"; providers: OAuthProviderStatus[]; apiKeyProviders: ApiKeyProviderStatus[] }
+  | { type: "tree_data"; tree: SerializedTreeNode[]; leafId: string | null }
+  | { type: "navigate_result"; success: boolean; cancelled?: boolean; error?: string }
+  | { type: "open_tree" };
 ```
 
 ### `pi_event`

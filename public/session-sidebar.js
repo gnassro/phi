@@ -1,6 +1,6 @@
 /**
  * Session Sidebar — Lists sessions, handles switching
- * Adapted from Tau for VS Code IPC (no HTTP fetch).
+ * Adapted for VS Code IPC (no HTTP fetch).
  * Sessions are loaded via VscodeIPC messages instead of /api/sessions.
  */
 

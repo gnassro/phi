@@ -4,9 +4,7 @@
  * Thin wrapper around VS Code's acquireVsCodeApi() message-passing API.
  * This is the ONLY file allowed to call acquireVsCodeApi().
  *
- * Replaces WebSocketClient from Tau. All messages go through VS Code IPC,
- * not a WebSocket. The API is intentionally similar to Tau's wsClient so
- * app.js stays familiar.
+ * All messages go through VS Code IPC. No WebSocket, no HTTP.
  *
  * Usage:
  *   import { VscodeIPC } from './vscode-ipc.js';

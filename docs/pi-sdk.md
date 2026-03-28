@@ -161,7 +161,7 @@ export function buildSnapshot(): SyncState {
 
 ## AgentSessionEvent Types
 
-These are the raw events from Pi SDK that the IPC bridge forwards to the webview. The webview handles them identically to Tau.
+These are the raw events from Pi SDK that the IPC bridge forwards to the webview.
 
 ```typescript
 // Text streaming from assistant

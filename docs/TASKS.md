@@ -34,9 +34,9 @@ This file tracks all tasks for the Phi project.
 ### Webview UI (`public/`)
 - [x] `public/vscode-ipc.js` — `acquireVsCodeApi()` wrapper (replaces WebSocket)
 - [x] `public/app.js` — main UI coordinator (basic version)
-- [x] `public/chat-input.js` — ContentEditable rich-text input (from Tau)
-- [x] `public/message-renderer.js` — message DOM rendering (from Tau)
-- [x] `public/markdown.js` — Markdown → HTML renderer (from Tau)
+- [x] `public/chat-input.js` — ContentEditable rich-text input
+- [x] `public/message-renderer.js` — message DOM rendering
+- [x] `public/markdown.js` — Markdown → HTML renderer
 - [x] `public/style.css` — basic styles
 
 ### Build & Launch
@@ -50,21 +50,18 @@ This file tracks all tasks for the Phi project.
 
 ## 🔲 Pending
 
-### Feature Parity with Tau (adapted for VS Code extension)
+### Full Feature Set
 
-> **Principle:** Tau is a web mirror of a running Pi CLI (requires `pi` running first).
-> Phi is a standalone VS Code extension — Pi SDK runs directly in the extension host.
-> All Tau features that use `fetch('/api/...')` or WebSocket must be adapted to use
-> VS Code IPC (`VscodeIPC.send()` → `ipc-bridge.ts` → `agent-manager.ts` → Pi SDK).
+> **Principle:** Phi is a standalone VS Code extension — Pi SDK runs directly in the extension host.
+> All communication uses VS Code IPC (`VscodeIPC.send()` → `ipc-bridge.ts` → `agent-manager.ts` → Pi SDK).
 >
-> **Excluded from Tau:** File browser (VS Code has Explorer), code editor pane (VS Code IS the editor),
-> launcher/project picker (VS Code workspaces), PWA/service worker/manifest, mobile splash,
-> Tailscale, auth toggle, mirror mode, swipe gestures, tab title notifications,
-> **custom theme picker** (VS Code handles theming natively).
+> **Not included:** File browser (VS Code has Explorer), code editor pane (VS Code IS the editor),
+> launcher/project picker (VS Code workspaces), PWA/service worker/manifest, mobile UI,
+> custom theme picker (VS Code handles theming natively).
 
 #### Tool Cards — `public/tool-card.js`, `public/state.js` ✅
-- [x] Create `public/state.js` — StateManager for tracking tool execution state (from Tau)
-- [x] Create `public/tool-card.js` — ToolCardRenderer (from Tau)
+- [x] Create `public/state.js` — StateManager for tracking tool execution state
+- [x] Create `public/tool-card.js` — ToolCardRenderer
 - [x] Wire `tool_execution_start/update/end` events in `app.js` → ToolCardRenderer
 - [x] Add tool card CSS to `style.css`
 - [x] Collapsible cards with chevron toggle (fixed CSP: uses addEventListener, not inline onclick)
@@ -84,7 +81,7 @@ This file tracks all tasks for the Phi project.
 - [x] Settings button (opens settings panel)
 
 #### Session History Panel — `public/session-sidebar.js` ✅
-- [x] Create `public/session-sidebar.js` — adapted from Tau
+- [x] Create `public/session-sidebar.js` — session history panel
 - [x] Overlay panel (not a sidebar — VS Code already has sidebars)
 - [x] Session list grouped by project
 - [x] Session search (title filter)
@@ -190,12 +187,40 @@ This file tracks all tasks for the Phi project.
 - [x] Thinking block collapse broken: same CSP issue — `renderThinkingBlock` now returns DOM elements with proper event listeners
 - [x] `IpcBridge.initialize()` only called in command handler, not on activation → moved to `activate()` with idempotence guard
 - [x] OAuth manual code input box lingering after success → cancelled via `CancellationTokenSource`
+- [x] Error-only assistant messages: inline layout with copy button at right (`.assistant-error-row`)
+- [x] Error tooltips: CSS `::after` pseudo-element via `data-error` attribute (native `title` unreliable in webviews)
+- [x] Copy button on error-only messages: `_setupCopyBtn` falls back to `.assistant-error` when `.message-content` absent
+- [x] Paste broken in chat input: added Range API fallback when `document.execCommand('insertText')` fails in VS Code webview
+- [x] Image paste: added missing `e.preventDefault()` to prevent double-paste
+- [x] Stray `w` character in app.js line 8 caused entire webview JS to fail silently — removed
 
 ### Context Ref Display ✅
 - [x] File path references in rendered user messages show filename only (not full path)
 - [x] `renderInline()` in markdown.js detects backtick-wrapped paths and renders as styled chips with file icon
 - [x] Full path preserved in `title` attribute (visible on hover)
 - [x] CSS class `.context-ref-inline` styled to match input chips
+
+### UI Polish ✅
+- [x] Header buttons: CSS tooltips via `data-tooltip` + `.has-tooltip::after` (native `title` unreliable in webviews)
+- [x] Accounts button: person-in-circle SVG icon (replaces key icon)
+- [x] Webview asset cache-busting: `?v=${Date.now()}` on script and style URIs in `panel-manager.ts`
+
+### Conversation Tree ✅
+- [x] Tree button (🌿) in header bar between History and Settings
+- [x] Tree panel (overlay) showing conversation structure
+- [x] Serialized tree data via IPC (`get_tree` → `tree_data`)
+- [x] Filter modes: User+Assistant, User only, Labeled only, All entries
+- [x] Visual tree with role icons (→ user, ← assistant), compaction/summary markers
+- [x] Current leaf highlighted with ● indicator and accent border
+- [x] Branch count badges on nodes with multiple children
+- [x] Click to navigate: inline options (No summary / With summary / Custom summary)
+- [x] Custom summary: inline text input for summarization instructions
+- [x] Right-click to set/clear labels on entries
+- [x] Branch summarization on navigation via `session.navigateTree()`
+- [x] Chat syncs after navigation
+- [x] Available in command palette: "Conversation Tree"
+- [x] `phi.openTree` VS Code command registered
+- [x] Tree CSS using `--vscode-*` variables
 
 ### Context Integration (Add to Chat) ✅
 - [x] `phi.addSelectionToChat` command — adds selected code as context chip in chat

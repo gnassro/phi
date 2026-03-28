@@ -39,7 +39,6 @@ Do NOT leave documentation out of sync with the code. Future agents (and humans)
 
 **Phi** (φ, the golden ratio) is a **VS Code extension** that brings the full power of the **Pi AI coding agent** (`@mariozechner/pi-coding-agent`) natively into VS Code.
 
-- **It is not a mirror** of a terminal session (that is Tau's job)
 - **It is the agent itself**, running inside VS Code's Node.js extension host
 
 The name Phi (φ) is deliberately in the same Greek-letter family as Pi (π), signaling that this is a companion product.
@@ -70,16 +69,16 @@ phi/
 │   ├── commands.ts               ← All vscode.commands.registerCommand() calls
 │   └── utils.ts                  ← Shared helpers (getNonce for CSP)
 ├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
-│   ├── app.js                    ← Main UI coordinator (adapted from Tau)
-│   ├── vscode-ipc.js             ← VS Code IPC wrapper (replaces WebSocket)
-│   ├── chat-input.js             ← ContentEditable rich-text input (from Tau)
-│   ├── message-renderer.js       ← Renders user/assistant messages (from Tau)
-│   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write (from Tau)
-│   ├── state.js                  ← StateManager for tool execution tracking (from Tau)
-│   ├── session-sidebar.js        ← Session history panel (adapted from Tau for IPC)
+│   ├── app.js                    ← Main UI coordinator
+│   ├── vscode-ipc.js             ← VS Code IPC wrapper
+│   ├── chat-input.js             ← ContentEditable rich-text input
+│   ├── message-renderer.js       ← Renders user/assistant messages
+│   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write
+│   ├── state.js                  ← StateManager for tool execution tracking
+│   ├── session-sidebar.js        ← Session history panel
 │   ├── themes.js                 ← No-op stub (VS Code handles theming natively)
-│   ├── markdown.js               ← Markdown → HTML renderer (from Tau)
-│   └── style.css                 ← All styles using CSS variables (from Tau)
+│   ├── markdown.js               ← Markdown → HTML renderer
+│   └── style.css                 ← All styles using CSS variables
 ├── docs/
 │   ├── architecture.md           ← Full system design and data flows
 │   ├── ipc-protocol.md           ← Complete message protocol specification
@@ -103,7 +102,7 @@ phi/
 |---|---|---|
 | Extension host language | TypeScript | Type-safe VS Code API access |
 | Pi agent engine | `@mariozechner/pi-coding-agent` | The Pi SDK — runs in extension host only |
-| UI framework | Vanilla JS + CSS | No build complexity for webview; matches Tau |
+| UI framework | Vanilla JS + CSS | No build complexity for webview |
 | Webview bundler | `esbuild` | Fast, zero-config, single-file output |
 | TypeScript compiler | `tsc` | Compiles `src/` to `dist/` |
 | VS Code types | `@types/vscode` | Full type coverage for VS Code API |
@@ -178,6 +177,9 @@ Full specification: `docs/ipc-protocol.md`
 | `get_accounts` | Fetch OAuth + API key provider status |
 | `add_api_key` | Add API key (opens VS Code QuickPick + masked input) |
 | `remove_api_key` | Remove API key (opens VS Code QuickPick) |
+| `get_tree` | Fetch conversation tree structure |
+| `navigate_tree` | Navigate to a tree node (with optional branch summary) |
+| `set_label` | Set or clear a label on a tree entry |
 
 ### Extension Host → Webview
 
@@ -191,6 +193,9 @@ Full specification: `docs/ipc-protocol.md`
 | `prefill_input` | Prefill the chat input with text (Ask About Selection) |
 | `rpc_response` | Response to RPC commands (get_state, set_model, etc.) |
 | `accounts_list` | OAuth providers + API key providers with active status |
+| `tree_data` | Serialized session tree + current leaf ID |
+| `navigate_result` | Result of tree navigation (success/cancelled) |
+| `open_tree` | Signal webview to open the tree panel |
 
 ---
 
@@ -208,6 +213,7 @@ Full specification: `docs/ipc-protocol.md`
 | `phi.logout` | Phi: Logout | — | Always |
 | `phi.addApiKey` | Phi: Add API Key | — | Always |
 | `phi.removeApiKey` | Phi: Remove API Key | — | Always |
+| `phi.openTree` | Phi: Open Conversation Tree | — | Always |
 | `phi.login` | Phi: Login | — | Always |
 | `phi.logout` | Phi: Logout | — | Always |
 
@@ -233,9 +239,9 @@ Full reference: `docs/pi-sdk.md`
 
 ## Development Rules
 
-1. **No WebSocket.** IPC is the only communication channel. `WebSocketClient` from Tau is not used. The equivalent in Phi is `public/vscode-ipc.js`.
+1. **No WebSocket.** IPC is the only communication channel. `public/vscode-ipc.js` wraps `acquireVsCodeApi()`.
 
-2. **No React, no Vue, no framework.** The webview uses vanilla JS. This avoids a build pipeline for the frontend and keeps things simple. If a component pattern is needed, use plain ES6 classes like Tau does.
+2. **No React, no Vue, no framework.** The webview uses vanilla JS. This avoids a build pipeline for the frontend and keeps things simple. If a component pattern is needed, use plain ES6 classes.
 
 3. **Pi SDK stays in the extension host.** Never import `@mariozechner/pi-coding-agent` in any `public/` file. It is a Node.js library and will fail in Chromium.
 
@@ -254,6 +260,12 @@ Full reference: `docs/pi-sdk.md`
 10. **Update docs when you change things.** See the "Documentation Is Your Responsibility" section at the top.
 
 11. **No inline event handlers — ever.** VS Code's CSP blocks `onclick="..."`, `onerror="..."`, etc. in webview HTML. Always use `element.addEventListener('click', ...)`. This applies to both generated HTML strings and DOM element creation. If you use `innerHTML`, the content must not contain event handler attributes.
+
+12. **Use CSS tooltips, not `title` attributes.** Native `title` tooltips are unreliable in VS Code webviews (inconsistent timing, sometimes don't show). Use `data-tooltip` or `data-error` attributes with CSS `::after` pseudo-elements instead.
+
+13. **Use `data-*` attributes for DOM-stored metadata.** Don't rely on `title` or other standard attributes for storing data the JS needs to read back (e.g. error messages for copy). Use `dataset.*` properties.
+
+14. **Cache-bust webview assets.** Webview JS/CSS can be cached aggressively by VS Code. `panel-manager.ts` appends `?v=${Date.now()}` to script and style URIs to force fresh loads after rebuilds.
 
 ---
 
@@ -307,11 +319,10 @@ dist/
 
 ---
 
-## Reference Projects
+## Reference
 
-| Project | Path | What to Borrow |
+| Resource | Path | What It Provides |
 |---|---|---|
-| **Tau** | `/Users/macbook/StudioProjects/tau/` | `public/` UI files, CSS variables, message renderer, markdown, chat input, typing indicator patterns |
 | **Pi SDK docs** | `/Users/macbook/.nvm/versions/node/v24.14.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/sdk.md` | All Pi SDK patterns and event types |
 | **Pi extension API** | `/Users/macbook/.nvm/versions/node/v24.14.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/extensions.md` | AgentSessionEvent shapes |
 
