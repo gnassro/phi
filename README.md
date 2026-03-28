@@ -1,5 +1,9 @@
 # Phi (φ) — Pi AI Agent for VS Code
 
+<p align="center">
+  <img src="assets/phi-icon.png" alt="Phi Logo" width="128" height="128">
+</p>
+
 > The golden ratio of AI-powered development.
 
 <p align="center">
@@ -8,7 +12,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <a href="https://github.com/gnassro/phi/stargazers"><img src="https://img.shields.io/github/stars/gnassro/phi?style=social" alt="Stars"></a>
 </p>
 
@@ -42,7 +46,7 @@ When the model thinks before responding, you see it. Collapsible thinking blocks
 
 ### 📂 Editor-Aware Context
 Phi knows what you're working on:
-- **Add selection to chat** — select code, press `Cmd+Shift+=` or right-click → "Phi: Add to Chat"
+- **Add selection to chat** — select code, press `⌘+` (Mac) / `Ctrl++` (Win/Linux), or right-click → "Phi: Add to Chat"
 - **Add file to chat** — right-click a file in Explorer → "Phi: Add File to Chat"
 - **Ask about selection** — right-click selected code → "Phi: Ask About Selection"
 
@@ -63,7 +67,7 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 
 ### 🔑 Accounts & Auth
 - **OAuth login** — Claude Pro/Max, ChatGPT Plus/Pro, GitHub Copilot, Google Gemini, and more
-- **API keys** — 17 predefined providers + custom provider support
+- **API keys** — 17 predefined providers
 - Saved to `~/.phi/auth.json` — separate from Pi CLI auth
 
 ### ⌨️ Keyboard Shortcuts
@@ -71,9 +75,9 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 | Action | Shortcut |
 |---|---|
 | Open Phi chat | `Cmd+Shift+L` / `Ctrl+Shift+L` |
-| Add selection to chat | `Cmd+Shift+=` / `Ctrl+Shift+=` |
+| Add selection to chat | Select code → `⌘+` (Mac) / `Ctrl++` (Windows/Linux) |
 | Abort current turn | `Escape` (when panel focused) |
-| Focus chat input | `/` (when not in an input) |
+| Focus chat input | Press `/` inside the Phi panel |
 
 ### 🎨 Native VS Code Theming
 No custom themes — Phi automatically follows your VS Code theme (dark, light, high contrast) using built-in `--vscode-*` CSS variables.
@@ -113,8 +117,8 @@ code --install-extension phi-agent-0.1.0.vsix
 | New session | Command Palette → "Phi: New Session" |
 | Switch session | Click the 🕐 history button → select a session |
 | Switch model | Click the model dropdown in the header |
-| Compact context | Command palette (⌘) → "Compact" |
-| View session stats | Command palette (⌘) → "Session Stats" |
+| Compact context | Click the commands button (in chat input) → "Compact" |
+| View session stats | Click the commands button (in chat input) → "Session Stats" |
 | Login (OAuth) | Command Palette → "Phi: Login" |
 | Add API key | Command Palette → "Phi: Add API Key" |
 
@@ -188,7 +192,7 @@ See `AGENTS.md` for the full technical reference — it's written for both human
 
 ## 📝 License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
