@@ -213,4 +213,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 🙏 Credits
 
-Built on top of the [Pi](https://github.com/badlogic/pi-mono) agent by [@mariozechner](https://github.com/mariozechner).
+Built on top of the [Pi](https://github.com/badlogic/pi-mono) agent by [Mario Zechner](https://github.com/badlogic).
