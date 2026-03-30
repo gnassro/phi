@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.2.0] - 2026-03-30
+
+### Added
+- **Skills Panel** — view all loaded Pi skills from the header toolbar
+- **Slash command autocomplete** — type `/` in chat input for inline command & skill suggestions with arrow key navigation
+- **Status bar button** — "Phi" button in the bottom status bar to quickly open chat from anywhere
+- **About dialog** — Settings → Extension Info shows version, Pi SDK version, author, license, with Report Issue and GitHub links
+- **Accounts auto-refresh** — panel updates instantly after login, logout, or API key changes
+- **Inline account actions** — Logout and Remove buttons directly on each account row
+- **phi-developer skill** — built-in project skill for AI agents working on the Phi codebase
+
+### Fixed
+- Skills data now correctly extracted from `resourceLoader.getSkills().skills` (was passing the wrapper object)
+- Markdown renderer no longer misidentifies directory paths (e.g. `~/.pi/skills/`) as inline file pills
+- Accurate session cost calculation matching Pi CLI (sums all entries, not just post-compaction)
+- About modal z-index fixed so buttons are clickable above the overlay
+
+### Changed
+- Version display moved from footer pill to About dialog
+- Pi SDK version auto-detected at build time
+
 ## [0.1.0] - 2026-03-28
 
 ### Added

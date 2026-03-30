@@ -13,3 +13,8 @@ AGENTS.md
 .idea
 pnpm-lock.yaml
 .gitignore
+.build-number
+src/version.ts
+public/version.js
+scripts
+

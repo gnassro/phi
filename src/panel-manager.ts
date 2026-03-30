@@ -178,6 +178,13 @@ function buildWebviewHtml(
             <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"></path>
           </svg>
         </button>
+        <button class="icon-btn has-tooltip" id="skills-btn" aria-label="Loaded Skills" data-tooltip="Skills">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5Z"></path>
+            <path d="m2 17 10 5 10-5"></path>
+            <path d="m2 12 10 5 10-5"></path>
+          </svg>
+        </button>
         <button class="icon-btn has-tooltip" id="settings-btn" aria-label="Settings" data-tooltip="Settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -218,6 +225,8 @@ function buildWebviewHtml(
     <div class="input-area">
       <div class="queued-messages hidden" id="queued-messages"></div>
       <div class="image-previews hidden" id="image-previews"></div>
+      
+      <div id="autocomplete-popup" class="autocomplete-popup hidden"></div>
 
       <form id="chat-form">
         <div class="input-left-actions">
@@ -308,6 +317,49 @@ function buildWebviewHtml(
           <button class="settings-toggle on" id="toggle-show-thinking"></button>
         </div>
       </div>
+      <div class="settings-section">
+        <div class="settings-section-title">About</div>
+        <div class="settings-row" style="cursor: pointer;" id="about-info-btn">
+          <span class="settings-label">Extension Info</span>
+          <span style="opacity: 0.5; font-size: 12px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── About Modal ── -->
+  <div class="settings-overlay hidden" id="about-overlay"></div>
+  <div class="about-modal hidden" id="about-modal">
+    <div class="settings-header">
+      <h3>About Phi</h3>
+      <button class="settings-close" id="about-close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="about-body">
+      <div class="about-name">Phi — AI Coding Agent</div>
+      <div class="about-desc">The Pi coding agent, natively inside VS Code.</div>
+      <div class="about-table">
+        <div class="about-row"><span class="about-key">Version</span><span class="about-val" id="about-version">—</span></div>
+        <div class="about-row"><span class="about-key">Pi SDK</span><span class="about-val" id="about-pi-version">—</span></div>
+        <div class="about-row"><span class="about-key">Author</span><span class="about-val">gnassro</span></div>
+        <div class="about-row"><span class="about-key">License</span><span class="about-val">MIT</span></div>
+        <div class="about-row"><span class="about-key">Engine</span><span class="about-val">VS Code ≥1.85</span></div>
+      </div>
+      <div class="about-links">
+        <button class="about-link-btn" id="about-report-issue">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Report Issue
+        </button>
+        <button class="about-link-btn" id="about-github">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+          GitHub
+        </button>
+      </div>
     </div>
   </div>
 
@@ -322,21 +374,30 @@ function buildWebviewHtml(
         </svg>
       </button>
     </div>
-    <div class="settings-body">
-      <div class="settings-section">
-        <div class="settings-row">
-          <span class="settings-label">OAuth Login</span>
-          <button class="settings-value-btn" id="btn-login">Login</button>
-        </div>
-        <div class="settings-row">
-          <span class="settings-label">API Keys</span>
-          <div style="display:flex;gap:4px;">
-            <button class="settings-value-btn" id="btn-add-api-key">Add</button>
-            <button class="settings-value-btn" id="btn-remove-api-key">Remove</button>
-          </div>
-        </div>
-      </div>
+    <div class="settings-body" style="padding: 0;">
       <div id="accounts-list" class="accounts-list"></div>
+      <div class="accounts-actions">
+        <button class="accounts-action-btn" id="btn-login">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          OAuth Login
+        </button>
+        <button class="accounts-action-btn" id="btn-add-api-key">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add API Key
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Skills Overlay ── -->
+  <div class="settings-overlay hidden" id="skills-overlay"></div>
+  <div class="settings-panel hidden" id="skills-panel">
+    <div class="settings-header">
+      <h3>Loaded Skills</h3>
+      <button class="icon-btn" id="close-skills-btn" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="settings-body" id="skills-list" style="padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+      <div style="opacity:0.5; text-align:center; padding: 20px 0;">Loading skills...</div>
     </div>
   </div>
 

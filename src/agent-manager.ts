@@ -275,7 +275,42 @@ export function cycleThinkingLevel(): string | undefined {
  */
 export function getSessionStats(): SessionStats | null {
   if (!session) return null;
-  return session.getSessionStats();
+  const stats = session.getSessionStats();
+
+  // Pi's built-in getSessionStats only sums the current state (post-compaction).
+  // To get the TRUE total cost and tokens, we must iterate over the entire session history.
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheRead = 0;
+  let totalCacheWrite = 0;
+  let totalCost = 0;
+
+  for (const entry of session.sessionManager.getEntries()) {
+    if (entry.type === 'message' && entry.message.role === 'assistant') {
+      const usage = entry.message.usage;
+      if (usage) {
+        totalInput += usage.input || 0;
+        totalOutput += usage.output || 0;
+        totalCacheRead += usage.cacheRead || 0;
+        totalCacheWrite += usage.cacheWrite || 0;
+        if (usage.cost && usage.cost.total) {
+          totalCost += usage.cost.total;
+        }
+      }
+    }
+  }
+
+  return {
+    ...stats,
+    tokens: {
+      input: totalInput,
+      output: totalOutput,
+      cacheRead: totalCacheRead,
+      cacheWrite: totalCacheWrite,
+      total: totalInput + totalOutput + totalCacheRead + totalCacheWrite,
+    },
+    cost: totalCost,
+  };
 }
 
 /**
@@ -435,6 +470,14 @@ export interface SerializedTreeNode {
   preview: string;        // short text preview for display
   role?: string;          // 'user' | 'assistant' for message entries
   children: SerializedTreeNode[];
+}
+
+/**
+ * Get all available skills.
+ */
+export function getSkills() {
+  if (!session) return [];
+  return session.resourceLoader.getSkills().skills;
 }
 
 /**

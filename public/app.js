@@ -10,6 +10,7 @@ import { MessageRenderer } from './message-renderer.js';
 import { ToolCardRenderer } from './tool-card.js';
 import { StateManager } from './state.js';
 import { SessionSidebar } from './session-sidebar.js';
+import { EXTENSION_VERSION, PI_SDK_VERSION } from './version.js';
 
 // ─── Core instances ───────────────────────────────────────────────────────────
 
@@ -57,6 +58,18 @@ const contextLegend = document.getElementById('context-legend');
 const contextVizUsed = document.getElementById('context-viz-used');
 const contextVizTotal = document.getElementById('context-viz-total');
 
+// About modal
+const aboutInfoBtn = document.getElementById('about-info-btn');
+const aboutModal = document.getElementById('about-modal');
+const aboutOverlay = document.getElementById('about-overlay');
+const aboutClose = document.getElementById('about-close');
+const aboutReportIssue = document.getElementById('about-report-issue');
+const aboutGithub = document.getElementById('about-github');
+
+// Set version info
+document.getElementById('about-version').textContent = `v${EXTENSION_VERSION}`;
+document.getElementById('about-pi-version').textContent = `v${PI_SDK_VERSION}`;
+
 // Scroll button
 const scrollBottomBtn = document.getElementById('scroll-bottom-btn');
 const scrollBottomBadge = document.getElementById('scroll-bottom-badge');
@@ -81,7 +94,7 @@ const btnThinkingLevel = document.getElementById('btn-thinking-level');
 const toggleShowThinking = document.getElementById('toggle-show-thinking');
 const btnLogin = document.getElementById('btn-login');
 const btnAddApiKey = document.getElementById('btn-add-api-key');
-const btnRemoveApiKey = document.getElementById('btn-remove-api-key');
+const btnRemoveApiKey = null; // removed from UI — inline buttons used instead
 const accountsList = document.getElementById('accounts-list');
 
 // History
@@ -90,6 +103,13 @@ const historyPanel = document.getElementById('history-panel');
 const historyOverlay = document.getElementById('history-overlay');
 const historyClose = document.getElementById('history-close');
 const sessionSearchInput = document.getElementById('session-search-input');
+
+// Skills
+const skillsBtn = document.getElementById('skills-btn');
+const skillsPanel = document.getElementById('skills-panel');
+const skillsOverlay = document.getElementById('skills-overlay');
+const closeSkillsBtn = document.getElementById('close-skills-btn');
+const skillsList = document.getElementById('skills-list');
 
 // Command palette
 const commandBtn = document.getElementById('command-btn');
@@ -112,6 +132,7 @@ let lastUsage = null;
 let currentModelId = '';
 let availableModels = [];
 let currentThinkingLevel = 'off';
+let loadedSkills = [];
 let isScrolledUp = false;
 let hasNewWhileScrolled = false;
 
@@ -427,7 +448,7 @@ function handleSync(syncState) {
   state.reset();
   messageRenderer.clear();
   toolCardRenderer.clear();
-  sessionTotalCost = 0;
+  sessionTotalCost = syncState.sessionStats?.cost ?? 0;
   lastInputTokens = 0;
 
   if (syncState.model) {
@@ -438,6 +459,11 @@ function handleSync(syncState) {
   if (syncState.thinkingLevel) {
     currentThinkingLevel = syncState.thinkingLevel;
     updateThinkingBtn();
+  }
+
+  if (syncState.skills) {
+    loadedSkills = syncState.skills;
+    updateCommandPaletteSkills();
   }
 
   if (syncState.entries && syncState.entries.length > 0) {
@@ -492,7 +518,6 @@ function renderHistory(entries) {
           },
           false, true
         );
-        if (msg.usage?.cost?.total) sessionTotalCost += msg.usage.cost.total;
         if (msg.usage?.input) {
           lastInputTokens = msg.usage.input + (msg.usage.cacheRead || 0);
           lastUsage = msg.usage;
@@ -722,13 +747,40 @@ document.addEventListener('click', (e) => {
 // Command Palette
 // ═══════════════════════════════════════
 
-const commands = [
+const baseCommands = [
   { icon: '🗜️', label: 'Compact', desc: 'Compact context to save tokens', action: () => VscodeIPC.send({ type: 'compact' }) },
   { icon: '📊', label: 'Session Stats', desc: 'Show session statistics', action: () => VscodeIPC.send({ type: 'get_session_stats' }) },
   { icon: '🌿', label: 'Conversation Tree', desc: 'Browse and navigate conversation branches', action: () => openTree() },
   { icon: '⬇️', label: 'Expand All Tools', desc: 'Expand all tool cards', action: () => toolCardRenderer.expandAll() },
   { icon: '⬆️', label: 'Collapse All Tools', desc: 'Collapse all tool cards', action: () => toolCardRenderer.collapseAll() },
 ];
+
+let commands = [...baseCommands];
+
+function updateCommandPaletteSkills() {
+  commands = [...baseCommands];
+  if (loadedSkills && loadedSkills.length > 0) {
+    loadedSkills.forEach(skill => {
+      commands.push({
+        icon: '✨',
+        label: `/skill:${skill.name}`,
+        desc: skill.description,
+        action: () => {
+          const inputEl = document.getElementById('message-input');
+          inputEl.textContent = `/skill:${skill.name} `;
+          inputEl.focus();
+          // Move cursor to end
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(inputEl);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      });
+    });
+  }
+}
 
 function openCommandPalette() {
   commandList.innerHTML = '';
@@ -770,6 +822,31 @@ function closeSettings() {
 settingsBtn.addEventListener('click', openSettings);
 settingsClose.addEventListener('click', closeSettings);
 settingsOverlay.addEventListener('click', closeSettings);
+
+// ═══════════════════════════════════════
+// About Modal
+// ═══════════════════════════════════════
+
+function openAbout() {
+  closeSettings();
+  aboutOverlay.classList.remove('hidden');
+  aboutModal.classList.remove('hidden');
+}
+
+function closeAbout() {
+  aboutOverlay.classList.add('hidden');
+  aboutModal.classList.add('hidden');
+}
+
+aboutInfoBtn.addEventListener('click', openAbout);
+aboutClose.addEventListener('click', closeAbout);
+aboutOverlay.addEventListener('click', closeAbout);
+aboutReportIssue.addEventListener('click', () => {
+  VscodeIPC.send({ type: 'open_url', url: 'https://github.com/gnassro/phi/issues/new' });
+});
+aboutGithub.addEventListener('click', () => {
+  VscodeIPC.send({ type: 'open_url', url: 'https://github.com/gnassro/phi' });
+});
 
 // ═══════════════════════════════════════
 // Accounts Panel
@@ -1186,10 +1263,6 @@ btnAddApiKey.addEventListener('click', () => {
   VscodeIPC.send({ type: 'add_api_key' });
 });
 
-btnRemoveApiKey.addEventListener('click', () => {
-  VscodeIPC.send({ type: 'remove_api_key' });
-});
-
 // Listen for accounts list updates (OAuth + API keys) — show only active ones
 VscodeIPC.on('accounts_list', (msg) => {
   if (!accountsList) return;
@@ -1203,7 +1276,7 @@ VscodeIPC.on('accounts_list', (msg) => {
   if (activeOAuth.length === 0 && activeApiKeys.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'accounts-empty';
-    empty.textContent = 'No accounts configured';
+    empty.textContent = 'No accounts configured yet';
     accountsList.appendChild(empty);
     return;
   }
@@ -1217,10 +1290,31 @@ VscodeIPC.on('accounts_list', (msg) => {
     activeOAuth.forEach(p => {
       const row = document.createElement('div');
       row.className = 'account-row';
-      row.innerHTML = `
-        <span class="account-name">${escapeHtml(p.name)}</span>
-        <span class="account-status logged-in">✓</span>
-      `;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'account-name';
+      nameSpan.textContent = p.name;
+      row.appendChild(nameSpan);
+
+      const rightSide = document.createElement('div');
+      rightSide.style.display = 'flex';
+      rightSide.style.alignItems = 'center';
+      rightSide.style.gap = '8px';
+
+      const status = document.createElement('span');
+      status.className = 'account-status logged-in';
+      status.textContent = '✓';
+      rightSide.appendChild(status);
+
+      const logoutBtn = document.createElement('button');
+      logoutBtn.className = 'account-action-btn';
+      logoutBtn.textContent = 'Logout';
+      logoutBtn.addEventListener('click', () => {
+        VscodeIPC.send({ type: 'logout' });
+      });
+      rightSide.appendChild(logoutBtn);
+
+      row.appendChild(rightSide);
       accountsList.appendChild(row);
     });
   }
@@ -1234,14 +1328,54 @@ VscodeIPC.on('accounts_list', (msg) => {
     activeApiKeys.forEach(p => {
       const row = document.createElement('div');
       row.className = 'account-row';
-      row.innerHTML = `
-        <span class="account-name">${escapeHtml(p.name)}</span>
-        <span class="account-status logged-in">✓</span>
-      `;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'account-name';
+      nameSpan.textContent = p.name;
+      row.appendChild(nameSpan);
+
+      const rightSide = document.createElement('div');
+      rightSide.style.display = 'flex';
+      rightSide.style.alignItems = 'center';
+      rightSide.style.gap = '8px';
+
+      const status = document.createElement('span');
+      status.className = 'account-status logged-in';
+      status.textContent = '✓';
+      rightSide.appendChild(status);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'account-action-btn';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', () => {
+        VscodeIPC.send({ type: 'remove_api_key' });
+      });
+      rightSide.appendChild(removeBtn);
+
+      row.appendChild(rightSide);
       accountsList.appendChild(row);
     });
   }
 });
+
+// ═══════════════════════════════════════
+// History Panel
+// ═══════════════════════════════════════
+
+function openSkills() {
+  skillsOverlay.classList.remove('hidden');
+  skillsPanel.classList.remove('hidden');
+  VscodeIPC.send({ type: 'get_skills' });
+}
+
+function closeSkills() {
+  skillsOverlay.classList.add('hidden');
+  skillsPanel.classList.add('hidden');
+}
+
+skillsBtn.addEventListener('click', openSkills);
+closeSkillsBtn.addEventListener('click', closeSkills);
+skillsOverlay.addEventListener('click', closeSkills);
 
 // ═══════════════════════════════════════
 // History Panel
@@ -1289,6 +1423,112 @@ newChatBtn.addEventListener('click', () => {
   updateTokenUsage();
   sidebar.clearActive();
 });
+
+// ═══════════════════════════════════════
+// Autocomplete Logic
+// ═══════════════════════════════════════
+const autocompletePopup = document.getElementById('autocomplete-popup');
+let autocompleteIndex = -1;
+let autocompleteItems = [];
+
+function updateAutocomplete() {
+  const text = chatInput.getText();
+  const rawText = chatInput.element.textContent;
+  
+  if (!rawText.startsWith('/')) {
+    autocompletePopup.classList.add('hidden');
+    chatInput.setAutocompleteActive(false);
+    return;
+  }
+  
+  const query = rawText.slice(1).toLowerCase();
+  
+  // Create list of commands
+  const suggestions = [
+    ...baseCommands.map(cmd => ({ type: 'command', icon: cmd.icon, label: cmd.label, desc: cmd.desc, action: cmd.action })),
+    ...loadedSkills.map(skill => ({ type: 'skill', icon: '✨', label: `skill:${skill.name}`, desc: skill.description, skillName: skill.name }))
+  ].filter(cmd => cmd.label.toLowerCase().includes(query) || cmd.desc.toLowerCase().includes(query));
+  
+  if (suggestions.length === 0) {
+    autocompletePopup.classList.add('hidden');
+    chatInput.setAutocompleteActive(false);
+    return;
+  }
+  
+  autocompleteItems = suggestions;
+  autocompleteIndex = 0;
+  
+  autocompletePopup.innerHTML = suggestions.map((cmd, i) => `
+    <div class="autocomplete-item ${i === 0 ? 'selected' : ''}" data-index="${i}">
+      <div class="autocomplete-icon">${cmd.icon}</div>
+      <div class="autocomplete-label" style="font-weight: bold; color: var(--vscode-symbolIcon-functionForeground)">/${cmd.label}</div>
+      <div class="autocomplete-desc">${escapeHtml(cmd.desc)}</div>
+    </div>
+  `).join('');
+  
+  autocompletePopup.querySelectorAll('.autocomplete-item').forEach(el => {
+    el.addEventListener('click', () => executeAutocomplete(parseInt(el.dataset.index)));
+  });
+  
+  autocompletePopup.classList.remove('hidden');
+  chatInput.setAutocompleteActive(true);
+}
+
+function executeAutocomplete(index) {
+  if (index < 0 || index >= autocompleteItems.length) return;
+  const item = autocompleteItems[index];
+  
+  autocompletePopup.classList.add('hidden');
+  chatInput.setAutocompleteActive(false);
+  
+  if (item.type === 'command') {
+    chatInput.element.textContent = '';
+    item.action();
+  } else if (item.type === 'skill') {
+    chatInput.element.textContent = `/${item.label} `;
+    // Move cursor to end
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(chatInput.element);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+
+chatInput.element.addEventListener('input', updateAutocomplete);
+
+chatInput.element.addEventListener('keydown', (e) => {
+  if (autocompletePopup.classList.contains('hidden')) return;
+  
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    autocompleteIndex = (autocompleteIndex + 1) % autocompleteItems.length;
+    renderAutocompleteSelection();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    autocompleteIndex = (autocompleteIndex - 1 + autocompleteItems.length) % autocompleteItems.length;
+    renderAutocompleteSelection();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    executeAutocomplete(autocompleteIndex);
+  } else if (e.key === 'Escape') {
+    autocompletePopup.classList.add('hidden');
+    chatInput.setAutocompleteActive(false);
+  }
+});
+
+function renderAutocompleteSelection() {
+  const items = autocompletePopup.querySelectorAll('.autocomplete-item');
+  items.forEach((item, i) => {
+    if (i === autocompleteIndex) {
+      item.classList.add('selected');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
 
 // ═══════════════════════════════════════
 // Keyboard shortcuts
@@ -1350,6 +1590,54 @@ VscodeIPC.on('pi_event', (msg) => handlePiEvent(msg.event));
 VscodeIPC.on('sync', (msg) => handleSync(msg.state));
 VscodeIPC.on('sessions_list', (msg) => {
   sidebar.setSessions(msg.sessions);
+});
+VscodeIPC.on('skills_data', (msg) => {
+  loadedSkills = msg.skills || [];
+  updateCommandPaletteSkills();
+  skillsList.innerHTML = '';
+  
+  if (loadedSkills.length === 0) {
+    skillsList.innerHTML = '<div style="opacity:0.5; text-align:center; padding: 20px 0;">No skills currently loaded.<br><br><span style="font-size: 10px;">Drop a <code>SKILL.md</code> in your <code>.pi/skills/</code> folder.</span></div>';
+    return;
+  }
+  
+  loadedSkills.forEach(skill => {
+    const card = document.createElement('div');
+    card.style.background = 'var(--vscode-editor-background)';
+    card.style.border = '1px solid var(--vscode-panel-border)';
+    card.style.borderRadius = '6px';
+    card.style.padding = '10px';
+    
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <strong style="color: var(--vscode-symbolIcon-functionForeground); font-size: 13px;">${escapeHtml(skill.name)}</strong>
+        <code class="skill-command-btn" data-skill="${escapeHtml(skill.name)}" style="font-size: 10px; opacity: 0.7; cursor: pointer;">/skill:${escapeHtml(skill.name)}</code>
+      </div>
+      <div style="font-size: 11px; opacity: 0.8; line-height: 1.4;">${escapeHtml(skill.description)}</div>
+    `;
+    
+    skillsList.appendChild(card);
+  });
+  
+  // Attach event listeners for the skill commands
+  skillsList.querySelectorAll('.skill-command-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const skillName = e.target.getAttribute('data-skill');
+      const inputEl = document.getElementById('message-input');
+      inputEl.textContent = `/skill:${skillName} `;
+      inputEl.focus();
+      
+      // Move cursor to the end
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(inputEl);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      
+      closeSkills();
+    });
+  });
 });
 VscodeIPC.on('add_context', (msg) => {
   if (msg.context) chatInput.insertContextRef(msg.context);

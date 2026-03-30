@@ -295,7 +295,7 @@ pnpm run typecheck        # or: npx tsc --noEmit
 # Watch mode during development
 pnpm run watch            # or: npm run watch
 
-# Package into a .vsix for local install
+# Package into a .vsix for local install or publishing (automatically runs build)
 pnpm run package          # or: npm run package
 
 # Install locally (no marketplace needed)
@@ -306,6 +306,7 @@ code --install-extension phi-agent-0.1.0.vsix
 ```
 
 **Build details:**
+- `build` — first runs `scripts/build-num.mjs` to auto-increment `.build-number` and generate `src/version.ts` / `public/version.js`, then runs `build:ext` and `build:web`
 - `build:ext` — bundles `src/extension.ts` + all dependencies (including Pi SDK) into a single `dist/extension.js` via esbuild (ESM, Node.js, minified)
 - `build:web` — bundles `public/app.js` into `dist/public/app.js` via esbuild (ESM) + copies `style.css`
 - `vscode` is marked as external (provided by VS Code at runtime)

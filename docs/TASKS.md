@@ -201,10 +201,17 @@ This file tracks all tasks for the Phi project.
 - [x] Full path preserved in `title` attribute (visible on hover)
 - [x] CSS class `.context-ref-inline` styled to match input chips
 
+### Skills Panel & Slash Commands ✅
+- [x] Backend IPC for loading skills from `session.resourceLoader.getSkills()`
+- [x] Skills UI panel in the extension header
+- [x] `/skill:name` autocomplete built cleanly into the chat input
+- [x] Arrow navigation and Enter to autocomplete skill names
+
 ### UI Polish ✅
 - [x] Header buttons: CSS tooltips via `data-tooltip` + `.has-tooltip::after` (native `title` unreliable in webviews)
 - [x] Accounts button: person-in-circle SVG icon (replaces key icon)
 - [x] Webview asset cache-busting: `?v=${Date.now()}` on script and style URIs in `panel-manager.ts`
+- [x] Display auto-incremented version+build number (`v0.1.0+X`) centered and dimmed in the footer
 
 ### Conversation Tree ✅
 - [x] Tree button (🌿) in header bar between History and Settings

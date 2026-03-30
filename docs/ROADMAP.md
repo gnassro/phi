@@ -25,6 +25,9 @@ Auth system: OAuth login via browser + API key management via VS Code QuickPick.
 
 Build: Extension host bundled with esbuild (Pi SDK `0.62.0` included). Self-contained `.vsix`
 at 1.5 MB — no `node_modules` required. Published as `gnassro` on Open VSX.
+Auto-incrementing build numbers injected directly into the webview footer.
+
+Added Skills integration: Phi now fully supports Pi SDK skills. A dedicated "Skills" panel has been added to the header overlay, and typing `/` in the chat input instantly triggers an interactive slash-command autocomplete to quickly inject `/skill:name` templates.
 
 Current focus: Milestone 4 (packaging) nearly complete. Manual testing ongoing.
 
@@ -93,7 +96,7 @@ File browser, code editor, project launcher, PWA, mobile UI, auth, Tailscale.
 **Goal:** Phi can be packaged into a `.vsix` and installed locally on any machine without going through the marketplace.
 
 **Definition of done:**
-- `pnpm exec vsce package` (or `npx vsce package`) produces a valid `.vsix`
+- `pnpm run package` (automatically runs build and produces a valid `.vsix`)
 - Installing via `code --install-extension phi-agent-0.1.0.vsix` works on a clean VS Code
 - The extension icon shows up in the Extensions panel
 - Tested on macOS

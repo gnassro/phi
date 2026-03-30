@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.2.0-blue" alt="Version">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <a href="https://github.com/gnassro/phi/stargazers"><img src="https://img.shields.io/github/stars/gnassro/phi?style=social" alt="Stars"></a>
 </p>
@@ -31,6 +31,10 @@
 Phi brings the [Pi](https://github.com/badlogic/pi-mono) AI coding agent into VS Code as a native extension. Chat with an AI agent that can read, write, and edit your code — directly from the sidebar.
 
 > **⚠️ Note:** Phi is a community-built extension and does **not** yet cover the full Pi agent feature set. It's a work in progress, built through vibe coding, and we welcome all contributions to help reach full Pi parity. See [Contributing](#contributing) below.
+
+<p align="center">
+  <img src="assets/screenshots/scr1.png" alt="Phi in action" width="700">
+</p>
 
 ---
 
@@ -101,8 +105,9 @@ pnpm run build            # or: npm run build
 ### Package & Install Locally
 
 ```bash
-pnpm exec vsce package    # or: npx vsce package
-code --install-extension phi-agent-0.1.0.vsix
+# automatically runs build first
+pnpm run package          # or: npm run package
+code --install-extension phi-agent-0.2.0.vsix
 ```
 
 ---
@@ -213,4 +218,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 🙏 Credits
 
-Built on top of the [Pi](https://github.com/badlogic/pi-mono) agent by [@mariozechner](https://github.com/mariozechner).
+Built on top of the [Pi](https://github.com/badlogic/pi-mono) agent by [Mario Zechner](https://github.com/badlogic).
