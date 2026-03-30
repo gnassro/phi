@@ -473,6 +473,14 @@ export interface SerializedTreeNode {
 }
 
 /**
+ * Get all available skills.
+ */
+export function getSkills() {
+  if (!session) return [];
+  return session.resourceLoader.getSkills();
+}
+
+/**
  * Get the session tree structure + current leaf ID.
  */
 export function getTree(): { tree: SerializedTreeNode[]; leafId: string | null } {

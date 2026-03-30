@@ -98,6 +98,13 @@ const historyOverlay = document.getElementById('history-overlay');
 const historyClose = document.getElementById('history-close');
 const sessionSearchInput = document.getElementById('session-search-input');
 
+// Skills
+const skillsBtn = document.getElementById('skills-btn');
+const skillsPanel = document.getElementById('skills-panel');
+const skillsOverlay = document.getElementById('skills-overlay');
+const closeSkillsBtn = document.getElementById('close-skills-btn');
+const skillsList = document.getElementById('skills-list');
+
 // Command palette
 const commandBtn = document.getElementById('command-btn');
 const commandPalette = document.getElementById('command-palette');
@@ -119,6 +126,7 @@ let lastUsage = null;
 let currentModelId = '';
 let availableModels = [];
 let currentThinkingLevel = 'off';
+let loadedSkills = [];
 let isScrolledUp = false;
 let hasNewWhileScrolled = false;
 
@@ -447,6 +455,11 @@ function handleSync(syncState) {
     updateThinkingBtn();
   }
 
+  if (syncState.skills) {
+    loadedSkills = syncState.skills;
+    updateCommandPaletteSkills();
+  }
+
   if (syncState.entries && syncState.entries.length > 0) {
     renderHistory(syncState.entries);
   } else {
@@ -728,13 +741,40 @@ document.addEventListener('click', (e) => {
 // Command Palette
 // ═══════════════════════════════════════
 
-const commands = [
+const baseCommands = [
   { icon: '🗜️', label: 'Compact', desc: 'Compact context to save tokens', action: () => VscodeIPC.send({ type: 'compact' }) },
   { icon: '📊', label: 'Session Stats', desc: 'Show session statistics', action: () => VscodeIPC.send({ type: 'get_session_stats' }) },
   { icon: '🌿', label: 'Conversation Tree', desc: 'Browse and navigate conversation branches', action: () => openTree() },
   { icon: '⬇️', label: 'Expand All Tools', desc: 'Expand all tool cards', action: () => toolCardRenderer.expandAll() },
   { icon: '⬆️', label: 'Collapse All Tools', desc: 'Collapse all tool cards', action: () => toolCardRenderer.collapseAll() },
 ];
+
+let commands = [...baseCommands];
+
+function updateCommandPaletteSkills() {
+  commands = [...baseCommands];
+  if (loadedSkills && loadedSkills.length > 0) {
+    loadedSkills.forEach(skill => {
+      commands.push({
+        icon: '✨',
+        label: `/skill:${skill.name}`,
+        desc: skill.description,
+        action: () => {
+          const inputEl = document.getElementById('message-input');
+          inputEl.textContent = `/skill:${skill.name} `;
+          inputEl.focus();
+          // Move cursor to end
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(inputEl);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      });
+    });
+  }
+}
 
 function openCommandPalette() {
   commandList.innerHTML = '';
@@ -1253,6 +1293,25 @@ VscodeIPC.on('accounts_list', (msg) => {
 // History Panel
 // ═══════════════════════════════════════
 
+function openSkills() {
+  skillsOverlay.classList.remove('hidden');
+  skillsPanel.classList.remove('hidden');
+  VscodeIPC.send({ type: 'get_skills' });
+}
+
+function closeSkills() {
+  skillsOverlay.classList.add('hidden');
+  skillsPanel.classList.add('hidden');
+}
+
+skillsBtn.addEventListener('click', openSkills);
+closeSkillsBtn.addEventListener('click', closeSkills);
+skillsOverlay.addEventListener('click', closeSkills);
+
+// ═══════════════════════════════════════
+// History Panel
+// ═══════════════════════════════════════
+
 function openHistory() {
   historyOverlay.classList.remove('hidden');
   historyPanel.classList.remove('hidden');
@@ -1295,6 +1354,112 @@ newChatBtn.addEventListener('click', () => {
   updateTokenUsage();
   sidebar.clearActive();
 });
+
+// ═══════════════════════════════════════
+// Autocomplete Logic
+// ═══════════════════════════════════════
+const autocompletePopup = document.getElementById('autocomplete-popup');
+let autocompleteIndex = -1;
+let autocompleteItems = [];
+
+function updateAutocomplete() {
+  const text = chatInput.getText();
+  const rawText = chatInput.element.textContent;
+  
+  if (!rawText.startsWith('/')) {
+    autocompletePopup.classList.add('hidden');
+    chatInput.setAutocompleteActive(false);
+    return;
+  }
+  
+  const query = rawText.slice(1).toLowerCase();
+  
+  // Create list of commands
+  const suggestions = [
+    ...baseCommands.map(cmd => ({ type: 'command', icon: cmd.icon, label: cmd.label, desc: cmd.desc, action: cmd.action })),
+    ...loadedSkills.map(skill => ({ type: 'skill', icon: '✨', label: `skill:${skill.name}`, desc: skill.description, skillName: skill.name }))
+  ].filter(cmd => cmd.label.toLowerCase().includes(query) || cmd.desc.toLowerCase().includes(query));
+  
+  if (suggestions.length === 0) {
+    autocompletePopup.classList.add('hidden');
+    chatInput.setAutocompleteActive(false);
+    return;
+  }
+  
+  autocompleteItems = suggestions;
+  autocompleteIndex = 0;
+  
+  autocompletePopup.innerHTML = suggestions.map((cmd, i) => `
+    <div class="autocomplete-item ${i === 0 ? 'selected' : ''}" data-index="${i}">
+      <div class="autocomplete-icon">${cmd.icon}</div>
+      <div class="autocomplete-label" style="font-weight: bold; color: var(--vscode-symbolIcon-functionForeground)">/${cmd.label}</div>
+      <div class="autocomplete-desc">${escapeHtml(cmd.desc)}</div>
+    </div>
+  `).join('');
+  
+  autocompletePopup.querySelectorAll('.autocomplete-item').forEach(el => {
+    el.addEventListener('click', () => executeAutocomplete(parseInt(el.dataset.index)));
+  });
+  
+  autocompletePopup.classList.remove('hidden');
+  chatInput.setAutocompleteActive(true);
+}
+
+function executeAutocomplete(index) {
+  if (index < 0 || index >= autocompleteItems.length) return;
+  const item = autocompleteItems[index];
+  
+  autocompletePopup.classList.add('hidden');
+  chatInput.setAutocompleteActive(false);
+  
+  if (item.type === 'command') {
+    chatInput.element.textContent = '';
+    item.action();
+  } else if (item.type === 'skill') {
+    chatInput.element.textContent = `/${item.label} `;
+    // Move cursor to end
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(chatInput.element);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+
+chatInput.element.addEventListener('input', updateAutocomplete);
+
+chatInput.element.addEventListener('keydown', (e) => {
+  if (autocompletePopup.classList.contains('hidden')) return;
+  
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    autocompleteIndex = (autocompleteIndex + 1) % autocompleteItems.length;
+    renderAutocompleteSelection();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    autocompleteIndex = (autocompleteIndex - 1 + autocompleteItems.length) % autocompleteItems.length;
+    renderAutocompleteSelection();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    executeAutocomplete(autocompleteIndex);
+  } else if (e.key === 'Escape') {
+    autocompletePopup.classList.add('hidden');
+    chatInput.setAutocompleteActive(false);
+  }
+});
+
+function renderAutocompleteSelection() {
+  const items = autocompletePopup.querySelectorAll('.autocomplete-item');
+  items.forEach((item, i) => {
+    if (i === autocompleteIndex) {
+      item.classList.add('selected');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
 
 // ═══════════════════════════════════════
 // Keyboard shortcuts
@@ -1356,6 +1521,54 @@ VscodeIPC.on('pi_event', (msg) => handlePiEvent(msg.event));
 VscodeIPC.on('sync', (msg) => handleSync(msg.state));
 VscodeIPC.on('sessions_list', (msg) => {
   sidebar.setSessions(msg.sessions);
+});
+VscodeIPC.on('skills_data', (msg) => {
+  loadedSkills = msg.skills || [];
+  updateCommandPaletteSkills();
+  skillsList.innerHTML = '';
+  
+  if (loadedSkills.length === 0) {
+    skillsList.innerHTML = '<div style="opacity:0.5; text-align:center; padding: 20px 0;">No skills currently loaded.<br><br><span style="font-size: 10px;">Drop a <code>SKILL.md</code> in your <code>.pi/skills/</code> folder.</span></div>';
+    return;
+  }
+  
+  loadedSkills.forEach(skill => {
+    const card = document.createElement('div');
+    card.style.background = 'var(--vscode-editor-background)';
+    card.style.border = '1px solid var(--vscode-panel-border)';
+    card.style.borderRadius = '6px';
+    card.style.padding = '10px';
+    
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+        <strong style="color: var(--vscode-symbolIcon-functionForeground); font-size: 13px;">${escapeHtml(skill.name)}</strong>
+        <code class="skill-command-btn" data-skill="${escapeHtml(skill.name)}" style="font-size: 10px; opacity: 0.7; cursor: pointer;">/skill:${escapeHtml(skill.name)}</code>
+      </div>
+      <div style="font-size: 11px; opacity: 0.8; line-height: 1.4;">${escapeHtml(skill.description)}</div>
+    `;
+    
+    skillsList.appendChild(card);
+  });
+  
+  // Attach event listeners for the skill commands
+  skillsList.querySelectorAll('.skill-command-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const skillName = e.target.getAttribute('data-skill');
+      const inputEl = document.getElementById('message-input');
+      inputEl.textContent = `/skill:${skillName} `;
+      inputEl.focus();
+      
+      // Move cursor to the end
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(inputEl);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      
+      closeSkills();
+    });
+  });
 });
 VscodeIPC.on('add_context', (msg) => {
   if (msg.context) chatInput.insertContextRef(msg.context);

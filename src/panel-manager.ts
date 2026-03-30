@@ -178,6 +178,13 @@ function buildWebviewHtml(
             <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"></path>
           </svg>
         </button>
+        <button class="icon-btn has-tooltip" id="skills-btn" aria-label="Loaded Skills" data-tooltip="Skills">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5Z"></path>
+            <path d="m2 17 10 5 10-5"></path>
+            <path d="m2 12 10 5 10-5"></path>
+          </svg>
+        </button>
         <button class="icon-btn has-tooltip" id="settings-btn" aria-label="Settings" data-tooltip="Settings">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -218,6 +225,8 @@ function buildWebviewHtml(
     <div class="input-area">
       <div class="queued-messages hidden" id="queued-messages"></div>
       <div class="image-previews hidden" id="image-previews"></div>
+      
+      <div id="autocomplete-popup" class="autocomplete-popup hidden"></div>
 
       <form id="chat-form">
         <div class="input-left-actions">
@@ -338,6 +347,18 @@ function buildWebviewHtml(
         </div>
       </div>
       <div id="accounts-list" class="accounts-list"></div>
+    </div>
+  </div>
+
+  <!-- ── Skills Overlay ── -->
+  <div class="settings-overlay hidden" id="skills-overlay"></div>
+  <div class="settings-panel hidden" id="skills-panel">
+    <div class="settings-header">
+      <h3>Loaded Skills</h3>
+      <button class="icon-btn" id="close-skills-btn" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="settings-body" id="skills-list" style="padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+      <div style="opacity:0.5; text-align:center; padding: 20px 0;">Loading skills...</div>
     </div>
   </div>
 

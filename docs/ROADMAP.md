@@ -27,6 +27,8 @@ Build: Extension host bundled with esbuild (Pi SDK `0.62.0` included). Self-cont
 at 1.5 MB — no `node_modules` required. Published as `gnassro` on Open VSX.
 Auto-incrementing build numbers injected directly into the webview footer.
 
+Added Skills integration: Phi now fully supports Pi SDK skills. A dedicated "Skills" panel has been added to the header overlay, and typing `/` in the chat input instantly triggers an interactive slash-command autocomplete to quickly inject `/skill:name` templates.
+
 Current focus: Milestone 4 (packaging) nearly complete. Manual testing ongoing.
 
 ---

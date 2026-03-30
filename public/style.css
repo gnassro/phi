@@ -796,7 +796,49 @@ body.hide-thinking .thinking-block { display: none; }
   padding: 8px 12px 8px;
   border-top: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
   background: var(--vscode-panel-background, var(--vscode-editor-background));
+  position: relative;
 }
+
+/* Autocomplete Popup */
+.autocomplete-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 12px;
+  right: 12px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.15);
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.autocomplete-popup.hidden {
+  display: none;
+}
+.autocomplete-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--vscode-foreground);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+.autocomplete-item.selected,
+.autocomplete-item:hover {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+.autocomplete-icon { font-size: 14px; opacity: 0.8; }
+.autocomplete-desc { font-size: 11px; opacity: 0.6; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
 
 #chat-form {
   display: flex;
