@@ -250,11 +250,22 @@ function renderInline(text) {
   text = text.replace(/`([^`]+)`/g, (_, code) => {
     const idx = codeSpans.length;
     // Detect file path references: contains / and looks like a path (optionally with :line-line)
-    const pathMatch = code.match(/^(.+\/.+?)(?::(\d+)-(\d+))?$/);
-    if (pathMatch && pathMatch[1].length > 1 && !pathMatch[1].includes(' ')) {
+    const pathMatch = code.match(/^([a-zA-Z0-9_.\-~][a-zA-Z0-9_.\-~/]+)(?::(\d+)-(\d+))?$/);
+    const fullPath = pathMatch ? pathMatch[1] : '';
+    const fileName = fullPath ? fullPath.split('/').filter(Boolean).pop() : '';
+
+    // Must have at least one slash, not end in slash, not be a skill command, and not have spaces
+    const isFilePath = pathMatch && 
+                       fullPath.includes('/') && 
+                       !code.endsWith('/') && 
+                       !code.includes('skill:') &&
+                       fileName && 
+                       fileName.length > 0 && 
+                       !fullPath.includes(' ') && 
+                       fullPath.length < 150;
+
+    if (isFilePath) {
       // It's a file path reference — show only filename
-      const fullPath = pathMatch[1];
-      const fileName = fullPath.split('/').pop();
       const lineRange = pathMatch[2] && pathMatch[3] ? `:${pathMatch[2]}-${pathMatch[3]}` : '';
       const label = escapeHtml(fileName + lineRange);
       codeSpans.push(
