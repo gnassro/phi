@@ -10,7 +10,7 @@ import { MessageRenderer } from './message-renderer.js';
 import { ToolCardRenderer } from './tool-card.js';
 import { StateManager } from './state.js';
 import { SessionSidebar } from './session-sidebar.js';
-import { EXTENSION_VERSION } from './version.js';
+import { EXTENSION_VERSION, PI_SDK_VERSION } from './version.js';
 
 // ─── Core instances ───────────────────────────────────────────────────────────
 
@@ -58,11 +58,17 @@ const contextLegend = document.getElementById('context-legend');
 const contextVizUsed = document.getElementById('context-viz-used');
 const contextVizTotal = document.getElementById('context-viz-total');
 
-// Set version immediately
-const versionDisplayEl = document.getElementById('version-display');
-if (versionDisplayEl) {
-  versionDisplayEl.textContent = `v${EXTENSION_VERSION}`;
-}
+// About modal
+const aboutInfoBtn = document.getElementById('about-info-btn');
+const aboutModal = document.getElementById('about-modal');
+const aboutOverlay = document.getElementById('about-overlay');
+const aboutClose = document.getElementById('about-close');
+const aboutReportIssue = document.getElementById('about-report-issue');
+const aboutGithub = document.getElementById('about-github');
+
+// Set version info
+document.getElementById('about-version').textContent = `v${EXTENSION_VERSION}`;
+document.getElementById('about-pi-version').textContent = `v${PI_SDK_VERSION}`;
 
 // Scroll button
 const scrollBottomBtn = document.getElementById('scroll-bottom-btn');
@@ -816,6 +822,31 @@ function closeSettings() {
 settingsBtn.addEventListener('click', openSettings);
 settingsClose.addEventListener('click', closeSettings);
 settingsOverlay.addEventListener('click', closeSettings);
+
+// ═══════════════════════════════════════
+// About Modal
+// ═══════════════════════════════════════
+
+function openAbout() {
+  closeSettings();
+  aboutOverlay.classList.remove('hidden');
+  aboutModal.classList.remove('hidden');
+}
+
+function closeAbout() {
+  aboutOverlay.classList.add('hidden');
+  aboutModal.classList.add('hidden');
+}
+
+aboutInfoBtn.addEventListener('click', openAbout);
+aboutClose.addEventListener('click', closeAbout);
+aboutOverlay.addEventListener('click', closeAbout);
+aboutReportIssue.addEventListener('click', () => {
+  VscodeIPC.send({ type: 'open_url', url: 'https://github.com/gnassro/phi/issues/new' });
+});
+aboutGithub.addEventListener('click', () => {
+  VscodeIPC.send({ type: 'open_url', url: 'https://github.com/gnassro/phi' });
+});
 
 // ═══════════════════════════════════════
 // Accounts Panel

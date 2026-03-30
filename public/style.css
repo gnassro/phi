@@ -975,14 +975,103 @@ body.hide-thinking .thinking-block { display: none; }
   display: inline-block;
 }
 
-.version-pill {
+/* ═══════════════════════════════════════════════════════
+   About Modal
+   ═══════════════════════════════════════════════════════ */
+
+.about-modal {
   position: absolute;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  display: inline-block;
-  opacity: 0.35;
-  font-size: 9px;
-  pointer-events: none;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 40px);
+  max-width: 320px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 10px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.about-modal.hidden { display: none; }
+
+.about-body {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.about-logo {
+  font-size: 40px;
+  font-weight: 300;
+  opacity: 0.8;
+  color: var(--vscode-symbolIcon-functionForeground);
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.about-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+.about-desc {
+  font-size: 11px;
+  opacity: 0.6;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.about-table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--vscode-editor-background);
+  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-panel-border);
+}
+.about-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+.about-key {
+  opacity: 0.6;
+}
+.about-val {
+  font-weight: 500;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-editor-font-family), monospace;
+  font-size: 11px;
+}
+.about-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
+}
+.about-link-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--vscode-button-secondaryBorder, var(--vscode-panel-border));
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.about-link-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
 }
 
 .session-cost {

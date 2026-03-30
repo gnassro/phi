@@ -45,7 +45,9 @@ type WebviewMessage =
   | { type: 'navigate_tree'; targetId: string; summarize: boolean; customInstructions?: string }
   | { type: 'set_label'; entryId: string; label: string }
   // Skills
-  | { type: 'get_skills' };
+  | { type: 'get_skills' }
+  // Misc
+  | { type: 'open_url'; url: string };
 
 let initialized = false;
 
@@ -188,13 +190,23 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
       vscode.commands.executeCommand('phi.removeApiKey');
       break;
 
-    // ── Tree ──
+    // ── Skills ──
     case 'get_skills': {
       const skills = AgentManager.getSkills();
       PanelManager.send({ type: 'skills_data', skills });
       break;
     }
 
+    // ── Misc ──
+    case 'open_url': {
+      const urlMsg = message as { url: string };
+      if (urlMsg.url) {
+        vscode.env.openExternal(vscode.Uri.parse(urlMsg.url));
+      }
+      break;
+    }
+
+    // ── Tree ──
     case 'get_tree': {
       const treeData = AgentManager.getTree();
       PanelManager.send({ type: 'tree_data', ...treeData });

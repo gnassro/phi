@@ -270,7 +270,6 @@ function buildWebviewHtml(
       <!-- Context usage footer -->
       <div class="input-footer">
         <div class="pill session-cost" id="session-cost" title="Session cost"></div>
-        <div class="pill version-pill" id="version-display" title="Extension Version"></div>
         <div class="input-footer-ctx" id="input-footer-ctx">
           <button class="ctx-usage-btn" id="token-usage" title="Click for context breakdown"></button>
           <div class="context-viz hidden" id="context-viz">
@@ -317,6 +316,50 @@ function buildWebviewHtml(
           <span class="settings-label">Show thinking</span>
           <button class="settings-toggle on" id="toggle-show-thinking"></button>
         </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">About</div>
+        <div class="settings-row" style="cursor: pointer;" id="about-info-btn">
+          <span class="settings-label">Extension Info</span>
+          <span style="opacity: 0.5; font-size: 12px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── About Modal ── -->
+  <div class="settings-overlay hidden" id="about-overlay"></div>
+  <div class="about-modal hidden" id="about-modal">
+    <div class="settings-header">
+      <h3>About Phi</h3>
+      <button class="settings-close" id="about-close">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="about-body">
+      <div class="about-logo">φ</div>
+      <div class="about-name">Phi — AI Coding Agent</div>
+      <div class="about-desc">The Pi coding agent, natively inside VS Code.</div>
+      <div class="about-table">
+        <div class="about-row"><span class="about-key">Version</span><span class="about-val" id="about-version">—</span></div>
+        <div class="about-row"><span class="about-key">Pi SDK</span><span class="about-val" id="about-pi-version">—</span></div>
+        <div class="about-row"><span class="about-key">Author</span><span class="about-val">gnassro</span></div>
+        <div class="about-row"><span class="about-key">License</span><span class="about-val">MIT</span></div>
+        <div class="about-row"><span class="about-key">Engine</span><span class="about-val">VS Code ≥1.85</span></div>
+      </div>
+      <div class="about-links">
+        <button class="about-link-btn" id="about-report-issue">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Report Issue
+        </button>
+        <button class="about-link-btn" id="about-github">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+          GitHub
+        </button>
       </div>
     </div>
   </div>
