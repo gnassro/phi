@@ -261,6 +261,7 @@ function buildWebviewHtml(
       <!-- Context usage footer -->
       <div class="input-footer">
         <div class="pill session-cost" id="session-cost" title="Session cost"></div>
+        <div class="pill version-pill" id="version-display" title="Extension Version"></div>
         <div class="input-footer-ctx" id="input-footer-ctx">
           <button class="ctx-usage-btn" id="token-usage" title="Click for context breakdown"></button>
           <div class="context-viz hidden" id="context-viz">

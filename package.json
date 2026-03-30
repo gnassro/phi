@@ -149,10 +149,10 @@
     }
   },
   "scripts": {
-    "build": "pnpm run build:ext && pnpm run build:web",
+    "build": "node scripts/build-num.mjs && pnpm run build:ext && pnpm run build:web",
     "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --format=esm --platform=node --target=node18 --external:vscode --minify --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
     "build:web": "esbuild public/app.js --bundle --outdir=dist/public --format=esm && cp public/style.css dist/public/style.css",
-    "watch": "concurrently \"pnpm run build:ext -- --watch\" \"pnpm run build:web -- --watch\"",
+    "watch": "node scripts/build-num.mjs && concurrently \"pnpm run build:ext -- --watch\" \"pnpm run build:web -- --watch\"",
     "typecheck": "tsc --noEmit",
     "package": "pnpm run build && pnpm exec vsce package --no-dependencies",
     "lint": "eslint src --ext ts"
