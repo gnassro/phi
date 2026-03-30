@@ -32,6 +32,10 @@ Phi brings the [Pi](https://github.com/badlogic/pi-mono) AI coding agent into VS
 
 > **⚠️ Note:** Phi is a community-built extension and does **not** yet cover the full Pi agent feature set. It's a work in progress, built through vibe coding, and we welcome all contributions to help reach full Pi parity. See [Contributing](#contributing) below.
 
+<p align="center">
+  <img src="assets/screenshots/scr1.png" alt="Phi in action" width="700">
+</p>
+
 ---
 
 ## ✨ Features
