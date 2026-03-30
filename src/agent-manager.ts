@@ -477,7 +477,7 @@ export interface SerializedTreeNode {
  */
 export function getSkills() {
   if (!session) return [];
-  return session.resourceLoader.getSkills();
+  return session.resourceLoader.getSkills().skills;
 }
 
 /**
