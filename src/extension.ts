@@ -54,7 +54,18 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   const selectionButtonDisposables = EditorContext.registerSelectionButton();
   ctx.subscriptions.push(...selectionButtonDisposables);
 
-  // 6. On first activation, move Phi to the secondary (right) sidebar
+  // 6. Add a status bar button to quickly open Phi chat
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    1000
+  );
+  statusBarItem.text = '$(comment-discussion) Phi';
+  statusBarItem.tooltip = 'Open Phi Chat';
+  statusBarItem.command = 'phi.openChat';
+  statusBarItem.show();
+  ctx.subscriptions.push(statusBarItem);
+
+  // 7. On first activation, move Phi to the secondary (right) sidebar
   const hasMovedToRight = ctx.globalState.get<boolean>('phi.movedToSecondarySidebar');
   if (!hasMovedToRight) {
     ctx.globalState.update('phi.movedToSecondarySidebar', true);
@@ -79,7 +90,7 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
     }, 1500);
   }
 
-  // 7. Watch for workspace folder changes (user adds/removes a folder)
+  // 8. Watch for workspace folder changes (user adds/removes a folder)
   ctx.subscriptions.push(
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       const newCwd =
