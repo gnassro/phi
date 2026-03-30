@@ -980,7 +980,7 @@ body.hide-thinking .thinking-block { display: none; }
    ═══════════════════════════════════════════════════════ */
 
 .about-modal {
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -989,7 +989,7 @@ body.hide-thinking .thinking-block { display: none; }
   background: var(--vscode-editorWidget-background);
   border: 1px solid var(--vscode-editorWidget-border);
   border-radius: 10px;
-  z-index: 200;
+  z-index: 1001;
   box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   display: flex;
   flex-direction: column;
