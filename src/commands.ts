@@ -5,6 +5,16 @@ import * as IpcBridge from './ipc-bridge.js';
 import * as EditorContext from './editor-context.js';
 
 /**
+ * Push updated accounts list to the webview.
+ * Called after login, logout, addApiKey, removeApiKey to auto-refresh the panel.
+ */
+function refreshAccountsList(): void {
+  const providers = AgentManager.getOAuthProviders();
+  const apiKeyProviders = AgentManager.getApiKeyProviders();
+  PanelManager.send({ type: 'accounts_list', providers, apiKeyProviders });
+}
+
+/**
  * registerCommands
  *
  * Registers all VS Code commands contributed by Phi.
@@ -162,6 +172,7 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
 
             // Login succeeded — dismiss the manual code input if still open
             manualCodeCts.cancel();
+            refreshAccountsList();
 
             vscode.window.showInformationMessage(
               `✓ Logged in to ${picked.label} successfully.`
@@ -204,6 +215,7 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
       if (!picked) return;
 
       AgentManager.logout(picked.providerId);
+      refreshAccountsList();
       vscode.window.showInformationMessage(`Logged out from ${picked.label}.`);
     })
   );
@@ -258,6 +270,7 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
       if (!apiKey) return;
 
       AgentManager.setApiKey(providerId, apiKey);
+      refreshAccountsList();
       vscode.window.showInformationMessage(
         `✓ API key saved for ${providerName}.`
       );
@@ -283,6 +296,7 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
       if (!picked) return;
 
       AgentManager.removeApiKey(picked.providerId);
+      refreshAccountsList();
       vscode.window.showInformationMessage(
         `API key removed for ${picked.label}.`
       );

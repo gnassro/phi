@@ -94,7 +94,7 @@ const btnThinkingLevel = document.getElementById('btn-thinking-level');
 const toggleShowThinking = document.getElementById('toggle-show-thinking');
 const btnLogin = document.getElementById('btn-login');
 const btnAddApiKey = document.getElementById('btn-add-api-key');
-const btnRemoveApiKey = document.getElementById('btn-remove-api-key');
+const btnRemoveApiKey = null; // removed from UI — inline buttons used instead
 const accountsList = document.getElementById('accounts-list');
 
 // History
@@ -1263,10 +1263,6 @@ btnAddApiKey.addEventListener('click', () => {
   VscodeIPC.send({ type: 'add_api_key' });
 });
 
-btnRemoveApiKey.addEventListener('click', () => {
-  VscodeIPC.send({ type: 'remove_api_key' });
-});
-
 // Listen for accounts list updates (OAuth + API keys) — show only active ones
 VscodeIPC.on('accounts_list', (msg) => {
   if (!accountsList) return;
@@ -1280,7 +1276,7 @@ VscodeIPC.on('accounts_list', (msg) => {
   if (activeOAuth.length === 0 && activeApiKeys.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'accounts-empty';
-    empty.textContent = 'No accounts configured';
+    empty.textContent = 'No accounts configured yet';
     accountsList.appendChild(empty);
     return;
   }
@@ -1294,10 +1290,31 @@ VscodeIPC.on('accounts_list', (msg) => {
     activeOAuth.forEach(p => {
       const row = document.createElement('div');
       row.className = 'account-row';
-      row.innerHTML = `
-        <span class="account-name">${escapeHtml(p.name)}</span>
-        <span class="account-status logged-in">✓</span>
-      `;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'account-name';
+      nameSpan.textContent = p.name;
+      row.appendChild(nameSpan);
+
+      const rightSide = document.createElement('div');
+      rightSide.style.display = 'flex';
+      rightSide.style.alignItems = 'center';
+      rightSide.style.gap = '8px';
+
+      const status = document.createElement('span');
+      status.className = 'account-status logged-in';
+      status.textContent = '✓';
+      rightSide.appendChild(status);
+
+      const logoutBtn = document.createElement('button');
+      logoutBtn.className = 'account-action-btn';
+      logoutBtn.textContent = 'Logout';
+      logoutBtn.addEventListener('click', () => {
+        VscodeIPC.send({ type: 'logout' });
+      });
+      rightSide.appendChild(logoutBtn);
+
+      row.appendChild(rightSide);
       accountsList.appendChild(row);
     });
   }
@@ -1311,10 +1328,31 @@ VscodeIPC.on('accounts_list', (msg) => {
     activeApiKeys.forEach(p => {
       const row = document.createElement('div');
       row.className = 'account-row';
-      row.innerHTML = `
-        <span class="account-name">${escapeHtml(p.name)}</span>
-        <span class="account-status logged-in">✓</span>
-      `;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'account-name';
+      nameSpan.textContent = p.name;
+      row.appendChild(nameSpan);
+
+      const rightSide = document.createElement('div');
+      rightSide.style.display = 'flex';
+      rightSide.style.alignItems = 'center';
+      rightSide.style.gap = '8px';
+
+      const status = document.createElement('span');
+      status.className = 'account-status logged-in';
+      status.textContent = '✓';
+      rightSide.appendChild(status);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'account-action-btn';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', () => {
+        VscodeIPC.send({ type: 'remove_api_key' });
+      });
+      rightSide.appendChild(removeBtn);
+
+      row.appendChild(rightSide);
       accountsList.appendChild(row);
     });
   }
