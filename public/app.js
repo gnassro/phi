@@ -10,6 +10,7 @@ import { MessageRenderer } from './message-renderer.js';
 import { ToolCardRenderer } from './tool-card.js';
 import { StateManager } from './state.js';
 import { SessionSidebar } from './session-sidebar.js';
+import { EXTENSION_VERSION } from './version.js';
 
 // ─── Core instances ───────────────────────────────────────────────────────────
 
@@ -56,6 +57,12 @@ const contextBar = document.getElementById('context-bar');
 const contextLegend = document.getElementById('context-legend');
 const contextVizUsed = document.getElementById('context-viz-used');
 const contextVizTotal = document.getElementById('context-viz-total');
+
+// Set version immediately
+const versionDisplayEl = document.getElementById('version-display');
+if (versionDisplayEl) {
+  versionDisplayEl.textContent = `v${EXTENSION_VERSION}`;
+}
 
 // Scroll button
 const scrollBottomBtn = document.getElementById('scroll-bottom-btn');
@@ -427,7 +434,7 @@ function handleSync(syncState) {
   state.reset();
   messageRenderer.clear();
   toolCardRenderer.clear();
-  sessionTotalCost = 0;
+  sessionTotalCost = syncState.sessionStats?.cost ?? 0;
   lastInputTokens = 0;
 
   if (syncState.model) {
@@ -492,7 +499,6 @@ function renderHistory(entries) {
           },
           false, true
         );
-        if (msg.usage?.cost?.total) sessionTotalCost += msg.usage.cost.total;
         if (msg.usage?.input) {
           lastInputTokens = msg.usage.input + (msg.usage.cacheRead || 0);
           lastUsage = msg.usage;

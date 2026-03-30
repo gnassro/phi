@@ -243,6 +243,7 @@ export function sendSync(): void {
   }));
 
   const state = AgentManager.getState();
+  const sessionStats = AgentManager.getSessionStats();
 
   PanelManager.send({
     type: 'sync',
@@ -253,6 +254,7 @@ export function sendSync(): void {
       sessionFile: AgentManager.getSessionFile(),
       model: state?.model ?? null,
       thinkingLevel: state?.thinkingLevel ?? 'off',
+      sessionStats: sessionStats ?? null,
     },
   });
 }
