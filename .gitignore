@@ -31,3 +31,7 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+.build-number
+src/version.ts
+public/version.js
