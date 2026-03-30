@@ -218,13 +218,16 @@ All styles use VS Code's built-in `--vscode-*` CSS variables exclusively. The ex
 ## Build System
 
 ```bash
+# Auto-increment build number (creates src/version.ts and public/version.js)
+node scripts/build-num.mjs
+
 # Bundle extension host (src/ + Pi SDK → dist/extension.js)
 esbuild src/extension.ts --bundle --outfile=dist/extension.js --format=esm --platform=node --external:vscode --minify
 
 # Bundle webview assets (public/ → dist/public/)
 esbuild public/app.js --bundle --outdir=dist/public
 
-# Both together
+# All together (build-num.mjs -> build:ext -> build:web)
 pnpm run build            # or: npm run build
 
 # Type check only (no output)

@@ -205,6 +205,7 @@ This file tracks all tasks for the Phi project.
 - [x] Header buttons: CSS tooltips via `data-tooltip` + `.has-tooltip::after` (native `title` unreliable in webviews)
 - [x] Accounts button: person-in-circle SVG icon (replaces key icon)
 - [x] Webview asset cache-busting: `?v=${Date.now()}` on script and style URIs in `panel-manager.ts`
+- [x] Display auto-incremented version+build number (`v0.1.0+X`) centered and dimmed in the footer
 
 ### Conversation Tree ✅
 - [x] Tree button (🌿) in header bar between History and Settings

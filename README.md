@@ -101,7 +101,8 @@ pnpm run build            # or: npm run build
 ### Package & Install Locally
 
 ```bash
-pnpm exec vsce package    # or: npx vsce package
+# automatically runs build first
+pnpm run package          # or: npm run package
 code --install-extension phi-agent-0.1.0.vsix
 ```
 
