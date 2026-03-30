@@ -341,7 +341,6 @@ function buildWebviewHtml(
       </button>
     </div>
     <div class="about-body">
-      <div class="about-logo">φ</div>
       <div class="about-name">Phi — AI Coding Agent</div>
       <div class="about-desc">The Pi coding agent, natively inside VS Code.</div>
       <div class="about-table">

@@ -985,7 +985,7 @@ body.hide-thinking .thinking-block { display: none; }
   left: 50%;
   transform: translate(-50%, -50%);
   width: calc(100% - 40px);
-  max-width: 320px;
+  max-width: 280px;
   background: var(--vscode-editorWidget-background);
   border: 1px solid var(--vscode-editorWidget-border);
   border-radius: 10px;
@@ -1586,7 +1586,7 @@ body.hide-thinking .thinking-block { display: none; }
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 32px);
-  max-width: 320px;
+  max-width: 280px;
   z-index: 1100;
   background: var(--vscode-quickInput-background, var(--vscode-editor-background));
   border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.2));
@@ -1666,7 +1666,7 @@ body.hide-thinking .thinking-block { display: none; }
 }
 
 .welcome p { font-size: 14px; }
-.welcome .hint { font-size: 12px; opacity: 0.7; max-width: 320px; }
+.welcome .hint { font-size: 12px; opacity: 0.7; max-width: 280px; }
 
 .welcome kbd {
   display: inline-block;
