@@ -69,13 +69,20 @@ phi/
 │   ├── commands.ts               ← All vscode.commands.registerCommand() calls
 │   └── utils.ts                  ← Shared helpers (getNonce for CSP)
 ├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
-│   ├── app.js                    ← Main UI coordinator
+│   ├── app.js                    ← Main UI coordinator (slim orchestrator)
 │   ├── vscode-ipc.js             ← VS Code IPC wrapper
 │   ├── chat-input.js             ← ContentEditable rich-text input
 │   ├── message-renderer.js       ← Renders user/assistant messages
 │   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write
 │   ├── state.js                  ← StateManager for tool execution tracking
 │   ├── session-sidebar.js        ← Session history panel
+│   ├── image-manager.js          ← Image paste, drag-drop, file picker, previews
+│   ├── model-picker.js           ← Model dropdown, search, thinking level
+│   ├── cost-monitor.js           ← Cost/token display, context visualization
+│   ├── command-palette.js        ← Command palette overlay
+│   ├── tree-panel.js             ← Conversation tree panel (navigation, labeling)
+│   ├── prompt-autocomplete.js    ← Slash-command autocomplete popup
+│   ├── panels.js                 ← Settings, About, Accounts, History, Skills panels
 │   ├── themes.js                 ← No-op stub (VS Code handles theming natively)
 │   ├── markdown.js               ← Markdown → HTML renderer
 │   └── style.css                 ← All styles using CSS variables
@@ -132,17 +139,24 @@ phi/
 │  ┌───────────────▼───────────────────────────────────────────┐   │
 │  │              WEBVIEW  (Chromium sandbox)                  │   │
 │  │                                                           │   │
-│  │  index.html        ← HTML shell with CSP nonce           │   │
-│  │  app.js            ← UI coordinator                      │   │
-│  │  vscode-ipc.js     ← acquireVsCodeApi() wrapper          │   │
-│  │  chat-input.js     ← ContentEditable input               │   │
-│  │  message-renderer.js ← Chat message DOM rendering        │   │
-│  │  tool-card.js      ← Tool execution cards                │   │
-│  │  state.js          ← Tool execution state tracking       │   │
-│  │  session-sidebar.js ← Session history panel              │   │
-│  │  themes.js         ← No-op (VS Code theming)             │   │
-│  │  markdown.js       ← Markdown → HTML                     │   │
-│  │  style.css         ← All visual styles                   │   │
+│  │  index.html           ← HTML shell with CSP nonce        │   │
+│  │  app.js               ← UI coordinator (slim)            │   │
+│  │  vscode-ipc.js        ← acquireVsCodeApi() wrapper       │   │
+│  │  chat-input.js        ← ContentEditable input            │   │
+│  │  message-renderer.js  ← Chat message DOM rendering       │   │
+│  │  tool-card.js         ← Tool execution cards             │   │
+│  │  state.js             ← Tool execution state tracking    │   │
+│  │  session-sidebar.js   ← Session history panel            │   │
+│  │  image-manager.js     ← Image attachments                │   │
+│  │  model-picker.js      ← Model dropdown + thinking        │   │
+│  │  cost-monitor.js      ← Cost/token/context viz           │   │
+│  │  command-palette.js   ← Command palette                  │   │
+│  │  tree-panel.js        ← Conversation tree                │   │
+│  │  prompt-autocomplete.js ← Slash autocomplete             │   │
+│  │  panels.js            ← Side panels (settings, etc.)     │   │
+│  │  themes.js            ← No-op (VS Code theming)          │   │
+│  │  markdown.js          ← Markdown → HTML                  │   │
+│  │  style.css            ← All visual styles                │   │
 │  └───────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```

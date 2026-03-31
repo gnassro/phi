@@ -13,10 +13,21 @@ Phi runs in two completely separate sandbox environments that CANNOT share memor
 1. **Extension Host** (`src/`): Runs Node.js, has access to the Pi SDK (`@mariozechner/pi-coding-agent`) and VS Code APIs (`vscode`).
 2. **Webview UI** (`public/`): Runs in a Chromium sandbox. Vanilla JS & CSS only (No React, Vue, etc.). No Node.js APIs.
 
+### Webview Module Structure
+The webview UI is split into focused ES6 class modules:
+- `app.js` — Slim orchestrator (~430 lines): event loop, sync, message queue, keyboard shortcuts
+- `image-manager.js` — Image paste, drag-drop, file picker, preview rendering
+- `model-picker.js` — Model dropdown with search, thinking level button
+- `cost-monitor.js` — Session cost, token usage, context window visualization
+- `command-palette.js` — Command palette overlay with skill injection
+- `tree-panel.js` — Conversation tree rendering, navigation, labeling
+- `prompt-autocomplete.js` — Slash-command autocomplete with keyboard navigation
+- `panels.js` — Settings, About, Accounts, History, Skills panels
+
 ### The Golden Rules of Phi
 - **Communication:** ALL data must pass back and forth via the `VscodeIPC` message bridge.
 - **Theming:** Do NOT hardcode colors. Only use built-in `--vscode-*` CSS variables (e.g. `var(--vscode-editor-background)`).
-- **Security:** The webview has a strict Content Security Policy (CSP). **No inline event handlers (`onclick="..."`)**. Always use `addEventListener` in `app.js`.
+- **Security:** The webview has a strict Content Security Policy (CSP). **No inline event handlers (`onclick="..."`)**. Always use `addEventListener`.
 
 ## Setup & Build Commands
 
@@ -47,8 +58,9 @@ When adding a new feature that requires UI and Backend interaction:
    Expose the needed functionality from the Pi SDK.
 2. **Message Protocol (`src/ipc-bridge.ts`):** 
    Add a new message type to `WebviewMessage` and handle the routing to `AgentManager`. Use `PanelManager.send()` to push data back to the UI.
-3. **Webview UI (`public/app.js`):** 
-   Use `VscodeIPC.send({ type: 'your_event' })` to talk to the backend. Listen for responses with `VscodeIPC.on('your_response', (msg) => { ... })`.
+3. **Webview UI (`public/`):**
+   - For new UI components: create a new module in `public/` as an ES6 class, import and wire it in `app.js`.
+   - Use `VscodeIPC.send({ type: 'your_event' })` to talk to the backend. Listen for responses with `VscodeIPC.on('your_response', (msg) => { ... })`.
 
 ## Testing Changes Locally
 
@@ -58,7 +70,7 @@ If you need to test the `.vsix` package in a clean VS Code instance:
 pnpm run package
 
 # 2. Install it in your local VS Code
-code --install-extension phi-agent-0.1.0.vsix
+code --install-extension phi-agent-0.2.0.vsix
 ```
 *Alternatively, press **F5** inside VS Code to launch the Extension Development Host.*
 

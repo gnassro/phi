@@ -46,7 +46,11 @@ type WebviewMessage =
   // Tree navigation
   | { type: "get_tree" }
   | { type: "navigate_tree"; targetId: string; summarize: boolean; customInstructions?: string }
-  | { type: "set_label"; entryId: string; label: string };
+  | { type: "set_label"; entryId: string; label: string }
+  // Skills
+  | { type: "get_skills" }
+  // Misc
+  | { type: "open_url"; url: string };
 
 interface ImagePayload {
   type: "image";
@@ -210,7 +214,8 @@ type ExtensionMessage =
   | { type: "accounts_list"; providers: OAuthProviderStatus[]; apiKeyProviders: ApiKeyProviderStatus[] }
   | { type: "tree_data"; tree: SerializedTreeNode[]; leafId: string | null }
   | { type: "navigate_result"; success: boolean; cancelled?: boolean; error?: string }
-  | { type: "open_tree" };
+  | { type: "open_tree" }
+  | { type: "skills_data"; skills: Skill[] };
 ```
 
 ### `pi_event`
