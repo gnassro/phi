@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.1] - 2026-03-31
+
+### Changed
+- **Modularized webview codebase** — extracted 7 ES6 class modules from `app.js` (~1,732 → ~430 lines): `image-manager.js`, `model-picker.js`, `cost-monitor.js`, `command-palette.js`, `tree-panel.js`, `prompt-autocomplete.js`, `panels.js`
+- Cleaned up About dialog (removed oversized icon, reduced width)
+- Updated phi-developer skill with full module listing
+
+### Fixed
+- IPC protocol docs now include `get_skills`, `open_url`, and `skills_data` message types
+- Removed duplicate command entries in AGENTS.md
+
 ## [0.2.0] - 2026-03-30
 
 ### Added
