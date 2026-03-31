@@ -209,7 +209,7 @@ Full specification: `docs/ipc-protocol.md`
 | `prefill_input` | Prefill the chat input with text (Ask About Selection) |
 | `rpc_response` | Response to RPC commands (get_state, set_model, etc.) |
 | `accounts_list` | OAuth providers + API key providers with active status |
-| `tree_data` | Serialized session tree + current leaf ID |
+| `tree_data` | Flat array of serialized session tree nodes + current leaf ID |
 | `navigate_result` | Result of tree navigation (success/cancelled) |
 | `open_tree` | Signal webview to open the tree panel |
 | `skills_data` | Array of loaded skills with name and description |
@@ -289,6 +289,8 @@ Full reference: `docs/pi-sdk.md`
     - Group related changes into one commit; don't leave uncommitted work.
 
 16. **Visibility toggles need an `else` branch.** Any `_update*()` method that conditionally adds a `visible` class must also have an `else` branch that removes it and clears the element content. Otherwise, stale data stays visible after state resets (e.g. switching sessions). Similarly, `handleSync()` must fully reset UI components before restoring the new session's state — don't assume a prior `reset()` call has already run.
+
+17. **Send flat arrays, not deeply nested trees.** The VS Code webview `postMessage` uses structured cloning. If an object is too deeply nested (e.g., a tree with ~1,500 levels), structured clone fails silently with `Uncaught TypeError: Cannot read properties of null (reading 'channel')` inside VS Code's core. Always flatten recursive structures into arrays (e.g., using `parentId`/`childIds`) before sending via IPC.
 
 ---
 
