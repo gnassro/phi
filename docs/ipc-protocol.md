@@ -212,7 +212,7 @@ type ExtensionMessage =
   | { type: "prefill_input"; text: string }
   | { type: "rpc_response"; command: string; success: boolean; data?: unknown; error?: string }
   | { type: "accounts_list"; providers: OAuthProviderStatus[]; apiKeyProviders: ApiKeyProviderStatus[] }
-  | { type: "tree_data"; tree: SerializedTreeNode[]; leafId: string | null }
+  | { type: "tree_data"; nodes: SerializedTreeNode[]; leafId: string | null; error?: string }
   | { type: "navigate_result"; success: boolean; cancelled?: boolean; error?: string }
   | { type: "open_tree" }
   | { type: "skills_data"; skills: Skill[] };
