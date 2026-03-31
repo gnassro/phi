@@ -194,6 +194,8 @@ Full specification: `docs/ipc-protocol.md`
 | `get_tree` | Fetch conversation tree structure |
 | `navigate_tree` | Navigate to a tree node (with optional branch summary) |
 | `set_label` | Set or clear a label on a tree entry |
+| `get_skills` | Fetch loaded skills list |
+| `open_url` | Open a URL in the user's browser |
 
 ### Extension Host → Webview
 
@@ -210,6 +212,7 @@ Full specification: `docs/ipc-protocol.md`
 | `tree_data` | Serialized session tree + current leaf ID |
 | `navigate_result` | Result of tree navigation (success/cancelled) |
 | `open_tree` | Signal webview to open the tree panel |
+| `skills_data` | Array of loaded skills with name and description |
 
 ---
 
@@ -228,8 +231,6 @@ Full specification: `docs/ipc-protocol.md`
 | `phi.addApiKey` | Phi: Add API Key | — | Always |
 | `phi.removeApiKey` | Phi: Remove API Key | — | Always |
 | `phi.openTree` | Phi: Open Conversation Tree | — | Always |
-| `phi.login` | Phi: Login | — | Always |
-| `phi.logout` | Phi: Logout | — | Always |
 
 ---
 
@@ -313,7 +314,7 @@ pnpm run watch            # or: npm run watch
 pnpm run package          # or: npm run package
 
 # Install locally (no marketplace needed)
-code --install-extension phi-agent-0.1.0.vsix
+code --install-extension phi-agent-0.2.0.vsix
 
 # Launch Extension Development Host (press F5 in VS Code)
 # Configured in .vscode/launch.json
@@ -322,7 +323,7 @@ code --install-extension phi-agent-0.1.0.vsix
 **Build details:**
 - `build` — first runs `scripts/build-num.mjs` to auto-increment `.build-number` and generate `src/version.ts` / `public/version.js`, then runs `build:ext` and `build:web`
 - `build:ext` — bundles `src/extension.ts` + all dependencies (including Pi SDK) into a single `dist/extension.js` via esbuild (ESM, Node.js, minified)
-- `build:web` — bundles `public/app.js` into `dist/public/app.js` via esbuild (ESM) + copies `style.css`
+- `build:web` — bundles `public/app.js` (and all its module imports) into `dist/public/app.js` via esbuild (ESM) + copies `style.css`
 - `vscode` is marked as external (provided by VS Code at runtime)
 
 **Output structure after build:**
