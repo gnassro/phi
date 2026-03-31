@@ -333,11 +333,12 @@ pnpm run release:publish
 ```
 
 **Version management:**
-- `.published-version` — stores the last version published to Open VSX
-- `scripts/release.mjs` — auto-detects bump level from git history:
-  - `feat:` commits → **MINOR** bump (0.2.1 → 0.3.0)
-  - Only `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → **PATCH** bump (0.2.1 → 0.2.2)
-  - If `package.json` version > `.published-version` → already bumped, no change needed
+- `scripts/release.mjs` — queries the **Open VSX API** (`https://open-vsx.org/api/gnassro/phi-agent`) to get the real production version
+- `.published-version` — local cache, auto-synced from the API (offline fallback)
+- Bump level auto-detected from git history:
+  - `feat:` commits → **MINOR** bump (0.2.0 → 0.3.0)
+  - Only `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → **PATCH** bump (0.2.0 → 0.2.1)
+  - If `package.json` version > production → already bumped, no change needed
 - **ALWAYS run `pnpm run release:status` before preparing a release** to check if a bump is needed
 
 **Build details:**
