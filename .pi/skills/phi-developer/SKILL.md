@@ -80,3 +80,11 @@ If you are modifying complex systems, ALWAYS read these files before starting:
 - [docs/architecture.md](../../../docs/architecture.md) — Full breakdown of the system design and IPC flow.
 - [docs/ipc-protocol.md](../../../docs/ipc-protocol.md) — Documentation of all existing Webview ↔ Extension Host messages.
 - [docs/ROADMAP.md](../../../docs/ROADMAP.md) / [TASKS.md](../../../docs/TASKS.md) — For updating the current project status.
+
+## After Every Change — Mandatory Checklist
+
+**You MUST do ALL of these after every code change. No exceptions.**
+
+1. **Build** — Run `pnpm run build` and confirm it succeeds.
+2. **Commit** — Commit immediately with a conventional commit message (`fix:`, `feat:`, `docs:`, etc.). Do NOT batch unrelated changes. Do NOT leave uncommitted work.
+3. **Update docs** — Check the table in AGENTS.md § "When You MUST Update Docs" and update every file that applies (AGENTS.md, TASKS.md, ROADMAP.md, ipc-protocol.md, etc.).
