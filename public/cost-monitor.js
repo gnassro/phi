@@ -99,6 +99,10 @@ export class CostMonitor {
       this.tokenUsageEl.innerHTML = `<span>${(this.lastInputTokens / 1000).toFixed(1)}k tokens</span>`;
       this.tokenUsageEl.classList.add('visible');
       this.tokenUsageEl.classList.remove('warning', 'critical');
+    } else {
+      this.tokenUsageEl.classList.remove('visible', 'warning', 'critical');
+      this.tokenUsageEl.innerHTML = '';
+      this.contextViz.classList.add('hidden');
     }
   }
 

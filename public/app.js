@@ -322,7 +322,17 @@ function handleSync(syncState) {
   messageRenderer.clear();
   toolCardRenderer.clear();
 
+  costMonitor.reset();
   costMonitor.setCost(syncState.sessionStats?.cost ?? 0);
+
+  // Restore token usage from session stats if available
+  if (syncState.sessionStats?.tokens) {
+    const t = syncState.sessionStats.tokens;
+    const inputTotal = (t.input || 0) + (t.cacheRead || 0);
+    if (inputTotal > 0) {
+      costMonitor.setUsage({ input: t.input || 0, cacheRead: t.cacheRead || 0 });
+    }
+  }
 
   if (syncState.model) {
     modelPicker.setModel(syncState.model);
