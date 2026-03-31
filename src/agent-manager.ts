@@ -494,8 +494,10 @@ export function getTree(): { tree: SerializedTreeNode[]; leafId: string | null }
   };
 }
 
-function serializeTreeNode(node: SessionTreeNode): SerializedTreeNode {
-  const entry = node.entry;
+/**
+ * Extract a short preview string from a tree node's entry.
+ */
+function getEntryPreview(entry: any): { preview: string; role?: string } {
   let preview = '';
   let role: string | undefined;
 
@@ -550,15 +552,48 @@ function serializeTreeNode(node: SessionTreeNode): SerializedTreeNode {
       preview = entry.type;
   }
 
-  return {
-    id: entry.id,
-    parentId: entry.parentId,
-    type: entry.type,
-    label: node.label,
-    preview,
-    role,
-    children: node.children.map(serializeTreeNode),
-  };
+  return { preview, role };
+}
+
+/**
+ * Iteratively serialize a tree of SessionTreeNodes to avoid stack overflow
+ * on deep sessions (recursive approach fails at ~3,000+ entries).
+ */
+function serializeTreeNode(root: SessionTreeNode): SerializedTreeNode {
+  // Phase 1: Build all serialized nodes (without children) using iterative DFS
+  const serializedMap = new Map<SessionTreeNode, SerializedTreeNode>();
+  const stack: SessionTreeNode[] = [root];
+
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    const { preview, role } = getEntryPreview(node.entry);
+    serializedMap.set(node, {
+      id: node.entry.id,
+      parentId: node.entry.parentId,
+      type: node.entry.type,
+      label: node.label,
+      preview,
+      role,
+      children: [], // filled in phase 2
+    });
+    // Push children in reverse so they're processed in order
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      stack.push(node.children[i]);
+    }
+  }
+
+  // Phase 2: Wire up children references
+  const wireStack: SessionTreeNode[] = [root];
+  while (wireStack.length > 0) {
+    const node = wireStack.pop()!;
+    const serialized = serializedMap.get(node)!;
+    for (const child of node.children) {
+      serialized.children.push(serializedMap.get(child)!);
+      wireStack.push(child);
+    }
+  }
+
+  return serializedMap.get(root)!;
 }
 
 /**

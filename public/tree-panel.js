@@ -32,6 +32,10 @@ export class TreePanel {
 
     // IPC listeners
     VscodeIPC.on('tree_data', (msg) => {
+      if (msg.error) {
+        this.view.innerHTML = `<div class="tree-empty">Failed to load tree: ${msg.error}</div>`;
+        return;
+      }
       this.currentTreeData = msg.tree;
       this.currentLeafId = msg.leafId;
       this._renderTree(msg.tree, msg.leafId);
@@ -171,9 +175,18 @@ export class TreePanel {
   /**
    * Flatten the tree for display. Key rule: depth only increases at branch points
    * (nodes with multiple visible children). Linear chains stay at the same depth.
+   * Uses iterative approach to avoid stack overflow on large sessions.
    */
   _flattenForDisplay(nodes, leafId, depth, filterMode, result) {
-    for (const node of nodes) {
+    // Stack entries: [node, depth]
+    const stack = [];
+    // Push in reverse so first node is processed first
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      stack.push([nodes[i], depth]);
+    }
+
+    while (stack.length > 0) {
+      const [node, d] = stack.pop();
       const show = this._shouldShowNode(node, filterMode);
       const visibleChildren = node.children.filter(c => this._hasVisibleDescendants(c, filterMode));
       const isBranchPoint = visibleChildren.length > 1;
@@ -186,18 +199,28 @@ export class TreePanel {
           role: node.role,
           label: node.label,
           preview: node.preview,
-          depth,
+          depth: d,
         });
       }
 
-      const childDepth = isBranchPoint ? depth + 1 : depth;
-      this._flattenForDisplay(node.children, leafId, childDepth, filterMode, result);
+      const childDepth = isBranchPoint ? d + 1 : d;
+      // Push children in reverse so they're processed in order
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        stack.push([node.children[i], childDepth]);
+      }
     }
   }
 
   _hasVisibleDescendants(node, filterMode) {
-    if (this._shouldShowNode(node, filterMode)) return true;
-    return node.children.some(c => this._hasVisibleDescendants(c, filterMode));
+    const stack = [node];
+    while (stack.length > 0) {
+      const n = stack.pop();
+      if (this._shouldShowNode(n, filterMode)) return true;
+      for (const child of n.children) {
+        stack.push(child);
+      }
+    }
+    return false;
   }
 
   _showNavigateOptions(node) {
