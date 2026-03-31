@@ -314,11 +314,31 @@ pnpm run watch            # or: npm run watch
 pnpm run package          # or: npm run package
 
 # Install locally (no marketplace needed)
-code --install-extension phi-agent-0.2.0.vsix
+code --install-extension phi-agent-0.2.1.vsix
 
 # Launch Extension Development Host (press F5 in VS Code)
 # Configured in .vscode/launch.json
 ```
+
+**Release workflow:**
+```bash
+# Check current version status
+pnpm run release:status
+
+# Auto-bump version (reads git commits to decide patch vs minor)
+pnpm run release:bump
+
+# After publishing to Open VSX, mark current version as published
+pnpm run release:publish
+```
+
+**Version management:**
+- `.published-version` — stores the last version published to Open VSX
+- `scripts/release.mjs` — auto-detects bump level from git history:
+  - `feat:` commits → **MINOR** bump (0.2.1 → 0.3.0)
+  - Only `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → **PATCH** bump (0.2.1 → 0.2.2)
+  - If `package.json` version > `.published-version` → already bumped, no change needed
+- **ALWAYS run `pnpm run release:status` before preparing a release** to check if a bump is needed
 
 **Build details:**
 - `build` — first runs `scripts/build-num.mjs` to auto-increment `.build-number` and generate `src/version.ts` / `public/version.js`, then runs `build:ext` and `build:web`
