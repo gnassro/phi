@@ -282,7 +282,7 @@ This file tracks all tasks for the Phi project.
 - [x] `CHANGELOG.md` created (required by Open VSX)
 - [x] `LICENSE` file (MIT) created
 - [x] Publisher set to `gnassro`
-- [x] Pi SDK pinned to `^0.62.0`
+- [x] Pi SDK updated to `^0.64.0`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window
 - [ ] Test on Windows and Linux

@@ -62,7 +62,7 @@ export async function initialize(workspaceCwd: string): Promise<void> {
   // Phi uses its own auth file, separate from the pi CLI
   // Sessions are still shared (default ~/.pi/agent/sessions/)
   authStorage = AuthStorage.create(PHI_AUTH_FILE);
-  modelRegistry = new ModelRegistry(authStorage);
+  modelRegistry = ModelRegistry.create(authStorage);
 
   const { session: s } = await createAgentSession({
     sessionManager: SessionManager.continueRecent(cwd),
