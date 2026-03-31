@@ -97,9 +97,11 @@ export function getView(): vscode.WebviewView | null {
 /**
  * Send a message from the extension host to the webview.
  * Silently does nothing if the view is not open.
+ * Returns a promise that resolves to true if delivered.
  */
-export function send(message: Record<string, unknown>): void {
-  currentView?.webview.postMessage(message);
+export async function send(message: Record<string, unknown>): Promise<boolean> {
+  if (!currentView) return false;
+  return currentView.webview.postMessage(message);
 }
 
 /**

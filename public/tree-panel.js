@@ -2,12 +2,14 @@
  * tree-panel.js — Conversation Tree Panel
  *
  * Renders the conversation tree, handles navigation, labeling, and filtering.
+ * Receives a FLAT array of nodes (with parentId + childIds) from the extension
+ * host to avoid postMessage structured clone failures on deeply nested trees.
  */
 import { VscodeIPC } from './vscode-ipc.js';
 
 export class TreePanel {
   constructor() {
-    this.currentTreeData = null;
+    this.currentNodes = null;   // flat array of nodes
     this.currentLeafId = null;
 
     // DOM refs
@@ -27,7 +29,7 @@ export class TreePanel {
     this.overlay.addEventListener('click', () => this.close());
 
     this.filter.addEventListener('change', () => {
-      if (this.currentTreeData) this._renderTree(this.currentTreeData, this.currentLeafId);
+      if (this.currentNodes) this._renderTree(this.currentNodes, this.currentLeafId);
     });
 
     // IPC listeners
@@ -36,9 +38,9 @@ export class TreePanel {
         this.view.innerHTML = `<div class="tree-empty">Failed to load tree: ${msg.error}</div>`;
         return;
       }
-      this.currentTreeData = msg.tree;
+      this.currentNodes = msg.nodes;
       this.currentLeafId = msg.leafId;
-      this._renderTree(msg.tree, msg.leafId);
+      this._renderTree(msg.nodes, msg.leafId);
     });
 
     VscodeIPC.on('navigate_result', (msg) => {
@@ -64,21 +66,46 @@ export class TreePanel {
     return !this.panel.classList.contains('hidden');
   }
 
-  _renderTree(tree, leafId) {
+  /**
+   * Build a lookup map and children map from the flat node array.
+   */
+  _buildMaps(nodes) {
+    const nodeMap = new Map();       // id → node
+    const childrenMap = new Map();   // id → [child nodes]
+    const roots = [];
+
+    for (const node of nodes) {
+      nodeMap.set(node.id, node);
+      childrenMap.set(node.id, []);
+    }
+
+    for (const node of nodes) {
+      if (node.parentId && nodeMap.has(node.parentId)) {
+        childrenMap.get(node.parentId).push(node);
+      } else if (!node.parentId || !nodeMap.has(node.parentId)) {
+        roots.push(node);
+      }
+    }
+
+    return { nodeMap, childrenMap, roots };
+  }
+
+  _renderTree(nodes, leafId) {
     if (!this.view) return;
     this.view.innerHTML = '';
 
-    if (!tree || tree.length === 0) {
+    if (!nodes || nodes.length === 0) {
       this.view.innerHTML = '<div class="tree-empty">No conversation entries yet</div>';
       return;
     }
 
     const filterMode = this.filter.value;
+    const { childrenMap, roots } = this._buildMaps(nodes);
     const container = document.createElement('div');
     container.className = 'tree-nodes';
 
     const flatList = [];
-    this._flattenForDisplay(tree, leafId, 0, filterMode, flatList);
+    this._flattenForDisplay(roots, childrenMap, leafId, 0, filterMode, flatList);
 
     for (const item of flatList) {
       const el = document.createElement('div');
@@ -173,22 +200,22 @@ export class TreePanel {
   }
 
   /**
-   * Flatten the tree for display. Key rule: depth only increases at branch points
-   * (nodes with multiple visible children). Linear chains stay at the same depth.
-   * Uses iterative approach to avoid stack overflow on large sessions.
+   * Flatten the flat-node tree for display using childrenMap for traversal.
+   * Depth only increases at branch points (nodes with multiple visible children).
+   * Linear chains stay at the same depth.
    */
-  _flattenForDisplay(nodes, leafId, depth, filterMode, result) {
+  _flattenForDisplay(roots, childrenMap, leafId, depth, filterMode, result) {
     // Stack entries: [node, depth]
     const stack = [];
-    // Push in reverse so first node is processed first
-    for (let i = nodes.length - 1; i >= 0; i--) {
-      stack.push([nodes[i], depth]);
+    for (let i = roots.length - 1; i >= 0; i--) {
+      stack.push([roots[i], depth]);
     }
 
     while (stack.length > 0) {
       const [node, d] = stack.pop();
       const show = this._shouldShowNode(node, filterMode);
-      const visibleChildren = node.children.filter(c => this._hasVisibleDescendants(c, filterMode));
+      const children = childrenMap.get(node.id) || [];
+      const visibleChildren = children.filter(c => this._hasVisibleDescendants(c, childrenMap, filterMode));
       const isBranchPoint = visibleChildren.length > 1;
 
       if (show) {
@@ -204,19 +231,19 @@ export class TreePanel {
       }
 
       const childDepth = isBranchPoint ? d + 1 : d;
-      // Push children in reverse so they're processed in order
-      for (let i = node.children.length - 1; i >= 0; i--) {
-        stack.push([node.children[i], childDepth]);
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push([children[i], childDepth]);
       }
     }
   }
 
-  _hasVisibleDescendants(node, filterMode) {
+  _hasVisibleDescendants(node, childrenMap, filterMode) {
     const stack = [node];
     while (stack.length > 0) {
       const n = stack.pop();
       if (this._shouldShowNode(n, filterMode)) return true;
-      for (const child of n.children) {
+      const children = childrenMap.get(n.id) || [];
+      for (const child of children) {
         stack.push(child);
       }
     }

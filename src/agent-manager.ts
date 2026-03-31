@@ -460,7 +460,8 @@ interface SessionTreeNode {
 }
 
 /**
- * Serialized tree node for IPC (strips non-serializable data).
+ * Serialized tree node for IPC — flat structure (no nested children).
+ * The webview reconstructs the hierarchy using parentId + childIds.
  */
 export interface SerializedTreeNode {
   id: string;
@@ -469,7 +470,7 @@ export interface SerializedTreeNode {
   label?: string;
   preview: string;        // short text preview for display
   role?: string;          // 'user' | 'assistant' for message entries
-  children: SerializedTreeNode[];
+  childIds: string[];     // IDs of direct children (flat reference)
 }
 
 /**
@@ -482,14 +483,16 @@ export function getSkills() {
 
 /**
  * Get the session tree structure + current leaf ID.
+ * Returns a flat array of nodes (no nesting) to avoid structured clone
+ * failures in postMessage for deeply nested trees.
  */
-export function getTree(): { tree: SerializedTreeNode[]; leafId: string | null } {
-  if (!session) return { tree: [], leafId: null };
+export function getTree(): { nodes: SerializedTreeNode[]; leafId: string | null } {
+  if (!session) return { nodes: [], leafId: null };
   const sm = session.sessionManager;
   const rawTree = sm.getTree();
   const leafId = sm.getLeafId();
   return {
-    tree: rawTree.map(serializeTreeNode),
+    nodes: serializeTreeFlat(rawTree),
     leafId,
   };
 }
@@ -556,25 +559,31 @@ function getEntryPreview(entry: any): { preview: string; role?: string } {
 }
 
 /**
- * Iteratively serialize a tree of SessionTreeNodes to avoid stack overflow
- * on deep sessions (recursive approach fails at ~3,000+ entries).
+ * Serialize the tree into a flat array of nodes.
+ * Uses iterative DFS. Each node stores childIds instead of nested children,
+ * keeping the payload flat so postMessage structured clone doesn't fail
+ * on deeply nested sessions (~1,500+ depth crashes Chrome's cloner).
  */
-function serializeTreeNode(root: SessionTreeNode): SerializedTreeNode {
-  // Phase 1: Build all serialized nodes (without children) using iterative DFS
-  const serializedMap = new Map<SessionTreeNode, SerializedTreeNode>();
-  const stack: SessionTreeNode[] = [root];
+function serializeTreeFlat(roots: SessionTreeNode[]): SerializedTreeNode[] {
+  const result: SerializedTreeNode[] = [];
+  const stack: SessionTreeNode[] = [];
+
+  // Push roots in reverse so they appear in order
+  for (let i = roots.length - 1; i >= 0; i--) {
+    stack.push(roots[i]);
+  }
 
   while (stack.length > 0) {
     const node = stack.pop()!;
     const { preview, role } = getEntryPreview(node.entry);
-    serializedMap.set(node, {
+    result.push({
       id: node.entry.id,
       parentId: node.entry.parentId,
       type: node.entry.type,
       label: node.label,
       preview,
       role,
-      children: [], // filled in phase 2
+      childIds: node.children.map(c => c.entry.id),
     });
     // Push children in reverse so they're processed in order
     for (let i = node.children.length - 1; i >= 0; i--) {
@@ -582,18 +591,7 @@ function serializeTreeNode(root: SessionTreeNode): SerializedTreeNode {
     }
   }
 
-  // Phase 2: Wire up children references
-  const wireStack: SessionTreeNode[] = [root];
-  while (wireStack.length > 0) {
-    const node = wireStack.pop()!;
-    const serialized = serializedMap.get(node)!;
-    for (const child of node.children) {
-      serialized.children.push(serializedMap.get(child)!);
-      wireStack.push(child);
-    }
-  }
-
-  return serializedMap.get(root)!;
+  return result;
 }
 
 /**

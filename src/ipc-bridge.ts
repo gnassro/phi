@@ -209,11 +209,16 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
     // ── Tree ──
     case 'get_tree': {
       try {
+        const t0 = Date.now();
         const treeData = AgentManager.getTree();
-        PanelManager.send({ type: 'tree_data', ...treeData });
+        const t1 = Date.now();
+        const nodeCount = treeData.nodes.length;
+        console.log(`[Phi] get_tree: ${nodeCount} nodes, serialized in ${t1 - t0}ms`);
+        const delivered = await PanelManager.send({ type: 'tree_data', ...treeData });
+        console.log(`[Phi] get_tree: postMessage ${delivered ? 'delivered' : 'FAILED'} in ${Date.now() - t1}ms`);
       } catch (err) {
         console.error('[Phi] Failed to get tree:', err);
-        PanelManager.send({ type: 'tree_data', tree: [], leafId: null, error: (err as Error).message });
+        PanelManager.send({ type: 'tree_data', nodes: [], leafId: null, error: (err as Error).message });
       }
       break;
     }
