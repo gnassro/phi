@@ -340,14 +340,16 @@ code --install-extension phi-agent-0.2.1.vsix
 # Check current version status (queries Open VSX API)
 pnpm run release:status
 
-# Release — one command does everything:
+# Release — one command does everything (must be on master branch):
 #   1. Queries Open VSX for production version
 #   2. Auto-detects bump level from conventional commits
-#   3. Bumps package.json + README.md
-#   4. Generates CHANGELOG.md section from git history
-#   5. Commits: "release: v0.3.0"
-#   6. Creates git tag: v0.3.0
-#   7. Pushes commit + tag to origin
+#   3. Shows full summary and changelog preview
+#   4. Asks for confirmation before proceeding
+#   5. Bumps package.json + README.md
+#   6. Generates CHANGELOG.md section from git history
+#   7. Commits: "release: v0.3.0"
+#   8. Creates git tag: v0.3.0
+#   9. Pushes commit + tag to origin
 #   → GitHub Actions automatically builds, publishes to Open VSX, creates GitHub Release
 pnpm run release
 

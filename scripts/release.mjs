@@ -210,35 +210,57 @@ const command = process.argv[2] || 'auto';
     process.exit(1);
   }
 
-  // Check we're on main branch
+  // Check we're on master branch
   try {
     const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
-    if (branch !== 'main' && branch !== 'dev') {
-      console.warn(`⚠️  You're on branch '${branch}', not 'main' or 'dev'.`);
-      const answer = await ask('   Continue anyway? (y/N) ');
-      if (answer !== 'y') {
-        console.log('   Aborted.');
-        process.exit(0);
-      }
+    if (branch !== 'master') {
+      console.error('');
+      console.error(`  ❌ You are on branch '${branch}', not 'master'.`);
+      console.error('');
+      console.error('  Releases must be made from the master branch. To proceed:');
+      console.error('');
+      console.error(`    1. Commit all changes on '${branch}'`);
+      console.error(`    2. git checkout master`);
+      console.error(`    3. git merge ${branch}`);
+      console.error('    4. pnpm run release');
+      console.error('');
+      process.exit(1);
     }
-  } catch {}
+  } catch {
+    console.error('❌ Failed to check git branch.');
+    process.exit(1);
+  }
 
   // ── Determine version ──
   const commits = getCommitsSincePublish(publishedVersion);
   const level = (command === 'auto') ? detectBumpLevel(commits) : command;
   const newVersion = bumpVersion(publishedVersion, level);
 
-  console.log('');
-  console.log(`  Production:   v${publishedVersion} (${published.source})`);
-  console.log(`  Current dev:  v${currentVersion}`);
-  console.log(`  Bump level:   ${level.toUpperCase()}`);
-  console.log(`  New version:  v${newVersion}`);
-  console.log(`  Commits:      ${commits.length} since last release`);
-  console.log('');
-
-  // Generate and preview changelog
+  // Generate changelog for preview
   const changelogSection = generateChangelog(commits, newVersion);
-  console.log('  ── Changelog ──');
+
+  // ── Summary ──
+  console.log('');
+  console.log('  ╔═══════════════════════════════════════════════╗');
+  console.log('  ║            📦 RELEASE SUMMARY                 ║');
+  console.log('  ╚═══════════════════════════════════════════════╝');
+  console.log('');
+  console.log(`  Production version:  v${publishedVersion} (${published.source})`);
+  console.log(`  New version:         v${newVersion} (${level.toUpperCase()} bump)`);
+  console.log(`  Commits included:    ${commits.length}`);
+  console.log('');
+  console.log('  This command will:');
+  console.log(`    1. Bump package.json to v${newVersion}`);
+  console.log('    2. Update version references in README.md');
+  console.log('    3. Generate CHANGELOG.md section (see preview below)');
+  console.log('    4. Reset build number to 0');
+  console.log(`    5. Commit: "release: v${newVersion}"`);
+  console.log(`    6. Create git tag: v${newVersion}`);
+  console.log('    7. Push commit + tag to origin');
+  console.log('    8. → GitHub Actions will auto-publish to Open VSX');
+  console.log('    9. → GitHub Actions will create a GitHub Release');
+  console.log('');
+  console.log('  ── Changelog Preview ──');
   console.log(changelogSection.split('\n').map(l => `  ${l}`).join('\n'));
   console.log('');
 
