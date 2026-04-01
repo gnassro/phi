@@ -76,7 +76,7 @@ phi/
 │   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write
 │   ├── state.js                  ← StateManager for tool execution tracking
 │   ├── session-sidebar.js        ← Session history panel
-│   ├── image-manager.js          ← Image paste, drag-drop, file picker, previews
+│   ├── image-manager.js          ← Image paste, file picker, previews
 │   ├── model-picker.js           ← Model dropdown, search, thinking level
 │   ├── cost-monitor.js           ← Cost/token display, context visualization
 │   ├── command-palette.js        ← Command palette overlay

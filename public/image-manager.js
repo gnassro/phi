@@ -1,7 +1,9 @@
 /**
  * image-manager.js — Image Attachment Manager
  *
- * Handles image paste, drag-and-drop, file picker, and preview rendering.
+ * Handles image paste, file picker, and preview rendering.
+ * Note: Drag-and-drop is not supported in VS Code webview iframes —
+ * Electron intercepts file drops before they reach the webview.
  */
 
 export class ImageManager {
@@ -39,17 +41,6 @@ export class ImageManager {
         if (img) this.pendingImages.push(img);
       }
       this.imageInput.value = '';
-      this._renderPreviews();
-    });
-
-    // Drag & drop on message input
-    this.messageInput.addEventListener('dragover', (e) => { e.preventDefault(); });
-    this.messageInput.addEventListener('drop', async (e) => {
-      e.preventDefault();
-      for (const file of e.dataTransfer.files) {
-        const img = await this._processFile(file);
-        if (img) this.pendingImages.push(img);
-      }
       this._renderPreviews();
     });
   }
