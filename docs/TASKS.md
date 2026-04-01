@@ -286,3 +286,13 @@ This file tracks all tasks for the Phi project.
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window
 - [ ] Test on Windows and Linux
+
+### CI/CD — Automated Publishing
+- [x] `.github/workflows/publish.yml` — GitHub Actions workflow triggered on `v*` tag push
+- [x] Workflow validates tag matches `package.json` version before publishing
+- [x] Workflow runs `typecheck` → `package` → `ovsx publish`
+- [x] Workflow auto-generates changelog from conventional commits
+- [x] Workflow creates GitHub Release with changelog + `.vsix` attached
+- [x] `scripts/release.mjs` — one-command release: bump → changelog → commit → tag → push
+- [x] `pnpm run release` / `release:status` / `release:publish` npm scripts added
+- [ ] Add `OVSX_PAT` secret to GitHub repo settings (manual, one-time)

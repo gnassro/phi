@@ -1,50 +1,46 @@
 #!/usr/bin/env node
 
 /**
- * release.mjs — Automated version bumping for Phi releases.
+ * release.mjs — One-command release for Phi.
  *
- * Queries the Open VSX API to get the ACTUAL production version,
- * syncs `.published-version`, and determines the correct bump.
+ * Queries the Open VSX API for the current production version,
+ * auto-detects bump level from conventional commits, bumps version,
+ * generates CHANGELOG.md, commits, tags, and pushes.
  *
- * Bump level (when bumping):
- *   - Any `feat:` commit since last publish → MINOR (0.2.0 → 0.3.0)
- *   - Only `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → PATCH (0.2.0 → 0.2.1)
+ * GitHub Actions then picks up the tag and publishes automatically.
  *
  * Usage:
- *   node scripts/release.mjs          # Auto-detect bump level
- *   node scripts/release.mjs patch    # Force patch bump
- *   node scripts/release.mjs minor    # Force minor bump
- *   node scripts/release.mjs status   # Print current status
- *   node scripts/release.mjs publish  # After publishing, sync .published-version from Open VSX
+ *   node scripts/release.mjs              # Auto-detect bump level, do everything
+ *   node scripts/release.mjs patch        # Force patch bump
+ *   node scripts/release.mjs minor        # Force minor bump
+ *   node scripts/release.mjs status       # Print current status (no changes)
+ *   node scripts/release.mjs publish      # Post-publish: sync .published-version from Open VSX
  */
 
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
+import readline from 'readline';
 
 const OPENVSX_API = 'https://open-vsx.org/api/gnassro/phi-agent';
 const pkgPath = path.resolve('package.json');
 const publishedPath = path.resolve('.published-version');
+const changelogPath = path.resolve('CHANGELOG.md');
 
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
 const currentVersion = pkg.version;
 
-/**
- * Fetch the latest published version from Open VSX.
- * Falls back to `.published-version` file if offline.
- */
+// ── Helpers ──
+
 async function getPublishedVersion() {
   try {
     const res = await fetch(OPENVSX_API);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     const liveVersion = data.version;
-
-    // Sync the file so it's always accurate
     fs.writeFileSync(publishedPath, liveVersion, 'utf8');
     return { version: liveVersion, source: 'Open VSX API' };
-  } catch (err) {
-    // Offline fallback — read from file
+  } catch {
     try {
       const cached = fs.readFileSync(publishedPath, 'utf8').trim();
       return { version: cached, source: '.published-version (offline fallback)' };
@@ -76,21 +72,101 @@ function bumpVersion(version, level) {
   }
 }
 
-function detectBumpLevel(publishedVersion) {
+function getCommitsSincePublish(publishedVersion) {
   try {
     const log = execSync('git log --oneline --format="%s" HEAD', { encoding: 'utf8' });
     const lines = log.trim().split('\n');
-
-    // Find the release commit for the published version
     const releaseIdx = lines.findIndex(l => l.includes(`release: v${publishedVersion}`));
-    const commitsSincePublish = releaseIdx >= 0 ? lines.slice(0, releaseIdx) : lines.slice(0, 30);
-
-    const hasFeature = commitsSincePublish.some(l => l.startsWith('feat:') || l.startsWith('feat('));
-    return hasFeature ? 'minor' : 'patch';
+    return releaseIdx >= 0 ? lines.slice(0, releaseIdx) : lines.slice(0, 50);
   } catch {
-    return 'patch';
+    return [];
   }
 }
+
+function detectBumpLevel(commits) {
+  const hasFeature = commits.some(l => l.startsWith('feat:') || l.startsWith('feat('));
+  return hasFeature ? 'minor' : 'patch';
+}
+
+function generateChangelog(commits, newVersion) {
+  const features = [];
+  const fixes = [];
+  const docs = [];
+  const maintenance = [];
+
+  for (const msg of commits) {
+    // Skip release commits and merge commits
+    if (msg.startsWith('release:') || msg.startsWith('Merge')) continue;
+
+    if (msg.startsWith('feat:') || msg.startsWith('feat(')) {
+      features.push(msg.replace(/^feat(\([^)]*\))?:\s*/, ''));
+    } else if (msg.startsWith('fix:') || msg.startsWith('fix(')) {
+      fixes.push(msg.replace(/^fix(\([^)]*\))?:\s*/, ''));
+    } else if (msg.startsWith('docs:') || msg.startsWith('docs(')) {
+      docs.push(msg.replace(/^docs(\([^)]*\))?:\s*/, ''));
+    } else if (msg.startsWith('chore:') || msg.startsWith('refactor:') || msg.startsWith('ui:')) {
+      maintenance.push(msg.replace(/^(chore|refactor|ui)(\([^)]*\))?:\s*/, ''));
+    }
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  let section = `## [${newVersion}] - ${today}\n`;
+
+  if (features.length) {
+    section += '\n### Added\n';
+    section += features.map(f => `- ${f}`).join('\n') + '\n';
+  }
+  if (fixes.length) {
+    section += '\n### Fixed\n';
+    section += fixes.map(f => `- ${f}`).join('\n') + '\n';
+  }
+  if (docs.length) {
+    section += '\n### Docs\n';
+    section += docs.map(d => `- ${d}`).join('\n') + '\n';
+  }
+  if (maintenance.length) {
+    section += '\n### Changed\n';
+    section += maintenance.map(m => `- ${m}`).join('\n') + '\n';
+  }
+
+  return section;
+}
+
+function updateChangelogFile(newSection) {
+  let changelog = '';
+  try {
+    changelog = fs.readFileSync(changelogPath, 'utf8');
+  } catch {
+    changelog = '# Changelog\n';
+  }
+
+  // Insert new section after the "# Changelog" header
+  const headerEnd = changelog.indexOf('\n');
+  if (headerEnd >= 0) {
+    changelog = changelog.slice(0, headerEnd + 1) + '\n' + newSection + '\n' + changelog.slice(headerEnd + 1);
+  } else {
+    changelog = '# Changelog\n\n' + newSection + '\n';
+  }
+
+  fs.writeFileSync(changelogPath, changelog, 'utf8');
+}
+
+function ask(question) {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(resolve => {
+    rl.question(question, answer => {
+      rl.close();
+      resolve(answer.trim().toLowerCase());
+    });
+  });
+}
+
+function run(cmd) {
+  console.log(`  $ ${cmd}`);
+  execSync(cmd, { stdio: 'inherit' });
+}
+
+// ── Main ──
 
 const command = process.argv[2] || 'auto';
 
@@ -119,40 +195,108 @@ const command = process.argv[2] || 'auto';
     process.exit(0);
   }
 
-  // ── Auto / Patch / Minor ──
-  const cmp = compareVersions(currentVersion, publishedVersion);
+  // ── Pre-flight checks ──
 
-  if (cmp > 0) {
-    console.log(`ℹ️  Already bumped: v${publishedVersion} (production) → v${currentVersion} (dev)`);
-    console.log(`   No version change needed. Run 'pnpm run package' to build.`);
+  // Check for uncommitted changes
+  try {
+    const status = execSync('git status --porcelain', { encoding: 'utf8' }).trim();
+    if (status) {
+      console.error('❌ Working directory is not clean. Commit or stash changes first.');
+      console.error(status);
+      process.exit(1);
+    }
+  } catch {
+    console.error('❌ Failed to check git status.');
+    process.exit(1);
+  }
+
+  // Check we're on main branch
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+    if (branch !== 'main' && branch !== 'dev') {
+      console.warn(`⚠️  You're on branch '${branch}', not 'main' or 'dev'.`);
+      const answer = await ask('   Continue anyway? (y/N) ');
+      if (answer !== 'y') {
+        console.log('   Aborted.');
+        process.exit(0);
+      }
+    }
+  } catch {}
+
+  // ── Determine version ──
+  const commits = getCommitsSincePublish(publishedVersion);
+  const level = (command === 'auto') ? detectBumpLevel(commits) : command;
+  const newVersion = bumpVersion(publishedVersion, level);
+
+  console.log('');
+  console.log(`  Production:   v${publishedVersion} (${published.source})`);
+  console.log(`  Current dev:  v${currentVersion}`);
+  console.log(`  Bump level:   ${level.toUpperCase()}`);
+  console.log(`  New version:  v${newVersion}`);
+  console.log(`  Commits:      ${commits.length} since last release`);
+  console.log('');
+
+  // Generate and preview changelog
+  const changelogSection = generateChangelog(commits, newVersion);
+  console.log('  ── Changelog ──');
+  console.log(changelogSection.split('\n').map(l => `  ${l}`).join('\n'));
+  console.log('');
+
+  const answer = await ask('  Proceed with release? (y/N) ');
+  if (answer !== 'y') {
+    console.log('  Aborted.');
     process.exit(0);
   }
 
-  const level = command === 'auto' ? detectBumpLevel(publishedVersion) : command;
-  const newVersion = bumpVersion(publishedVersion, level);
+  console.log('');
 
-  console.log(`  Production:  v${publishedVersion} (${published.source})`);
-  console.log(`  Bump level:  ${level.toUpperCase()}`);
-  console.log(`  New version: v${newVersion}`);
-
-  // Update package.json
+  // ── 1. Bump package.json ──
   pkg.version = newVersion;
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  console.log(`  ✅ package.json → v${newVersion}`);
 
-  // Update README badge and install command
+  // ── 2. Update README version references ──
   try {
     let readme = fs.readFileSync(path.resolve('README.md'), 'utf8');
     readme = readme.replace(new RegExp(currentVersion.replace(/\./g, '\\.'), 'g'), newVersion);
     fs.writeFileSync(path.resolve('README.md'), readme, 'utf8');
+    console.log(`  ✅ README.md version refs updated`);
   } catch {}
 
-  // Reset build number
-  fs.writeFileSync(path.resolve('.build-number'), '0', 'utf8');
+  // ── 3. Update CHANGELOG.md ──
+  updateChangelogFile(changelogSection);
+  console.log(`  ✅ CHANGELOG.md updated`);
 
-  console.log(`\n✅ Version bumped to v${newVersion}`);
-  console.log(`   Next steps:`);
-  console.log(`   1. Update CHANGELOG.md with new section`);
-  console.log(`   2. pnpm run package`);
-  console.log(`   3. npx ovsx publish phi-agent-${newVersion}.vsix -p <token>`);
-  console.log(`   4. pnpm run release:publish`);
+  // ── 4. Reset build number ──
+  fs.writeFileSync(path.resolve('.build-number'), '0', 'utf8');
+  console.log(`  ✅ Build number reset to 0`);
+
+  // ── 5. Git commit ──
+  run(`git add package.json README.md CHANGELOG.md .build-number .published-version`);
+  run(`git commit -m "release: v${newVersion}"`);
+  console.log(`  ✅ Committed: release: v${newVersion}`);
+
+  // ── 6. Git tag ──
+  run(`git tag v${newVersion}`);
+  console.log(`  ✅ Tagged: v${newVersion}`);
+
+  // ── 7. Push ──
+  const pushAnswer = await ask('  Push commit + tag to origin? (y/N) ');
+  if (pushAnswer === 'y') {
+    run('git push origin HEAD');
+    run(`git push origin v${newVersion}`);
+    console.log('');
+    console.log(`  🚀 Pushed! GitHub Actions will now:`);
+    console.log(`     1. Build & typecheck`);
+    console.log(`     2. Package .vsix`);
+    console.log(`     3. Publish to Open VSX`);
+    console.log(`     4. Create GitHub Release with changelog`);
+  } else {
+    console.log('');
+    console.log(`  📦 Release prepared locally. When ready, run:`);
+    console.log(`     git push origin HEAD`);
+    console.log(`     git push origin v${newVersion}`);
+  }
+
+  console.log('');
 })();

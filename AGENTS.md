@@ -60,6 +60,9 @@ full streaming, deep editor integration (selection, diagnostics, open file)
 
 ```
 phi/
+├── .github/
+│   └── workflows/
+│       └── publish.yml               ← CI/CD: build, publish to Open VSX, GitHub Release
 ├── src/                          ← Extension Host (TypeScript, Node.js)
 │   ├── extension.ts              ← Entry point: activate() / deactivate()
 │   ├── agent-manager.ts          ← Pi SDK session lifecycle (ONLY file that imports Pi SDK)
@@ -334,19 +337,38 @@ code --install-extension phi-agent-0.2.1.vsix
 
 **Release workflow:**
 ```bash
-# Check current version status
+# Check current version status (queries Open VSX API)
 pnpm run release:status
 
-# Auto-bump version (reads git commits to decide patch vs minor)
-pnpm run release:bump
+# Release — one command does everything:
+#   1. Queries Open VSX for production version
+#   2. Auto-detects bump level from conventional commits
+#   3. Bumps package.json + README.md
+#   4. Generates CHANGELOG.md section from git history
+#   5. Commits: "release: v0.3.0"
+#   6. Creates git tag: v0.3.0
+#   7. Pushes commit + tag to origin
+#   → GitHub Actions automatically builds, publishes to Open VSX, creates GitHub Release
+pnpm run release
 
-# After publishing to Open VSX, mark current version as published
+# Force a specific bump level
+pnpm run release -- patch
+pnpm run release -- minor
+
+# After publishing, sync .published-version from Open VSX API
 pnpm run release:publish
 ```
 
+**CI/CD (GitHub Actions):**
+- `.github/workflows/publish.yml` — triggered on `v*` tag push
+- Validates tag matches `package.json` version (safety net)
+- Runs `typecheck` → `package` → `ovsx publish` → creates GitHub Release with auto-generated changelog
+- Requires `OVSX_PAT` secret in GitHub repo settings (Settings → Secrets → Actions)
+
 **Version management:**
-- `scripts/release.mjs` — queries the **Open VSX API** (`https://open-vsx.org/api/gnassro/phi-agent`) to get the real production version
-- `.published-version` — local cache, auto-synced from the API (offline fallback)
+- `scripts/release.mjs` — one-command release: queries Open VSX API, bumps, generates changelog, commits, tags, pushes
+- `.published-version` — local cache, auto-synced from the Open VSX API (offline fallback)
+- `.github/workflows/publish.yml` — CI/CD: builds, publishes to Open VSX, creates GitHub Release on tag push
 - Bump level auto-detected from git history:
   - `feat:` commits → **MINOR** bump (0.2.0 → 0.3.0)
   - Only `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → **PATCH** bump (0.2.0 → 0.2.1)

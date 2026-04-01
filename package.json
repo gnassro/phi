@@ -155,6 +155,9 @@
     "watch": "node scripts/build-num.mjs && concurrently \"pnpm run build:ext -- --watch\" \"pnpm run build:web -- --watch\"",
     "typecheck": "tsc --noEmit",
     "package": "pnpm run build && pnpm exec vsce package --no-dependencies",
+    "release": "node scripts/release.mjs",
+    "release:status": "node scripts/release.mjs status",
+    "release:publish": "node scripts/release.mjs publish",
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
