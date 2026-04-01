@@ -86,5 +86,5 @@ If you are modifying complex systems, ALWAYS read these files before starting:
 **You MUST do ALL of these after every code change. No exceptions.**
 
 1. **Build** — Run `pnpm run build` and confirm it succeeds.
-2. **Commit** — Commit immediately with a conventional commit message (`fix:`, `feat:`, `docs:`, etc.). Do NOT batch unrelated changes. Do NOT leave uncommitted work.
+2. **Suggest commit** — Do NOT auto-commit. Mention that there are uncommitted changes and suggest a conventional commit message (`fix:`, `feat:`, `docs:`, etc.). Let the user decide when to commit. If the user's next request is related (follow-up fix, tweak), update the suggested commit. If unrelated, check `git status` first — if there are uncommitted changes, stop and ask to commit before starting new work.
 3. **Update docs** — Check the table in AGENTS.md § "When You MUST Update Docs" and update every file that applies (AGENTS.md, TASKS.md, ROADMAP.md, ipc-protocol.md, etc.).
