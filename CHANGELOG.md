@@ -1,5 +1,38 @@
 # Changelog
 
+## [0.3.0] - 2026-04-01
+
+### Added
+- add CI/CD pipeline — GitHub Actions auto-publish to Open VSX on tag push
+- expand attach button to all file types, rename image-manager to attachment-manager
+- add delete session functionality via system trash
+- release script queries Open VSX API for real production version
+- add automated release versioning with .published-version tracking
+
+### Fixed
+- release script requires master branch and shows summary before proceeding
+- remove auto-commit instruction from phi-developer skill (contradicted rule 15)
+- remove drag-and-drop code (unsupported in VS Code webview iframes)
+- upgrade pi-coding-agent to 0.64.0 and update tool rendering
+- tree panel crashes on large sessions — send flat array instead of nested tree
+- tree panel stuck on Loading for large sessions (stack overflow)
+
+### Docs
+- add attach button and paste image to README
+- update commit workflow rule — let user control when to commit, check git status for manual changes
+- add rule 17 (flatten trees for IPC) and update tree_data IPC table
+- update ipc-protocol.md — tree_data uses flat nodes array, not nested tree
+- add mandatory post-change checklist to phi-developer skill
+- add rule 15 — commit after every change with conventional commit messages
+- sync AGENTS.md with current state — fix version, IPC tables, deduplicate commands
+- update all docs for app.js modularization and new IPC messages
+- add screenshot to README for Open VSX listing
+
+### Changed
+- remove .published-version, simplify release script — no offline fallback, no build-number in releases
+- remove unpublished 0.2.1 changelog section (version will be 0.3.0)
+
+
 ## [0.2.0] - 2026-03-30
 
 ### Added
