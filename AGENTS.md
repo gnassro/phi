@@ -282,11 +282,11 @@ Full reference: `docs/pi-sdk.md`
 
 14. **Cache-bust webview assets.** Webview JS/CSS can be cached aggressively by VS Code. `panel-manager.ts` appends `?v=${Date.now()}` to script and style URIs to force fresh loads after rebuilds.
 
-15. **Commit after every change.** Every meaningful change must be committed with a descriptive conventional commit message. This is critical because the release system (`scripts/release.mjs`) reads git history to auto-detect the version bump level:
+15. **Don't auto-commit — let the user decide.** After completing a task, mention at the end of the response that there are uncommitted changes and suggest a conventional commit message. If the user's next request is **related** to the same uncommitted work (follow-up fix, tweak, refinement), do the work and update the suggested commit message. If the user's next request is **unrelated** (different feature, different bug), **check `git status` first** — if there are any uncommitted changes (whether made by the agent or the user manually), **stop and ask to commit first** before starting new work. Commit messages use conventional format because the release system (`scripts/release.mjs`) reads git history to auto-detect the version bump level:
     - `feat:` → triggers a **MINOR** version bump (e.g. 0.2.0 → 0.3.0)
     - `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → triggers a **PATCH** bump (e.g. 0.2.0 → 0.2.1)
     - Use the format: `type: short description` (e.g. `feat: add skills panel`, `fix: z-index on about modal`)
-    - Group related changes into one commit; don't leave uncommitted work.
+    - Group related changes into one commit; don't leave uncommitted work across unrelated tasks.
 
 16. **Visibility toggles need an `else` branch.** Any `_update*()` method that conditionally adds a `visible` class must also have an `else` branch that removes it and clears the element content. Otherwise, stale data stays visible after state resets (e.g. switching sessions). Similarly, `handleSync()` must fully reset UI components before restoring the new session's state — don't assume a prior `reset()` call has already run.
 
