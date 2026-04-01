@@ -53,6 +53,8 @@ When the model thinks before responding, you see it. Collapsible thinking blocks
 Phi knows what you're working on:
 - **Add selection to chat** — select code, press `⌘+` (Mac) / `Ctrl++` (Win/Linux), or right-click → "Phi: Add to Chat"
 - **Add file to chat** — right-click a file in Explorer → "Phi: Add File to Chat"
+- **Attach files** — click the 📎 button in the input area to attach images or any file type via the native file picker
+- **Paste images** — paste images from clipboard (`Cmd+V`) to attach them inline
 - **Ask about selection** — right-click selected code → "Phi: Ask About Selection"
 
 Context references appear as lightweight chips showing the filename only — Pi reads the full file content itself.
@@ -120,6 +122,8 @@ code --install-extension phi-agent-0.2.1.vsix
 | Ask about selected code | Right-click → "Phi: Ask About Selection" |
 | Add selection to chat | Select code → `Cmd+Shift+=` |
 | Add file to chat | Right-click file in Explorer → "Phi: Add File to Chat" |
+| Attach files | Click 📎 in the input area (images + any file type) |
+| Paste images | `Cmd+V` / `Ctrl+V` with image in clipboard |
 | New session | Command Palette → "Phi: New Session" |
 | Switch session | Click the 🕐 history button → select a session |
 | Switch model | Click the model dropdown in the header |
