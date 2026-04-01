@@ -20,6 +20,7 @@
 ### Changed
 - Version display moved from footer pill to About dialog
 - Pi SDK version auto-detected at build time
+- **Modularized `app.js`** — extracted 7 ES6 class modules (`image-manager.js`, `model-picker.js`, `cost-monitor.js`, `command-palette.js`, `tree-panel.js`, `prompt-autocomplete.js`, `panels.js`), reducing app.js from ~1,732 to ~430 lines
 
 ## [0.1.0] - 2026-03-28
 

@@ -47,7 +47,8 @@ type WebviewMessage =
   // Skills
   | { type: 'get_skills' }
   // Misc
-  | { type: 'open_url'; url: string };
+  | { type: 'open_url'; url: string }
+  | { type: 'open_file_picker' };
 
 let initialized = false;
 
@@ -206,10 +207,59 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
       break;
     }
 
+    case 'open_file_picker': {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectMany: true,
+        canSelectFiles: true,
+        canSelectFolders: false,
+        title: 'Attach files to chat',
+      });
+      if (uris && uris.length > 0) {
+        for (const uri of uris) {
+          const ext = uri.fsPath.split('.').pop()?.toLowerCase() || '';
+          const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+          if (isImage) {
+            // Read image and send base64 to webview
+            try {
+              const data = await vscode.workspace.fs.readFile(uri);
+              let mimeType = 'image/png';
+              if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+              else if (ext === 'gif') mimeType = 'image/gif';
+              else if (ext === 'webp') mimeType = 'image/webp';
+              PanelManager.send({
+                type: 'add_image_attachment',
+                data: Buffer.from(data).toString('base64'),
+                mimeType,
+              });
+            } catch (err) {
+              vscode.window.showWarningMessage(`[Phi] Could not read image: ${uri.fsPath}`);
+            }
+          } else {
+            // Non-image file: add as context reference
+            const contextBlock = EditorContext.buildFileContext(uri);
+            if (contextBlock) {
+              PanelManager.send({ type: 'add_context', context: contextBlock });
+            }
+          }
+        }
+      }
+      break;
+    }
+
     // ── Tree ──
     case 'get_tree': {
-      const treeData = AgentManager.getTree();
-      PanelManager.send({ type: 'tree_data', ...treeData });
+      try {
+        const t0 = Date.now();
+        const treeData = AgentManager.getTree();
+        const t1 = Date.now();
+        const nodeCount = treeData.nodes.length;
+        console.log(`[Phi] get_tree: ${nodeCount} nodes, serialized in ${t1 - t0}ms`);
+        const delivered = await PanelManager.send({ type: 'tree_data', ...treeData });
+        console.log(`[Phi] get_tree: postMessage ${delivered ? 'delivered' : 'FAILED'} in ${Date.now() - t1}ms`);
+      } catch (err) {
+        console.error('[Phi] Failed to get tree:', err);
+        PanelManager.send({ type: 'tree_data', nodes: [], leafId: null, error: (err as Error).message });
+      }
       break;
     }
 

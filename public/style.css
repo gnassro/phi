@@ -1536,6 +1536,26 @@ body.hide-thinking .thinking-block { display: none; }
   min-width: 0;
 }
 
+.session-delete-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  opacity: 0.6;
+  font-size: 12px;
+  transition: opacity 0.1s;
+}
+
+.session-item:hover .session-delete-btn {
+  display: flex;
+}
+
+.session-delete-btn:hover {
+  opacity: 1;
+}
+
 .session-meta {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);

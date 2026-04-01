@@ -60,6 +60,9 @@ full streaming, deep editor integration (selection, diagnostics, open file)
 
 ```
 phi/
+├── .github/
+│   └── workflows/
+│       └── publish.yml               ← CI/CD: build, publish to Open VSX, GitHub Release
 ├── src/                          ← Extension Host (TypeScript, Node.js)
 │   ├── extension.ts              ← Entry point: activate() / deactivate()
 │   ├── agent-manager.ts          ← Pi SDK session lifecycle (ONLY file that imports Pi SDK)
@@ -69,13 +72,20 @@ phi/
 │   ├── commands.ts               ← All vscode.commands.registerCommand() calls
 │   └── utils.ts                  ← Shared helpers (getNonce for CSP)
 ├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
-│   ├── app.js                    ← Main UI coordinator
+│   ├── app.js                    ← Main UI coordinator (slim orchestrator)
 │   ├── vscode-ipc.js             ← VS Code IPC wrapper
 │   ├── chat-input.js             ← ContentEditable rich-text input
 │   ├── message-renderer.js       ← Renders user/assistant messages
 │   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write
 │   ├── state.js                  ← StateManager for tool execution tracking
 │   ├── session-sidebar.js        ← Session history panel
+│   ├── attachment-manager.js      ← File attachments: image paste, file picker, previews
+│   ├── model-picker.js           ← Model dropdown, search, thinking level
+│   ├── cost-monitor.js           ← Cost/token display, context visualization
+│   ├── command-palette.js        ← Command palette overlay
+│   ├── tree-panel.js             ← Conversation tree panel (navigation, labeling)
+│   ├── prompt-autocomplete.js    ← Slash-command autocomplete popup
+│   ├── panels.js                 ← Settings, About, Accounts, History, Skills panels
 │   ├── themes.js                 ← No-op stub (VS Code handles theming natively)
 │   ├── markdown.js               ← Markdown → HTML renderer
 │   └── style.css                 ← All styles using CSS variables
@@ -132,17 +142,24 @@ phi/
 │  ┌───────────────▼───────────────────────────────────────────┐   │
 │  │              WEBVIEW  (Chromium sandbox)                  │   │
 │  │                                                           │   │
-│  │  index.html        ← HTML shell with CSP nonce           │   │
-│  │  app.js            ← UI coordinator                      │   │
-│  │  vscode-ipc.js     ← acquireVsCodeApi() wrapper          │   │
-│  │  chat-input.js     ← ContentEditable input               │   │
-│  │  message-renderer.js ← Chat message DOM rendering        │   │
-│  │  tool-card.js      ← Tool execution cards                │   │
-│  │  state.js          ← Tool execution state tracking       │   │
-│  │  session-sidebar.js ← Session history panel              │   │
-│  │  themes.js         ← No-op (VS Code theming)             │   │
-│  │  markdown.js       ← Markdown → HTML                     │   │
-│  │  style.css         ← All visual styles                   │   │
+│  │  index.html           ← HTML shell with CSP nonce        │   │
+│  │  app.js               ← UI coordinator (slim)            │   │
+│  │  vscode-ipc.js        ← acquireVsCodeApi() wrapper       │   │
+│  │  chat-input.js        ← ContentEditable input            │   │
+│  │  message-renderer.js  ← Chat message DOM rendering       │   │
+│  │  tool-card.js         ← Tool execution cards             │   │
+│  │  state.js             ← Tool execution state tracking    │   │
+│  │  session-sidebar.js   ← Session history panel            │   │
+│  │  attachment-manager.js ← File attachments (images + files)  │   │
+│  │  model-picker.js      ← Model dropdown + thinking        │   │
+│  │  cost-monitor.js      ← Cost/token/context viz           │   │
+│  │  command-palette.js   ← Command palette                  │   │
+│  │  tree-panel.js        ← Conversation tree                │   │
+│  │  prompt-autocomplete.js ← Slash autocomplete             │   │
+│  │  panels.js            ← Side panels (settings, etc.)     │   │
+│  │  themes.js            ← No-op (VS Code theming)          │   │
+│  │  markdown.js          ← Markdown → HTML                  │   │
+│  │  style.css            ← All visual styles                │   │
 │  └───────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -180,6 +197,9 @@ Full specification: `docs/ipc-protocol.md`
 | `get_tree` | Fetch conversation tree structure |
 | `navigate_tree` | Navigate to a tree node (with optional branch summary) |
 | `set_label` | Set or clear a label on a tree entry |
+| `get_skills` | Fetch loaded skills list |
+| `open_url` | Open a URL in the user's browser |
+| `open_file_picker` | Open native VS Code file picker to attach files |
 
 ### Extension Host → Webview
 
@@ -193,9 +213,11 @@ Full specification: `docs/ipc-protocol.md`
 | `prefill_input` | Prefill the chat input with text (Ask About Selection) |
 | `rpc_response` | Response to RPC commands (get_state, set_model, etc.) |
 | `accounts_list` | OAuth providers + API key providers with active status |
-| `tree_data` | Serialized session tree + current leaf ID |
+| `tree_data` | Flat array of serialized session tree nodes + current leaf ID |
 | `navigate_result` | Result of tree navigation (success/cancelled) |
 | `open_tree` | Signal webview to open the tree panel |
+| `skills_data` | Array of loaded skills with name and description |
+| `add_image_attachment` | Base64 image data from file picker for preview rendering |
 
 ---
 
@@ -214,8 +236,6 @@ Full specification: `docs/ipc-protocol.md`
 | `phi.addApiKey` | Phi: Add API Key | — | Always |
 | `phi.removeApiKey` | Phi: Remove API Key | — | Always |
 | `phi.openTree` | Phi: Open Conversation Tree | — | Always |
-| `phi.login` | Phi: Login | — | Always |
-| `phi.logout` | Phi: Logout | — | Always |
 
 ---
 
@@ -267,6 +287,16 @@ Full reference: `docs/pi-sdk.md`
 
 14. **Cache-bust webview assets.** Webview JS/CSS can be cached aggressively by VS Code. `panel-manager.ts` appends `?v=${Date.now()}` to script and style URIs to force fresh loads after rebuilds.
 
+15. **Don't auto-commit — let the user decide.** After completing a task, mention at the end of the response that there are uncommitted changes and suggest a conventional commit message. If the user's next request is **related** to the same uncommitted work (follow-up fix, tweak, refinement), do the work and update the suggested commit message. If the user's next request is **unrelated** (different feature, different bug), **check `git status` first** — if there are any uncommitted changes (whether made by the agent or the user manually), **stop and ask to commit first** before starting new work. Commit messages use conventional format because the release system (`scripts/release.mjs`) reads git history to auto-detect the version bump level:
+    - `feat:` → triggers a **MINOR** version bump (e.g. 0.2.0 → 0.3.0)
+    - `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → triggers a **PATCH** bump (e.g. 0.2.0 → 0.2.1)
+    - Use the format: `type: short description` (e.g. `feat: add skills panel`, `fix: z-index on about modal`)
+    - Group related changes into one commit; don't leave uncommitted work across unrelated tasks.
+
+16. **Visibility toggles need an `else` branch.** Any `_update*()` method that conditionally adds a `visible` class must also have an `else` branch that removes it and clears the element content. Otherwise, stale data stays visible after state resets (e.g. switching sessions). Similarly, `handleSync()` must fully reset UI components before restoring the new session's state — don't assume a prior `reset()` call has already run.
+
+17. **Send flat arrays, not deeply nested trees.** The VS Code webview `postMessage` uses structured cloning. If an object is too deeply nested (e.g., a tree with ~1,500 levels), structured clone fails silently with `Uncaught TypeError: Cannot read properties of null (reading 'channel')` inside VS Code's core. Always flatten recursive structures into arrays (e.g., using `parentId`/`childIds`) before sending via IPC.
+
 ---
 
 ## Styling Rules
@@ -299,16 +329,58 @@ pnpm run watch            # or: npm run watch
 pnpm run package          # or: npm run package
 
 # Install locally (no marketplace needed)
-code --install-extension phi-agent-0.1.0.vsix
+code --install-extension phi-agent-0.2.1.vsix
 
 # Launch Extension Development Host (press F5 in VS Code)
 # Configured in .vscode/launch.json
 ```
 
+**Release workflow:**
+```bash
+# Check current version status (queries Open VSX API)
+pnpm run release:status
+
+# Release — one command does everything (must be on master branch):
+#   1. Queries Open VSX for production version
+#   2. Auto-detects bump level from conventional commits
+#   3. Shows full summary and changelog preview
+#   4. Asks for confirmation before proceeding
+#   5. Bumps package.json + README.md
+#   6. Generates CHANGELOG.md section from git history
+#   7. Commits: "release: v0.3.0"
+#   8. Creates git tag: v0.3.0
+#   9. Pushes commit + tag to origin
+#   → GitHub Actions automatically builds, publishes to Open VSX, creates GitHub Release
+pnpm run release
+
+# Force a specific bump level
+pnpm run release -- patch
+pnpm run release -- minor
+
+# After publishing, sync .published-version from Open VSX API
+pnpm run release:publish
+```
+
+**CI/CD (GitHub Actions):**
+- `.github/workflows/publish.yml` — triggered on `v*` tag push
+- Validates tag matches `package.json` version (safety net)
+- Runs `typecheck` → `package` → `ovsx publish` → creates GitHub Release with auto-generated changelog
+- Requires `OVSX_PAT` secret in GitHub repo settings (Settings → Secrets → Actions)
+
+**Version management:**
+- `scripts/release.mjs` — one-command release: queries Open VSX API, bumps, generates changelog, commits, tags, pushes
+- `.published-version` — local cache, auto-synced from the Open VSX API (offline fallback)
+- `.github/workflows/publish.yml` — CI/CD: builds, publishes to Open VSX, creates GitHub Release on tag push
+- Bump level auto-detected from git history:
+  - `feat:` commits → **MINOR** bump (0.2.0 → 0.3.0)
+  - Only `fix:`, `docs:`, `chore:`, `ui:`, `refactor:` → **PATCH** bump (0.2.0 → 0.2.1)
+  - If `package.json` version > production → already bumped, no change needed
+- **ALWAYS run `pnpm run release:status` before preparing a release** to check if a bump is needed
+
 **Build details:**
 - `build` — first runs `scripts/build-num.mjs` to auto-increment `.build-number` and generate `src/version.ts` / `public/version.js`, then runs `build:ext` and `build:web`
 - `build:ext` — bundles `src/extension.ts` + all dependencies (including Pi SDK) into a single `dist/extension.js` via esbuild (ESM, Node.js, minified)
-- `build:web` — bundles `public/app.js` into `dist/public/app.js` via esbuild (ESM) + copies `style.css`
+- `build:web` — bundles `public/app.js` (and all its module imports) into `dist/public/app.js` via esbuild (ESM) + copies `style.css`
 - `vscode` is marked as external (provided by VS Code at runtime)
 
 **Output structure after build:**

@@ -96,6 +96,38 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
     })
   );
 
+  // ── phi.deleteSession ─────────────────────────────────────────────────────
+  ctx.subscriptions.push(
+    vscode.commands.registerCommand('phi.deleteSession', async (sessionPath?: string) => {
+      if (!sessionPath) return;
+      const answer = await vscode.window.showWarningMessage(
+        "Are you sure you want to delete this session? It will be moved to the system trash.",
+        { modal: true },
+        "Move to Trash"
+      );
+
+      if (answer === "Move to Trash") {
+        try {
+          const fileUri = vscode.Uri.file(sessionPath);
+          await vscode.workspace.fs.delete(fileUri, { useTrash: true });
+          
+          // If the deleted session is the currently active one, start a new session
+          const activeSessionPath = AgentManager.getSessionFile();
+          if (activeSessionPath && activeSessionPath === sessionPath) {
+            await AgentManager.newSession();
+            IpcBridge.sendSync();
+          }
+
+          // Always refresh the sessions list
+          const sessions = await AgentManager.getSessions();
+          PanelManager.send({ type: 'sessions_list', sessions });
+        } catch (err: any) {
+          vscode.window.showErrorMessage(`Failed to delete session: ${err.message}`);
+        }
+      }
+    })
+  );
+
   // ── phi.abortSession ──────────────────────────────────────────────────────
   ctx.subscriptions.push(
     vscode.commands.registerCommand('phi.abortSession', async () => {

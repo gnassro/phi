@@ -18,3 +18,4 @@ src/version.ts
 public/version.js
 scripts
 
+.published-version

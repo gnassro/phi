@@ -4,6 +4,8 @@
  * Sessions are loaded via VscodeIPC messages instead of /api/sessions.
  */
 
+import { VscodeIPC } from './vscode-ipc.js';
+
 export class SessionSidebar {
   constructor(container, onSessionSelect) {
     this.container = container;
@@ -86,6 +88,7 @@ export class SessionSidebar {
       <div class="session-title-row">
         ${favIcon}
         <div class="session-title" title="${this.escapeHtml(title)}">${this.escapeHtml(title)}</div>
+        <button class="session-delete-btn" aria-label="Delete Session" data-tooltip="Delete Session">🗑️</button>
       </div>
       <div class="session-meta">${time}</div>
     `;
@@ -97,6 +100,15 @@ export class SessionSidebar {
       e.preventDefault();
       this.toggleFavourite(item.dataset.filePath);
     });
+
+    // Delete button
+    const deleteBtn = item.querySelector('.session-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // prevent selecting the session
+        VscodeIPC.send({ type: 'delete_session', sessionPath: item.dataset.filePath });
+      });
+    }
 
     return item;
   }

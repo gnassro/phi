@@ -62,7 +62,7 @@ export async function initialize(workspaceCwd: string): Promise<void> {
   // Phi uses its own auth file, separate from the pi CLI
   // Sessions are still shared (default ~/.pi/agent/sessions/)
   authStorage = AuthStorage.create(PHI_AUTH_FILE);
-  modelRegistry = new ModelRegistry(authStorage);
+  modelRegistry = ModelRegistry.create(authStorage);
 
   const { session: s } = await createAgentSession({
     sessionManager: SessionManager.continueRecent(cwd),
@@ -460,7 +460,8 @@ interface SessionTreeNode {
 }
 
 /**
- * Serialized tree node for IPC (strips non-serializable data).
+ * Serialized tree node for IPC — flat structure (no nested children).
+ * The webview reconstructs the hierarchy using parentId + childIds.
  */
 export interface SerializedTreeNode {
   id: string;
@@ -469,7 +470,7 @@ export interface SerializedTreeNode {
   label?: string;
   preview: string;        // short text preview for display
   role?: string;          // 'user' | 'assistant' for message entries
-  children: SerializedTreeNode[];
+  childIds: string[];     // IDs of direct children (flat reference)
 }
 
 /**
@@ -482,20 +483,24 @@ export function getSkills() {
 
 /**
  * Get the session tree structure + current leaf ID.
+ * Returns a flat array of nodes (no nesting) to avoid structured clone
+ * failures in postMessage for deeply nested trees.
  */
-export function getTree(): { tree: SerializedTreeNode[]; leafId: string | null } {
-  if (!session) return { tree: [], leafId: null };
+export function getTree(): { nodes: SerializedTreeNode[]; leafId: string | null } {
+  if (!session) return { nodes: [], leafId: null };
   const sm = session.sessionManager;
   const rawTree = sm.getTree();
   const leafId = sm.getLeafId();
   return {
-    tree: rawTree.map(serializeTreeNode),
+    nodes: serializeTreeFlat(rawTree),
     leafId,
   };
 }
 
-function serializeTreeNode(node: SessionTreeNode): SerializedTreeNode {
-  const entry = node.entry;
+/**
+ * Extract a short preview string from a tree node's entry.
+ */
+function getEntryPreview(entry: any): { preview: string; role?: string } {
   let preview = '';
   let role: string | undefined;
 
@@ -550,15 +555,43 @@ function serializeTreeNode(node: SessionTreeNode): SerializedTreeNode {
       preview = entry.type;
   }
 
-  return {
-    id: entry.id,
-    parentId: entry.parentId,
-    type: entry.type,
-    label: node.label,
-    preview,
-    role,
-    children: node.children.map(serializeTreeNode),
-  };
+  return { preview, role };
+}
+
+/**
+ * Serialize the tree into a flat array of nodes.
+ * Uses iterative DFS. Each node stores childIds instead of nested children,
+ * keeping the payload flat so postMessage structured clone doesn't fail
+ * on deeply nested sessions (~1,500+ depth crashes Chrome's cloner).
+ */
+function serializeTreeFlat(roots: SessionTreeNode[]): SerializedTreeNode[] {
+  const result: SerializedTreeNode[] = [];
+  const stack: SessionTreeNode[] = [];
+
+  // Push roots in reverse so they appear in order
+  for (let i = roots.length - 1; i >= 0; i--) {
+    stack.push(roots[i]);
+  }
+
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    const { preview, role } = getEntryPreview(node.entry);
+    result.push({
+      id: node.entry.id,
+      parentId: node.entry.parentId,
+      type: node.entry.type,
+      label: node.label,
+      preview,
+      role,
+      childIds: node.children.map(c => c.entry.id),
+    });
+    // Push children in reverse so they're processed in order
+    for (let i = node.children.length - 1; i >= 0; i--) {
+      stack.push(node.children[i]);
+    }
+  }
+
+  return result;
 }
 
 /**

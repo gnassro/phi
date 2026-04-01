@@ -18,7 +18,10 @@ export class ToolCardRenderer {
     const argsPreview = this.getArgsPreview(toolName, args);
     const argsJson = this.formatJson(args);
     const isExpanded = (status === 'streaming' || status === 'pending');
-    const isEdit = (toolName === 'edit' || toolName === 'Edit') && args && (args.oldText || args.old_text) && (args.newText || args.new_text);
+    const isEdit = (toolName === 'edit' || toolName === 'Edit') && args && (
+      ((args.oldText || args.old_text) && (args.newText || args.new_text)) ||
+      (Array.isArray(args.edits) && args.edits.length > 0)
+    );
 
     // ── Header ──
     const header = document.createElement('div');
@@ -91,7 +94,13 @@ export class ToolCardRenderer {
     body.className = 'tool-card-body' + (isExpanded ? ' expanded' : '');
 
     if (isEdit) {
-      body.appendChild(this.renderDiff(args.oldText || args.old_text, args.newText || args.new_text));
+      if (args.edits && Array.isArray(args.edits)) {
+        args.edits.forEach(edit => {
+          body.appendChild(this.renderDiff(edit.oldText || edit.old_text || '', edit.newText || edit.new_text || ''));
+        });
+      } else {
+        body.appendChild(this.renderDiff(args.oldText || args.old_text, args.newText || args.new_text));
+      }
     } else if (argsJson) {
       const argsEl = document.createElement('div');
       argsEl.className = 'tool-args';
@@ -244,10 +253,19 @@ export class ToolCardRenderer {
     const body = document.createElement('div');
     body.className = 'tool-card-body';
 
-    const isEdit = (toolName === 'edit' || toolName === 'Edit') && args && (args.oldText || args.old_text) && (args.newText || args.new_text);
+    const isEdit = (toolName === 'edit' || toolName === 'Edit') && args && (
+      ((args.oldText || args.old_text) && (args.newText || args.new_text)) ||
+      (Array.isArray(args.edits) && args.edits.length > 0)
+    );
 
     if (isEdit) {
-      body.appendChild(this.renderDiff(args.oldText || args.old_text, args.newText || args.new_text));
+      if (args.edits && Array.isArray(args.edits)) {
+        args.edits.forEach(edit => {
+          body.appendChild(this.renderDiff(edit.oldText || edit.old_text || '', edit.newText || edit.new_text || ''));
+        });
+      } else {
+        body.appendChild(this.renderDiff(args.oldText || args.old_text, args.newText || args.new_text));
+      }
     } else {
       const argsJson = this.formatJson(args);
       if (argsJson) {

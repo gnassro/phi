@@ -246,6 +246,18 @@ This file tracks all tasks for the Phi project.
 - [x] CSS for context chips, preview popup
 - [x] `add_context` IPC message (Extension Host → Webview)
 
+### Code Quality ✅
+- [x] Refactored `public/app.js` from ~1,732 lines to ~430 lines
+  - [x] `public/attachment-manager.js` — File attachments: image paste, native file picker, previews
+  - [x] `public/model-picker.js` — Model dropdown, search, thinking level
+  - [x] `public/cost-monitor.js` — Cost/token display, context visualization
+  - [x] `public/command-palette.js` — Command palette overlay
+  - [x] `public/tree-panel.js` — Conversation tree panel (navigation, labeling)
+  - [x] `public/prompt-autocomplete.js` — Slash-command autocomplete popup
+  - [x] `public/panels.js` — Settings, About, Accounts, History, Skills panels
+  - [x] Updated `AGENTS.md` file list and architecture diagram
+  - [x] Updated `docs/TASKS.md`
+
 ### Testing (needs manual verification)
 - [ ] Verify tool cards render during live streaming
 - [ ] Verify tool cards render in session history restore
@@ -270,7 +282,17 @@ This file tracks all tasks for the Phi project.
 - [x] `CHANGELOG.md` created (required by Open VSX)
 - [x] `LICENSE` file (MIT) created
 - [x] Publisher set to `gnassro`
-- [x] Pi SDK pinned to `^0.62.0`
+- [x] Pi SDK updated to `^0.64.0`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window
 - [ ] Test on Windows and Linux
+
+### CI/CD — Automated Publishing
+- [x] `.github/workflows/publish.yml` — GitHub Actions workflow triggered on `v*` tag push
+- [x] Workflow validates tag matches `package.json` version before publishing
+- [x] Workflow runs `typecheck` → `package` → `ovsx publish`
+- [x] Workflow auto-generates changelog from conventional commits
+- [x] Workflow creates GitHub Release with changelog + `.vsix` attached
+- [x] `scripts/release.mjs` — one-command release: bump → changelog → commit → tag → push
+- [x] `pnpm run release` / `release:status` / `release:publish` npm scripts added
+- [ ] Add `OVSX_PAT` secret to GitHub repo settings (manual, one-time)

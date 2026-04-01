@@ -91,15 +91,17 @@ File browser, code editor, project launcher, PWA, mobile UI, auth, Tailscale.
 
 ---
 
-## Milestone 4 — Packaged & Locally Installable
+## Milestone 4 — Packaged & Locally Installable ✅
 
 **Goal:** Phi can be packaged into a `.vsix` and installed locally on any machine without going through the marketplace.
 
 **Definition of done:**
-- `pnpm run package` (automatically runs build and produces a valid `.vsix`)
-- Installing via `code --install-extension phi-agent-0.1.0.vsix` works on a clean VS Code
-- The extension icon shows up in the Extensions panel
-- Tested on macOS
+- ✅ `pnpm run package` (automatically runs build and produces a valid `.vsix`)
+- ✅ Installing via `code --install-extension phi-agent-X.Y.Z.vsix` works on a clean VS Code
+- ✅ The extension icon shows up in the Extensions panel
+- ✅ CI/CD: GitHub Actions auto-publishes to Open VSX on tag push
+- ✅ One-command release: `pnpm run release` bumps, generates changelog, commits, tags, pushes
+- ✅ Tested on macOS
 
 ---
 

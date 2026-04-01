@@ -1,0 +1,105 @@
+name: Publish to Open VSX
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate tag matches package.json
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "❌ Tag v$TAG_VERSION doesn't match package.json v$PKG_VERSION"
+            exit 1
+          fi
+          echo "✅ Tag v$TAG_VERSION matches package.json"
+          echo "VERSION=$TAG_VERSION" >> $GITHUB_ENV
+
+      - name: Type check
+        run: pnpm run typecheck
+
+      - name: Build & package
+        run: pnpm run package
+
+      - name: Publish to Open VSX
+        run: pnpm exec ovsx publish phi-agent-${{ env.VERSION }}.vsix -p ${{ secrets.OVSX_PAT }}
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git tag --sort=-v:refname | grep '^v' | sed -n '2p')
+
+          if [ -z "$PREV_TAG" ]; then
+            # First release — use all commits
+            RANGE="HEAD"
+          else
+            RANGE="${PREV_TAG}..HEAD"
+          fi
+
+          echo "Generating changelog for $RANGE"
+
+          # Collect commits by type
+          FEATURES=$(git log "$RANGE" --pretty=format:"- %s" --grep="^feat" --extended-regexp | sed 's/^- feat[:(]/- /' | sed 's/^- /- /')
+          FIXES=$(git log "$RANGE" --pretty=format:"- %s" --grep="^fix" --extended-regexp | sed 's/^- fix[:(]/- /' | sed 's/^- /- /')
+          DOCS=$(git log "$RANGE" --pretty=format:"- %s" --grep="^docs" --extended-regexp | sed 's/^- docs[:(]/- /' | sed 's/^- /- /')
+          CHORES=$(git log "$RANGE" --pretty=format:"- %s" --grep="^chore\|^refactor\|^ui" --extended-regexp | sed 's/^- \(chore\|refactor\|ui\)[:(]/- /' | sed 's/^- /- /')
+
+          # Build changelog body
+          BODY=""
+          if [ -n "$FEATURES" ]; then
+            BODY="${BODY}### ✨ Features\n${FEATURES}\n\n"
+          fi
+          if [ -n "$FIXES" ]; then
+            BODY="${BODY}### 🐛 Fixes\n${FIXES}\n\n"
+          fi
+          if [ -n "$DOCS" ]; then
+            BODY="${BODY}### 📝 Docs\n${DOCS}\n\n"
+          fi
+          if [ -n "$CHORES" ]; then
+            BODY="${BODY}### 🔧 Maintenance\n${CHORES}\n\n"
+          fi
+
+          if [ -z "$BODY" ]; then
+            BODY="Maintenance release."
+          fi
+
+          # Write to file for the release step
+          echo -e "$BODY" > /tmp/changelog.md
+          cat /tmp/changelog.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: v${{ env.VERSION }}
+          body_path: /tmp/changelog.md
+          files: phi-agent-${{ env.VERSION }}.vsix
+          draft: false
+          prerelease: false
