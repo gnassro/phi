@@ -356,9 +356,6 @@ pnpm run release
 # Force a specific bump level
 pnpm run release -- patch
 pnpm run release -- minor
-
-# After publishing, sync .published-version from Open VSX API
-pnpm run release:publish
 ```
 
 **CI/CD (GitHub Actions):**
@@ -368,8 +365,7 @@ pnpm run release:publish
 - Requires `OVSX_PAT` secret in GitHub repo settings (Settings → Secrets → Actions)
 
 **Version management:**
-- `scripts/release.mjs` — one-command release: queries Open VSX API, bumps, generates changelog, commits, tags, pushes
-- `.published-version` — local cache, auto-synced from the Open VSX API (offline fallback)
+- `scripts/release.mjs` — one-command release: queries Open VSX API, bumps, generates changelog, commits, tags, asks to push
 - `.github/workflows/publish.yml` — CI/CD: builds, publishes to Open VSX, creates GitHub Release on tag push
 - Bump level auto-detected from git history:
   - `feat:` commits → **MINOR** bump (0.2.0 → 0.3.0)

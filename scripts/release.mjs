@@ -5,7 +5,7 @@
  *
  * Queries the Open VSX API for the current production version,
  * auto-detects bump level from conventional commits, bumps version,
- * generates CHANGELOG.md, commits, tags, and pushes.
+ * generates CHANGELOG.md, commits, tags, and asks to push.
  *
  * GitHub Actions then picks up the tag and publishes automatically.
  *
@@ -14,7 +14,6 @@
  *   node scripts/release.mjs patch        # Force patch bump
  *   node scripts/release.mjs minor        # Force minor bump
  *   node scripts/release.mjs status       # Print current status (no changes)
- *   node scripts/release.mjs publish      # Post-publish: sync .published-version from Open VSX
  */
 
 import fs from 'fs';
@@ -24,7 +23,6 @@ import readline from 'readline';
 
 const OPENVSX_API = 'https://open-vsx.org/api/gnassro/phi-agent';
 const pkgPath = path.resolve('package.json');
-const publishedPath = path.resolve('.published-version');
 const changelogPath = path.resolve('CHANGELOG.md');
 
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
@@ -37,16 +35,17 @@ async function getPublishedVersion() {
     const res = await fetch(OPENVSX_API);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const liveVersion = data.version;
-    fs.writeFileSync(publishedPath, liveVersion, 'utf8');
-    return { version: liveVersion, source: 'Open VSX API' };
-  } catch {
-    try {
-      const cached = fs.readFileSync(publishedPath, 'utf8').trim();
-      return { version: cached, source: '.published-version (offline fallback)' };
-    } catch {
-      return { version: '0.0.0', source: 'unknown (no file, no API)' };
-    }
+    return { version: data.version, source: 'Open VSX API' };
+  } catch (err) {
+    console.error('');
+    console.error('  ❌ Could not reach Open VSX API.');
+    console.error(`     URL: ${OPENVSX_API}`);
+    console.error(`     Error: ${err.message}`);
+    console.error('');
+    console.error('  This might be an internet issue or Open VSX is temporarily unreachable.');
+    console.error('  The release script needs the production version to determine the correct bump.');
+    console.error('');
+    process.exit(1);
   }
 }
 
@@ -189,11 +188,7 @@ const command = process.argv[2] || 'auto';
     process.exit(0);
   }
 
-  // ── Publish (post-publish sync) ──
-  if (command === 'publish') {
-    console.log(`✅ Synced .published-version to v${publishedVersion} from ${published.source}`);
-    process.exit(0);
-  }
+  // ── Publish — removed (no longer needed) ──
 
   // ── Pre-flight checks ──
 
@@ -253,12 +248,10 @@ const command = process.argv[2] || 'auto';
   console.log(`    1. Bump package.json to v${newVersion}`);
   console.log('    2. Update version references in README.md');
   console.log('    3. Generate CHANGELOG.md section (see preview below)');
-  console.log('    4. Reset build number to 0');
-  console.log(`    5. Commit: "release: v${newVersion}"`);
-  console.log(`    6. Create git tag: v${newVersion}`);
-  console.log('    7. Push commit + tag to origin');
-  console.log('    8. → GitHub Actions will auto-publish to Open VSX');
-  console.log('    9. → GitHub Actions will create a GitHub Release');
+  console.log(`    4. Commit: "release: v${newVersion}"`);
+  console.log(`    5. Create git tag: v${newVersion}`);
+  console.log('');
+  console.log('  Then ask you to push (triggers GitHub Actions → Open VSX + GitHub Release)');
   console.log('');
   console.log('  ── Changelog Preview ──');
   console.log(changelogSection.split('\n').map(l => `  ${l}`).join('\n'));
@@ -289,30 +282,36 @@ const command = process.argv[2] || 'auto';
   updateChangelogFile(changelogSection);
   console.log(`  ✅ CHANGELOG.md updated`);
 
-  // ── 4. Reset build number ──
-  fs.writeFileSync(path.resolve('.build-number'), '0', 'utf8');
-  console.log(`  ✅ Build number reset to 0`);
-
-  // ── 5. Git commit ──
-  run(`git add package.json README.md CHANGELOG.md .build-number .published-version`);
+  // ── 4. Git commit ──
+  run(`git add package.json README.md CHANGELOG.md`);
   run(`git commit -m "release: v${newVersion}"`);
   console.log(`  ✅ Committed: release: v${newVersion}`);
 
-  // ── 6. Git tag ──
+  // ── 5. Git tag ──
   run(`git tag v${newVersion}`);
   console.log(`  ✅ Tagged: v${newVersion}`);
 
-  // ── 7. Push ──
+  console.log('');
+  console.log('  ────────────────────────────────────────────');
+  console.log('  Everything is ready locally:');
+  console.log(`    • Commit: release: v${newVersion}`);
+  console.log(`    • Tag:    v${newVersion}`);
+  console.log('');
+  console.log('  Pushing will trigger GitHub Actions to:');
+  console.log('    1. Build & typecheck');
+  console.log('    2. Package .vsix');
+  console.log('    3. Publish to Open VSX');
+  console.log('    4. Create GitHub Release with changelog');
+  console.log('  ────────────────────────────────────────────');
+  console.log('');
+
   const pushAnswer = await ask('  Push commit + tag to origin? (y/N) ');
   if (pushAnswer === 'y') {
     run('git push origin HEAD');
     run(`git push origin v${newVersion}`);
     console.log('');
-    console.log(`  🚀 Pushed! GitHub Actions will now:`);
-    console.log(`     1. Build & typecheck`);
-    console.log(`     2. Package .vsix`);
-    console.log(`     3. Publish to Open VSX`);
-    console.log(`     4. Create GitHub Release with changelog`);
+    console.log(`  🚀 Done! GitHub Actions is now publishing v${newVersion}.`);
+    console.log('     Check progress at: https://github.com/gnassro/phi/actions');
   } else {
     console.log('');
     console.log(`  📦 Release prepared locally. When ready, run:`);
