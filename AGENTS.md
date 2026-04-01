@@ -76,7 +76,7 @@ phi/
 │   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write
 │   ├── state.js                  ← StateManager for tool execution tracking
 │   ├── session-sidebar.js        ← Session history panel
-│   ├── image-manager.js          ← Image paste, file picker, previews
+│   ├── attachment-manager.js      ← File attachments: image paste, file picker, previews
 │   ├── model-picker.js           ← Model dropdown, search, thinking level
 │   ├── cost-monitor.js           ← Cost/token display, context visualization
 │   ├── command-palette.js        ← Command palette overlay
@@ -147,7 +147,7 @@ phi/
 │  │  tool-card.js         ← Tool execution cards             │   │
 │  │  state.js             ← Tool execution state tracking    │   │
 │  │  session-sidebar.js   ← Session history panel            │   │
-│  │  image-manager.js     ← Image attachments                │   │
+│  │  attachment-manager.js ← File attachments (images + files)  │   │
 │  │  model-picker.js      ← Model dropdown + thinking        │   │
 │  │  cost-monitor.js      ← Cost/token/context viz           │   │
 │  │  command-palette.js   ← Command palette                  │   │
@@ -196,6 +196,7 @@ Full specification: `docs/ipc-protocol.md`
 | `set_label` | Set or clear a label on a tree entry |
 | `get_skills` | Fetch loaded skills list |
 | `open_url` | Open a URL in the user's browser |
+| `open_file_picker` | Open native VS Code file picker to attach files |
 
 ### Extension Host → Webview
 
@@ -213,6 +214,7 @@ Full specification: `docs/ipc-protocol.md`
 | `navigate_result` | Result of tree navigation (success/cancelled) |
 | `open_tree` | Signal webview to open the tree panel |
 | `skills_data` | Array of loaded skills with name and description |
+| `add_image_attachment` | Base64 image data from file picker for preview rendering |
 
 ---
 

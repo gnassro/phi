@@ -154,7 +154,7 @@ Slim orchestrator (~430 lines):
 - `VscodeIPC.on('type', handler)` receives messages from extension host
 - On load: sends `request_sync` to get current state
 - Handles `pi_event` messages from extension host
-- Delegates to extracted modules: `ImageManager`, `ModelPicker`, `CostMonitor`, `CommandPalette`, `TreePanel`, `PromptAutocomplete`, `Panels`
+- Delegates to extracted modules: `AttachmentManager`, `ModelPicker`, `CostMonitor`, `CommandPalette`, `TreePanel`, `PromptAutocomplete`, `Panels`
 
 ### `public/vscode-ipc.js`
 Thin wrapper around VS Code's message API:

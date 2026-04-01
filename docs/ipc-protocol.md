@@ -50,7 +50,8 @@ type WebviewMessage =
   // Skills
   | { type: "get_skills" }
   // Misc
-  | { type: "open_url"; url: string };
+  | { type: "open_url"; url: string }
+  | { type: "open_file_picker" };
 
 interface ImagePayload {
   type: "image";
@@ -215,7 +216,8 @@ type ExtensionMessage =
   | { type: "tree_data"; nodes: SerializedTreeNode[]; leafId: string | null; error?: string }
   | { type: "navigate_result"; success: boolean; cancelled?: boolean; error?: string }
   | { type: "open_tree" }
-  | { type: "skills_data"; skills: Skill[] };
+  | { type: "skills_data"; skills: Skill[] }
+  | { type: "add_image_attachment"; data: string; mimeType: string };
 ```
 
 ### `pi_event`
@@ -341,6 +343,28 @@ interface RpcResponse {
   data?: unknown;         // command-specific response data
   error?: string;         // error message if success is false
 }
+```
+
+### `open_file_picker`
+Webview requests the extension host to open VS Code's native file picker. Supports multi-select.
+Images are returned as `add_image_attachment` messages, non-image files as `add_context` messages.
+
+```typescript
+// Webview → Extension Host
+{ type: "open_file_picker" }
+
+// Extension Host → Webview (for each image picked)
+{ type: "add_image_attachment", data: "base64...", mimeType: "image/png" }
+
+// Extension Host → Webview (for each non-image file picked)
+{ type: "add_context", context: { type: "file", filePath: "src/app.ts" } }
+```
+
+### `add_image_attachment`
+Sends base64-encoded image data from the extension host to the webview for preview rendering.
+
+```typescript
+{ type: "add_image_attachment", data: "base64...", mimeType: "image/png" }
 ```
 
 ---

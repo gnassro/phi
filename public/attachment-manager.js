@@ -1,19 +1,25 @@
 /**
- * image-manager.js — Image Attachment Manager
+ * attachment-manager.js — File Attachment Manager
  *
  * Handles image paste, file picker, and preview rendering.
+ * - Images: processed in-browser (paste or file picker) as base64 previews.
+ * - Non-image files: the extension host opens a native file picker and adds
+ *   the selected files as context references in the chat input.
+ *
  * Note: Drag-and-drop is not supported in VS Code webview iframes —
  * Electron intercepts file drops before they reach the webview.
  */
 
-export class ImageManager {
+import { VscodeIPC } from './vscode-ipc.js';
+
+export class AttachmentManager {
   constructor(chatInput) {
     this.pendingImages = [];
     this.chatInput = chatInput;
 
     // DOM refs
     this.imagePreviews = document.getElementById('image-previews');
-    this.imageInput = document.getElementById('image-input');
+    this.fileInput = document.getElementById('file-input');
     this.attachBtn = document.getElementById('attach-btn');
     this.messageInput = chatInput.element;
 
@@ -24,24 +30,40 @@ export class ImageManager {
     // Wire paste handler on ChatInput
     this.chatInput.onImagePaste = async (files) => {
       for (const file of files) {
-        const img = await this._processFile(file);
+        const img = await this._processImage(file);
         if (img) this.pendingImages.push(img);
       }
       this._renderPreviews();
     };
 
-    // Attach button
-    this.attachBtn?.addEventListener('click', () => this.imageInput?.click());
+    // Attach button — open native VS Code file picker via IPC
+    this.attachBtn?.addEventListener('click', () => {
+      VscodeIPC.send({ type: 'open_file_picker' });
+    });
 
-    // File input change
-    this.imageInput?.addEventListener('change', async (e) => {
+    // File input (hidden, used for image-only picking if needed in the future)
+    this.fileInput?.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files || []);
       for (const file of files) {
-        const img = await this._processFile(file);
-        if (img) this.pendingImages.push(img);
+        if (file.type.startsWith('image/')) {
+          const img = await this._processImage(file);
+          if (img) this.pendingImages.push(img);
+        }
       }
-      this.imageInput.value = '';
+      this.fileInput.value = '';
       this._renderPreviews();
+    });
+
+    // Listen for image attachments from the extension host (e.g. image files picked)
+    VscodeIPC.on('add_image_attachment', (msg) => {
+      if (msg.data && msg.mimeType) {
+        this.pendingImages.push({
+          data: msg.data,
+          mimeType: msg.mimeType,
+          previewUrl: `data:${msg.mimeType};base64,${msg.data}`
+        });
+        this._renderPreviews();
+      }
     });
   }
 
@@ -63,7 +85,7 @@ export class ImageManager {
     return this.pendingImages.length > 0;
   }
 
-  _processFile(file) {
+  _processImage(file) {
     return new Promise((resolve) => {
       if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
         resolve(null);

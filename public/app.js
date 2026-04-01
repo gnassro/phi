@@ -13,7 +13,7 @@ import { SessionSidebar } from './session-sidebar.js';
 import { EXTENSION_VERSION, PI_SDK_VERSION } from './version.js';
 
 // Modules extracted from app.js
-import { ImageManager } from './image-manager.js';
+import { AttachmentManager } from './attachment-manager.js';
 import { ModelPicker } from './model-picker.js';
 import { CostMonitor } from './cost-monitor.js';
 import { CommandPalette } from './command-palette.js';
@@ -34,7 +34,7 @@ const chatInput = new ChatInput('message-input', 'chat-form', (text) => {
 
 // ─── Module instances ─────────────────────────────────────────────────────────
 
-const imageManager = new ImageManager(chatInput);
+const attachmentManager = new AttachmentManager(chatInput);
 const modelPicker = new ModelPicker();
 const costMonitor = new CostMonitor();
 const treePanel = new TreePanel();
@@ -109,13 +109,13 @@ let hasNewWhileScrolled = false;
 
 function sendMessage(text) {
   let message = typeof text === 'string' ? text : chatInput.getText();
-  if (!message && !imageManager.hasPending()) return;
+  if (!message && !attachmentManager.hasPending()) return;
   chatInput.clear();
 
   const cmd = { type: 'prompt', message };
-  if (imageManager.hasPending()) {
-    cmd.images = imageManager.getImages();
-    imageManager.clearImages();
+  if (attachmentManager.hasPending()) {
+    cmd.images = attachmentManager.getImages();
+    attachmentManager.clearImages();
   }
 
   if (state.isStreaming) {

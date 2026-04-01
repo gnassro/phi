@@ -248,7 +248,7 @@ This file tracks all tasks for the Phi project.
 
 ### Code Quality ✅
 - [x] Refactored `public/app.js` from ~1,732 lines to ~430 lines
-  - [x] `public/image-manager.js` — Image paste, file picker, previews
+  - [x] `public/attachment-manager.js` — File attachments: image paste, native file picker, previews
   - [x] `public/model-picker.js` — Model dropdown, search, thinking level
   - [x] `public/cost-monitor.js` — Cost/token display, context visualization
   - [x] `public/command-palette.js` — Command palette overlay

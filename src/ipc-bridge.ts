@@ -47,7 +47,8 @@ type WebviewMessage =
   // Skills
   | { type: 'get_skills' }
   // Misc
-  | { type: 'open_url'; url: string };
+  | { type: 'open_url'; url: string }
+  | { type: 'open_file_picker' };
 
 let initialized = false;
 
@@ -202,6 +203,45 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
       const urlMsg = message as { url: string };
       if (urlMsg.url) {
         vscode.env.openExternal(vscode.Uri.parse(urlMsg.url));
+      }
+      break;
+    }
+
+    case 'open_file_picker': {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectMany: true,
+        canSelectFiles: true,
+        canSelectFolders: false,
+        title: 'Attach files to chat',
+      });
+      if (uris && uris.length > 0) {
+        for (const uri of uris) {
+          const ext = uri.fsPath.split('.').pop()?.toLowerCase() || '';
+          const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+          if (isImage) {
+            // Read image and send base64 to webview
+            try {
+              const data = await vscode.workspace.fs.readFile(uri);
+              let mimeType = 'image/png';
+              if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+              else if (ext === 'gif') mimeType = 'image/gif';
+              else if (ext === 'webp') mimeType = 'image/webp';
+              PanelManager.send({
+                type: 'add_image_attachment',
+                data: Buffer.from(data).toString('base64'),
+                mimeType,
+              });
+            } catch (err) {
+              vscode.window.showWarningMessage(`[Phi] Could not read image: ${uri.fsPath}`);
+            }
+          } else {
+            // Non-image file: add as context reference
+            const contextBlock = EditorContext.buildFileContext(uri);
+            if (contextBlock) {
+              PanelManager.send({ type: 'add_context', context: contextBlock });
+            }
+          }
+        }
       }
       break;
     }
