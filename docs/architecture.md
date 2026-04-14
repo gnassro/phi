@@ -18,8 +18,8 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  editor-context.ts (VS Code)    │                             │
 │  │  commands.ts     (commands)     │                             │
 │  │                                 │                             │
-│  │  @mariozechner/pi-coding-agent  │                             │
-│  │  (createAgentSession runs here) │                             │
+│  │  @mariozechner/pi-coding-agent      │                         │
+│  │  (createAgentSessionRuntime runs here) │                      │
 │  └──────────────┬──────────────────┘                             │
 │                 │ postMessage / onDidReceiveMessage               │
 │                 │ (VS Code IPC — the ONLY channel)                │
@@ -66,23 +66,24 @@ export async function activate(ctx: vscode.ExtensionContext) {
   registerCommands(ctx);
 }
 
-export function deactivate() {
-  AgentManager.dispose();
+export async function deactivate() {
+  await AgentManager.dispose();
 }
 ```
 
 ### `src/agent-manager.ts`
-The Pi SDK wrapper. Owns the `AgentSession` lifecycle.
+The Pi SDK wrapper. Owns the `AgentSessionRuntime` lifecycle and binds the current live `runtime.session`.
 
 Responsibilities:
-- `initialize(cwd)` — calls `createAgentSession()`, sets up session
+- `initialize(cwd)` — calls `createAgentSessionRuntime()`, sets up runtime + current session
 - `prompt(text, images?)` — sends message when idle
 - `steer(text)` — interrupts during streaming
 - `abort()` — cancels current turn
-- `switchSession(path)` — switches to a different session file
+- `switchSession(path)` — replaces the active session via `runtime.switchSession()` and rebinds listeners
+- `newSession()` — replaces the active session via `runtime.newSession()` and rebinds listeners
 - `getSessions()` — returns `SessionManager.list(cwd)`
 - `subscribe(listener)` — forward all `AgentSessionEvent` to callers
-- `dispose()` — cleans up session on extension deactivate
+- `dispose()` — cleans up runtime on extension deactivate
 
 **Key rule:** This is the ONLY file that imports from `@mariozechner/pi-coding-agent`.
 

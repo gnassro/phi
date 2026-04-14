@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/VS%20Code-^1.85.0-007ACC?logo=visual-studio-code" alt="VS Code">
-  <img src="https://img.shields.io/badge/Pi%20SDK-0.62.0-purple" alt="Pi SDK">
+  <img src="https://img.shields.io/badge/Pi%20SDK-0.67.1-purple" alt="Pi SDK">
   <img src="https://img.shields.io/badge/TypeScript-ESM-3178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/vibe-coded%20🤙-ff69b4" alt="Vibe Coded">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
@@ -77,6 +77,11 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - **API keys** — 17 predefined providers
 - Saved to `~/.phi/auth.json` — separate from Pi CLI auth
 
+### 🖥️ Custom Providers (Ollama, vLLM, LM Studio…)
+Phi inherits full custom provider support from the Pi SDK. Add any OpenAI-compatible local or remote model by editing `~/.pi/agent/models.json` — no extension restart needed, changes are picked up next time you open the model picker.
+
+See [Custom Providers](#-custom-providers) for setup instructions.
+
 ### ⌨️ Keyboard Shortcuts
 
 | Action | Shortcut |
@@ -131,6 +136,7 @@ code --install-extension phi-agent-0.3.0.vsix
 | View session stats | Click the commands button (in chat input) → "Session Stats" |
 | Login (OAuth) | Command Palette → "Phi: Login" |
 | Add API key | Command Palette → "Phi: Add API Key" |
+| Add custom provider | Edit `~/.pi/agent/models.json` (see [Custom Providers](#-custom-providers)) |
 
 ---
 
@@ -143,6 +149,114 @@ This extension is in **early development** and comes with no warranty. Please be
 - **Use at your own risk** — always review AI-generated code changes before accepting them
 
 If you encounter any bugs or issues, please [open an issue](https://github.com/gnassro/phi/issues) on GitHub. Your feedback helps improve the extension for everyone.
+
+---
+
+## 🖥️ Custom Providers
+
+Phi supports any OpenAI-compatible model server (Ollama, vLLM, LM Studio, OpenRouter, proxies, etc.) through the Pi SDK's `models.json` config file. No code changes, no extension restart — just edit the file and open the model picker.
+
+### Setup
+
+**1. Create or edit `~/.pi/agent/models.json`**
+
+This file is shared with the Pi CLI, so any provider you add works in both.
+
+**2. Add your provider**
+
+```json
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://localhost:11434/v1",
+      "apiKey": "OLLAMA_API_KEY",
+      "api": "openai-completions",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false,
+        "maxTokensField": "max_tokens"
+      },
+      "models": [
+        {
+          "id": "llama3.1:8b",
+          "name": "Llama 3.1 8B (Local)",
+          "reasoning": false,
+          "input": ["text"],
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
+          "contextWindow": 128000,
+          "maxTokens": 32000
+        }
+      ]
+    }
+  }
+}
+```
+
+**3. Open the model picker in Phi and select your model**
+
+The new model will appear immediately — no restart needed.
+
+### The `compat` block (important for local models)
+
+Most local servers (Ollama, vLLM, LM Studio, SGLang) don't fully implement the OpenAI spec. Without the `compat` block, the system prompt gets sent using the `developer` role which local servers silently ignore — causing the model to act as plain chat instead of a coding agent.
+
+| Flag | What it fixes |
+|---|---|
+| `supportsDeveloperRole: false` | Sends system prompt as `system` role (understood by all servers) |
+| `supportsReasoningEffort: false` | Disables `reasoning_effort` param (unsupported by local servers) |
+| `maxTokensField: "max_tokens"` | Uses `max_tokens` instead of `max_completion_tokens` |
+
+> **Always include the `compat` block for Ollama, vLLM, LM Studio, and similar servers.**
+
+### Supported API types
+
+| `api` value | Use for |
+|---|---|
+| `openai-completions` | Ollama, vLLM, LM Studio, OpenRouter, most compatible servers |
+| `anthropic-messages` | Anthropic Claude API or compatible proxies |
+| `openai-responses` | OpenAI Responses API |
+| `google-generative-ai` | Google Gemini API |
+
+### Adding an API key for your custom provider
+
+If your provider requires an API key, add it via **Command Palette → "Phi: Add API Key" → Custom provider…** and enter your provider ID (e.g. `ollama`). The key is saved to `~/.phi/auth.json`.
+
+For local servers like Ollama that don't require a real key, set `"apiKey": "ollama"` in `models.json` (any non-empty value works).
+
+### Multiple providers
+
+You can define as many providers as you like:
+
+```json
+{
+  "providers": {
+    "ollama": { ... },
+    "lm-studio": {
+      "baseUrl": "http://localhost:1234/v1",
+      "apiKey": "lm-studio",
+      "api": "openai-completions",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false,
+        "maxTokensField": "max_tokens"
+      },
+      "models": [
+        { "id": "qwen2.5-coder-32b", "name": "Qwen 2.5 Coder 32B", "reasoning": false, "input": ["text"], "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 128000, "maxTokens": 32000 }
+      ]
+    },
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "apiKey": "OPENROUTER_API_KEY",
+      "api": "openai-completions",
+      "models": [
+        { "id": "meta-llama/llama-3.1-8b-instruct", "name": "Llama 3.1 8B (OpenRouter)", "reasoning": false, "input": ["text"], "cost": { "input": 0.1, "output": 0.1, "cacheRead": 0, "cacheWrite": 0 }, "contextWindow": 131072, "maxTokens": 8192 }
+      ]
+    }
+  }
+}
+```
+
+> For the full `models.json` reference, see the [Pi SDK documentation](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/models.md).
 
 ---
 
@@ -165,9 +279,9 @@ The Pi SDK runs in the same Node.js process as the extension host — no externa
 | [**Pi**](https://github.com/badlogic/pi-mono) | The CLI AI coding agent (`pi` command) |
 | **Phi** | A VS Code extension that brings Pi into the editor |
 
-Phi uses the [Pi SDK](https://www.npmjs.com/package/@mariozechner/pi-coding-agent) (`@mariozechner/pi-coding-agent@0.62.0`) to run the agent directly inside VS Code's extension host.
+Phi uses the [Pi SDK](https://www.npmjs.com/package/@mariozechner/pi-coding-agent) (`@mariozechner/pi-coding-agent@0.67.1`) to run the agent directly inside VS Code's extension host.
 
-> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.62.0`. Newer versions may work but are not guaranteed until tested.
+> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.67.1`. Newer versions may work but are not guaranteed until tested.
 
 ---
 
