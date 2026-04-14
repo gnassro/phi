@@ -129,7 +129,7 @@ phi/
 │  │              EXTENSION HOST  (Node.js)                    │   │
 │  │                                                           │   │
 │  │  extension.ts      ← activate() / deactivate()           │   │
-│  │  agent-manager.ts  ← createAgentSession(), Pi events     │   │
+│  │  agent-manager.ts  ← createAgentSessionRuntime(), Pi events │  │
 │  │  panel-manager.ts  ← WebviewPanel lifecycle               │   │
 │  │  ipc-bridge.ts     ← message routing                     │   │
 │  │  editor-context.ts ← vscode.window, workspace, git       │   │
@@ -245,15 +245,19 @@ Full reference: `docs/pi-sdk.md`
 
 1. **Only `src/agent-manager.ts` imports from `@mariozechner/pi-coding-agent`.** No other file may import the Pi SDK directly.
 
-2. **`session.prompt()` throws if called during streaming** without a `streamingBehavior` option. Always check `session.isStreaming` first, or use `steer()` / `followUp()`.
+2. **Phi uses `AgentSessionRuntime` for session replacement.** `newSession()` / `switchSession()` must go through the runtime, not `AgentSession`.
 
-3. **Sessions persist automatically** to `~/.pi/agent/sessions/`. No manual save needed.
+3. **After runtime session replacement, re-bind event subscriptions.** `runtime.session` changes after `newSession()` / `switchSession()`.
 
-4. **`SessionManager.list(cwd)` returns only sessions for the current project.** Do not filter client-side.
+4. **`session.prompt()` throws if called during streaming** without a `streamingBehavior` option. Always check `session.isStreaming` first, or use `steer()` / `followUp()`.
 
-5. **Image data must have the `data:` prefix stripped** before passing to the SDK. The SDK expects raw base64, not data URIs.
+5. **Sessions persist automatically** to `~/.pi/agent/sessions/`. No manual save needed.
 
-6. **Call `session.dispose()` in `deactivate()`.** Failing to do so leaks the agent process.
+6. **`SessionManager.list(cwd)` returns only sessions for the current project.** Do not filter client-side.
+
+7. **Image data must have the `data:` prefix stripped** before passing to the SDK. The SDK expects raw base64, not data URIs.
+
+8. **Call `await runtime.dispose()` in `deactivate()`.** Failing to do so leaks the agent process.
 
 ---
 

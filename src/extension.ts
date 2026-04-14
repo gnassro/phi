@@ -12,7 +12,7 @@ import * as EditorContext from './editor-context.js';
  *
  * Boot order:
  *  1. Determine the workspace CWD
- *  2. Initialize AgentManager (boots Pi SDK session)
+ *  2. Initialize AgentManager (boots Pi SDK runtime)
  *  3. Initialize PanelManager (registers webview factory)
  *  4. Wire Pi events → IpcBridge → Webview
  *  5. Register all VS Code commands
@@ -24,10 +24,10 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   const cwd =
     vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
 
-  // 1. Boot the Pi agent session
+  // 1. Boot the Pi agent runtime
   try {
     await AgentManager.initialize(cwd);
-    console.log(`[Phi] Pi session ready. CWD: ${cwd}`);
+    console.log(`[Phi] Pi runtime ready. CWD: ${cwd}`);
   } catch (err) {
     vscode.window.showErrorMessage(
       `[Phi] Failed to start Pi session: ${(err as Error).message}`
@@ -106,9 +106,9 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
  * Called by VS Code when the extension deactivates (VS Code closing,
  * extension disabled, or developer reloads the Extension Host).
  *
- * Must dispose the Pi session to avoid leaking agent processes.
+ * Must dispose the Pi runtime to avoid leaking agent processes.
  */
-export function deactivate(): void {
-  console.log('[Phi] Deactivating — disposing Pi session...');
-  AgentManager.dispose();
+export async function deactivate(): Promise<void> {
+  console.log('[Phi] Deactivating — disposing Pi session runtime...');
+  await AgentManager.dispose();
 }

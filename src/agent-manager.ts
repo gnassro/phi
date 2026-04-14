@@ -1,10 +1,16 @@
 import {
-  createAgentSession,
+  createAgentSessionFromServices,
+  createAgentSessionRuntime,
+  createAgentSessionServices,
+  getAgentDir,
   SessionManager,
   AuthStorage,
   ModelRegistry,
   type AgentSession,
   type AgentSessionEvent,
+  type AgentSessionRuntime,
+  type AgentSessionRuntimeDiagnostic,
+  type CreateAgentSessionRuntimeFactory,
   type SessionInfo,
   type SessionStats,
 } from '@mariozechner/pi-coding-agent';
@@ -17,7 +23,7 @@ import * as os from 'os';
  * The ONLY module in Phi that imports from @mariozechner/pi-coding-agent.
  * All other files must go through this module's exported functions.
  *
- * Owns the Pi AgentSession lifecycle:
+ * Owns the Pi AgentSessionRuntime lifecycle:
  *   initialize() → prompt/steer/abort → dispose()
  *
  * Auth separation:
@@ -40,16 +46,52 @@ const PHI_AUTH_FILE = path.join(PHI_CONFIG_DIR, 'auth.json');
 
 // ─── Internal state ──────────────────────────────────────────────────────────
 
+let runtime: AgentSessionRuntime | null = null;
 let session: AgentSession | null = null;
+let sessionUnsubscribe: (() => void) | null = null;
 let authStorage: AuthStorage | null = null;
 let modelRegistry: ModelRegistry | null = null;
 let cwd: string = process.cwd();
 const listeners: Array<(event: AgentSessionEvent) => void> = [];
 
+function forwardEvent(event: AgentSessionEvent): void {
+  for (const listener of listeners) {
+    listener(event);
+  }
+}
+
+function bindSession(nextSession: AgentSession): void {
+  sessionUnsubscribe?.();
+  session = nextSession;
+  sessionUnsubscribe = nextSession.subscribe(forwardEvent);
+}
+
+function logRuntimeDiagnostics(
+  source: string,
+  diagnostics: readonly AgentSessionRuntimeDiagnostic[]
+): void {
+  for (const diagnostic of diagnostics) {
+    const prefix = `[Phi] ${source}: ${diagnostic.message}`;
+    if (diagnostic.type === 'error') {
+      console.error(prefix);
+    } else if (diagnostic.type === 'warning') {
+      console.warn(prefix);
+    } else {
+      console.info(prefix);
+    }
+  }
+}
+
+function logModelFallbackMessage(source: string, message?: string): void {
+  if (message) {
+    console.warn(`[Phi] ${source}: ${message}`);
+  }
+}
+
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 /**
- * Boot the Pi session for the given workspace directory.
+ * Boot the Pi session runtime for the given workspace directory.
  * Called once from extension.ts activate().
  *
  * Uses SessionManager.continueRecent() so users always resume
@@ -59,26 +101,46 @@ const listeners: Array<(event: AgentSessionEvent) => void> = [];
 export async function initialize(workspaceCwd: string): Promise<void> {
   cwd = workspaceCwd;
 
-  // Phi uses its own auth file, separate from the pi CLI
-  // Sessions are still shared (default ~/.pi/agent/sessions/)
-  authStorage = AuthStorage.create(PHI_AUTH_FILE);
-  modelRegistry = ModelRegistry.create(authStorage);
+  // Phi uses its own auth file, separate from the pi CLI.
+  // Sessions are still shared (default ~/.pi/agent/sessions/).
+  const agentDir = getAgentDir();
+  const storage = AuthStorage.create(PHI_AUTH_FILE);
+  const registry = ModelRegistry.create(storage);
+  authStorage = storage;
+  modelRegistry = registry;
 
-  const { session: s } = await createAgentSession({
-    sessionManager: SessionManager.continueRecent(cwd),
+  const createRuntime: CreateAgentSessionRuntimeFactory = async ({
+    cwd: runtimeCwd,
+    sessionManager,
+    sessionStartEvent,
+  }) => {
+    const services = await createAgentSessionServices({
+      cwd: runtimeCwd,
+      agentDir,
+      authStorage: storage,
+      modelRegistry: registry,
+    });
+
+    return {
+      ...(await createAgentSessionFromServices({
+        services,
+        sessionManager,
+        sessionStartEvent,
+      })),
+      services,
+      diagnostics: services.diagnostics,
+    };
+  };
+
+  runtime = await createAgentSessionRuntime(createRuntime, {
     cwd,
-    authStorage,
-    modelRegistry,
+    agentDir,
+    sessionManager: SessionManager.continueRecent(cwd),
   });
 
-  session = s;
-
-  // Forward every Pi event to all registered listeners (IpcBridge)
-  session.subscribe((event: AgentSessionEvent) => {
-    for (const listener of listeners) {
-      listener(event);
-    }
-  });
+  bindSession(runtime.session);
+  logRuntimeDiagnostics('Session startup', runtime.diagnostics);
+  logModelFallbackMessage('Session startup', runtime.modelFallbackMessage);
 }
 
 /**
@@ -91,13 +153,21 @@ export function setCwd(newCwd: string): void {
 }
 
 /**
- * Dispose the Pi session. Called from extension.ts deactivate().
+ * Dispose the Pi session runtime. Called from extension.ts deactivate().
  * Failing to call this leaks the agent process.
  */
-export function dispose(): void {
-  session?.dispose();
+export async function dispose(): Promise<void> {
+  sessionUnsubscribe?.();
+  sessionUnsubscribe = null;
+
+  const currentRuntime = runtime;
+  runtime = null;
   session = null;
+  authStorage = null;
+  modelRegistry = null;
   listeners.length = 0;
+
+  await currentRuntime?.dispose();
 }
 
 // ─── Event subscription ───────────────────────────────────────────────────────
@@ -186,16 +256,22 @@ export async function getSessions(): Promise<SessionInfo[]> {
  * After switching, callers should request a full sync from IpcBridge.
  */
 export async function switchSession(sessionPath: string): Promise<void> {
-  if (!session) throw new Error('[Phi] AgentManager not initialized');
-  await session.switchSession(sessionPath);
+  if (!runtime) throw new Error('[Phi] AgentManager not initialized');
+  await runtime.switchSession(sessionPath);
+  bindSession(runtime.session);
+  logRuntimeDiagnostics('Session switch', runtime.diagnostics);
+  logModelFallbackMessage('Session switch', runtime.modelFallbackMessage);
 }
 
 /**
  * Create a brand new empty session.
  */
 export async function newSession(): Promise<void> {
-  if (!session) throw new Error('[Phi] AgentManager not initialized');
-  await session.newSession();
+  if (!runtime) throw new Error('[Phi] AgentManager not initialized');
+  await runtime.newSession();
+  bindSession(runtime.session);
+  logRuntimeDiagnostics('New session', runtime.diagnostics);
+  logModelFallbackMessage('New session', runtime.modelFallbackMessage);
 }
 
 // ─── State accessors ──────────────────────────────────────────────────────────

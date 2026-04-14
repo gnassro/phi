@@ -23,7 +23,7 @@ to prevent stale JS/CSS after rebuilds.
 Auth system: OAuth login via browser + API key management via VS Code QuickPick. Saved to
 `~/.phi/auth.json`. Sessions shared with pi CLI at `~/.pi/agent/sessions/`.
 
-Build: Extension host bundled with esbuild (Pi SDK `0.62.0` included). Self-contained `.vsix`
+Build: Extension host bundled with esbuild (Pi SDK `0.67.1` included). Self-contained `.vsix`
 at 1.5 MB — no `node_modules` required. Published as `gnassro` on Open VSX.
 Auto-incrementing build numbers injected directly into the webview footer.
 

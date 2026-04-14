@@ -19,35 +19,75 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 
 ## Session Initialization
 
-All Pi SDK code lives in `src/agent-manager.ts`. The session is created once when the extension activates.
+All Pi SDK code lives in `src/agent-manager.ts`. Phi now creates an `AgentSessionRuntime` once on activation and reads the current live `runtime.session` from it.
 
 ```typescript
 import {
-  createAgentSession,
+  AuthStorage,
+  ModelRegistry,
   SessionManager,
+  createAgentSessionFromServices,
+  createAgentSessionRuntime,
+  createAgentSessionServices,
+  getAgentDir,
   type AgentSession,
   type AgentSessionEvent,
+  type AgentSessionRuntime,
+  type CreateAgentSessionRuntimeFactory,
 } from "@mariozechner/pi-coding-agent";
+import * as os from "os";
+import * as path from "path";
 
+let runtime: AgentSessionRuntime;
 let session: AgentSession;
+let unsubscribe: (() => void) | undefined;
 let cwd: string;
+
+function bindSession(nextSession: AgentSession) {
+  unsubscribe?.();
+  session = nextSession;
+  unsubscribe = session.subscribe((event: AgentSessionEvent) => {
+    IpcBridge.forwardPiEvent(event);
+  });
+}
 
 export async function initialize(workspaceCwd: string) {
   cwd = workspaceCwd;
 
-  const { session: s } = await createAgentSession({
-    // Resume the most recent session for this project
-    // Creates a new one if none exists
-    sessionManager: SessionManager.continueRecent(cwd),
+  const agentDir = getAgentDir();
+  const authStorage = AuthStorage.create(path.join(os.homedir(), ".phi", "auth.json"));
+  const modelRegistry = ModelRegistry.create(authStorage);
+
+  const createRuntime: CreateAgentSessionRuntimeFactory = async ({
     cwd,
+    sessionManager,
+    sessionStartEvent,
+  }) => {
+    const services = await createAgentSessionServices({
+      cwd,
+      agentDir,
+      authStorage,
+      modelRegistry,
+    });
+
+    return {
+      ...(await createAgentSessionFromServices({
+        services,
+        sessionManager,
+        sessionStartEvent,
+      })),
+      services,
+      diagnostics: services.diagnostics,
+    };
+  };
+
+  runtime = await createAgentSessionRuntime(createRuntime, {
+    cwd,
+    agentDir,
+    sessionManager: SessionManager.continueRecent(cwd),
   });
 
-  session = s;
-
-  // Forward ALL events to the IPC bridge
-  session.subscribe((event: AgentSessionEvent) => {
-    IpcBridge.forwardPiEvent(event);
-  });
+  bindSession(runtime.session);
 }
 ```
 
@@ -122,16 +162,17 @@ export async function getSessions(): Promise<SessionInfo[]> {
 
 // Switch to a different session
 export async function switchSession(sessionPath: string) {
-  if (!session) return;
-  await session.switchSession(sessionPath);
-  // After switch, send a full sync to the webview
+  if (!runtime) return;
+  await runtime.switchSession(sessionPath);
+  bindSession(runtime.session); // runtime.session changed
   IpcBridge.sendSync();
 }
 
 // Create a new empty session
 export async function newSession() {
-  if (!session) return;
-  await session.newSession();
+  if (!runtime) return;
+  await runtime.newSession();
+  bindSession(runtime.session); // runtime.session changed
   IpcBridge.sendSync();
 }
 ```
@@ -203,12 +244,13 @@ These are the raw events from Pi SDK that the IPC bridge forwards to the webview
 ## Cleanup
 
 ```typescript
-export function dispose() {
-  session?.dispose();
+export async function dispose() {
+  unsubscribe?.();
+  await runtime?.dispose();
 }
 ```
 
-Call this from `deactivate()` in `extension.ts`.
+Call this from `deactivate()` in `extension.ts` and await it.
 
 ---
 
@@ -216,10 +258,16 @@ Call this from `deactivate()` in `extension.ts`.
 
 1. **Only `agent-manager.ts` imports from `@mariozechner/pi-coding-agent`**. All other files go through `AgentManager`.
 
-2. **`session.prompt()` throws if called during streaming** without a `streamingBehavior` option. Always check `session.isStreaming` first, or use `steer()`/`followUp()` during streaming.
+2. **Phi uses `AgentSessionRuntime` for session replacement**. `newSession()` / `switchSession()` now go through the runtime, not `AgentSession`.
 
-3. **Sessions persist to `~/.pi/agent/sessions/`** automatically. No manual save needed.
+3. **After runtime session replacement, re-bind event subscriptions**. `runtime.session` changes after `newSession()` / `switchSession()`.
 
-4. **`SessionManager.list(cwd)` returns only sessions for the current project** (matched by cwd encoding in the directory name). Do not filter client-side.
+4. **`session.prompt()` throws if called during streaming** without a `streamingBehavior` option. Always check `session.isStreaming` first, or use `steer()`/`followUp()` during streaming.
 
-5. **Image data must have the `data:` prefix stripped** before passing to the SDK. The SDK expects raw base64, not data URIs.
+5. **Sessions persist to `~/.pi/agent/sessions/`** automatically. No manual save needed.
+
+6. **`SessionManager.list(cwd)` returns only sessions for the current project** (matched by cwd encoding in the directory name). Do not filter client-side.
+
+7. **Image data must have the `data:` prefix stripped** before passing to the SDK. The SDK expects raw base64, not data URIs.
+
+8. **Dispose the runtime in `deactivate()`**. Call `await runtime.dispose()` to avoid leaking the agent process.
