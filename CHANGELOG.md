@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.1] - 2026-04-14
+
+### Fixed
+- migrate phi to pi sdk 0.67.1
+
+### Docs
+- document custom provider setup in README
+
+
 ## [0.3.0] - 2026-04-01
 
 ### Added
