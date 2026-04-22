@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.3.3] - 2026-04-22
+
+### Docs
+- move donation link from README to GitHub Sponsors config
+
+
 ## [0.3.2] - 2026-04-22
 
 ### Fixed
