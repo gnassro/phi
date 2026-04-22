@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2] - 2026-04-22
+
+### Fixed
+- remove custom provider option from add api key flow
+- upgrade phi to pi sdk 0.68.1
+
+
 ## [0.3.1] - 2026-04-14
 
 ### Fixed
