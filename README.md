@@ -7,10 +7,6 @@
 > The golden ratio of AI-powered development.
 
 <p align="center">
-  <a href="https://www.buymeacoffee.com/gnassro" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="28"></a>
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/badge/version-0.3.2-blue" alt="Version">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <a href="https://github.com/gnassro/phi/stargazers"><img src="https://img.shields.io/github/stars/gnassro/phi?style=social" alt="Stars"></a>
