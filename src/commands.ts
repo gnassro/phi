@@ -257,54 +257,31 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('phi.addApiKey', async () => {
       const providers = AgentManager.getApiKeyProviders();
 
-      // Build quick pick items — show ✓ for providers that already have a key
-      const items = providers.map(p => ({
-        label: p.name,
-        description: p.hasKey ? '✓ Key set' : '',
-        providerId: p.id,
-      }));
-
-      // Add "Custom provider" option at the end
-      items.push({
-        label: '$(add) Custom provider…',
-        description: '',
-        providerId: '__custom__',
-      });
-
-      const picked = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Select a provider to add an API key',
-        title: 'Phi: Add API Key',
-      });
+      const picked = await vscode.window.showQuickPick(
+        providers.map(p => ({
+          label: p.name,
+          description: p.hasKey ? '✓ Key set' : '',
+          providerId: p.id,
+        })),
+        {
+          placeHolder: 'Select a provider to add an API key',
+          title: 'Phi: Add API Key',
+        }
+      );
       if (!picked) return;
 
-      let providerId = picked.providerId;
-      let providerName = picked.label;
-
-      // Custom provider — ask for the auth.json key name
-      if (providerId === '__custom__') {
-        const customId = await vscode.window.showInputBox({
-          prompt: 'Enter the provider ID (auth.json key)',
-          placeHolder: 'e.g. my-provider',
-          ignoreFocusOut: true,
-        });
-        if (!customId) return;
-        providerId = customId;
-        providerName = customId;
-      }
-
-      // Ask for the API key
       const apiKey = await vscode.window.showInputBox({
-        prompt: `Enter API key for ${providerName}`,
+        prompt: `Enter API key for ${picked.label}`,
         placeHolder: 'sk-…',
         password: true,
         ignoreFocusOut: true,
       });
       if (!apiKey) return;
 
-      AgentManager.setApiKey(providerId, apiKey);
+      AgentManager.setApiKey(picked.providerId, apiKey);
       refreshAccountsList();
       vscode.window.showInformationMessage(
-        `✓ API key saved for ${providerName}.`
+        `✓ API key saved for ${picked.label}.`
       );
     })
   );

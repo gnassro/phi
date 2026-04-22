@@ -217,9 +217,13 @@ Most local servers (Ollama, vLLM, LM Studio, SGLang) don't fully implement the O
 | `openai-responses` | OpenAI Responses API |
 | `google-generative-ai` | Google Gemini API |
 
-### Adding an API key for your custom provider
+### Authentication for custom providers
 
-If your provider requires an API key, add it via **Command Palette → "Phi: Add API Key" → Custom provider…** and enter your provider ID (e.g. `ollama`). The key is saved to `~/.phi/auth.json`.
+Phi's **Add API Key** dialog only manages built-in providers. For custom providers, configure authentication directly in `~/.pi/agent/models.json` via the provider's `apiKey` field.
+
+The `apiKey` value can be either:
+- an environment variable name such as `OPENROUTER_API_KEY`
+- a literal value for local or private setups
 
 For local servers like Ollama that don't require a real key, set `"apiKey": "ollama"` in `models.json` (any non-empty value works).
 

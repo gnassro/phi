@@ -103,7 +103,7 @@ This file tracks all tasks for the Phi project.
 - [x] Separate panel with 🔑 key icon button in header (next to ⚙️ settings)
 - [x] OAuth Login button (triggers VS Code QuickPick → browser auth)
 - [x] API Keys Add/Remove buttons (VS Code QuickPick + masked input)
-- [x] 18 predefined providers + custom provider option
+- [x] 18 predefined providers
 - [x] Shows only active accounts (logged-in OAuth + set API keys)
 - [x] Empty state: "No accounts configured"
 - [x] Closes with ✕, overlay click, or Escape
