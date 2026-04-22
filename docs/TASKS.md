@@ -103,7 +103,7 @@ This file tracks all tasks for the Phi project.
 - [x] Separate panel with 🔑 key icon button in header (next to ⚙️ settings)
 - [x] OAuth Login button (triggers VS Code QuickPick → browser auth)
 - [x] API Keys Add/Remove buttons (VS Code QuickPick + masked input)
-- [x] 17 predefined providers + custom provider option
+- [x] 18 predefined providers + custom provider option
 - [x] Shows only active accounts (logged-in OAuth + set API keys)
 - [x] Empty state: "No accounts configured"
 - [x] Closes with ✕, overlay click, or Escape
@@ -282,7 +282,7 @@ This file tracks all tasks for the Phi project.
 - [x] `CHANGELOG.md` created (required by Open VSX)
 - [x] `LICENSE` file (MIT) created
 - [x] Publisher set to `gnassro`
-- [x] Pi SDK updated to `^0.67.1`
+- [x] Pi SDK updated to `^0.68.1`
 - [x] AgentManager migrated from direct `AgentSession` replacement APIs to `AgentSessionRuntime`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window

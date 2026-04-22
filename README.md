@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/VS%20Code-^1.85.0-007ACC?logo=visual-studio-code" alt="VS Code">
-  <img src="https://img.shields.io/badge/Pi%20SDK-0.67.1-purple" alt="Pi SDK">
+  <img src="https://img.shields.io/badge/Pi%20SDK-0.68.1-purple" alt="Pi SDK">
   <img src="https://img.shields.io/badge/TypeScript-ESM-3178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/vibe-coded%20🤙-ff69b4" alt="Vibe Coded">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">
@@ -74,7 +74,7 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 
 ### 🔑 Accounts & Auth
 - **OAuth login** — Claude Pro/Max, ChatGPT Plus/Pro, GitHub Copilot, Google Gemini, and more
-- **API keys** — 17 predefined providers
+- **API keys** — 18 predefined providers
 - Saved to `~/.phi/auth.json` — separate from Pi CLI auth
 
 ### 🖥️ Custom Providers (Ollama, vLLM, LM Studio…)
@@ -279,9 +279,9 @@ The Pi SDK runs in the same Node.js process as the extension host — no externa
 | [**Pi**](https://github.com/badlogic/pi-mono) | The CLI AI coding agent (`pi` command) |
 | **Phi** | A VS Code extension that brings Pi into the editor |
 
-Phi uses the [Pi SDK](https://www.npmjs.com/package/@mariozechner/pi-coding-agent) (`@mariozechner/pi-coding-agent@0.67.1`) to run the agent directly inside VS Code's extension host.
+Phi uses the [Pi SDK](https://www.npmjs.com/package/@mariozechner/pi-coding-agent) (`@mariozechner/pi-coding-agent@0.68.1`) to run the agent directly inside VS Code's extension host.
 
-> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.67.1`. Newer versions may work but are not guaranteed until tested.
+> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.68.1`. Newer versions may work but are not guaranteed until tested.
 
 ---
 

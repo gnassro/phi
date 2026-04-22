@@ -431,6 +431,7 @@ const API_KEY_PROVIDERS: Array<{ name: string; id: string }> = [
   { name: 'OpenCode Zen', id: 'opencode' },
   { name: 'OpenCode Go', id: 'opencode-go' },
   { name: 'Hugging Face', id: 'huggingface' },
+  { name: 'Fireworks', id: 'fireworks' },
   { name: 'Kimi For Coding', id: 'kimi-coding' },
   { name: 'MiniMax', id: 'minimax' },
   { name: 'MiniMax (China)', id: 'minimax-cn' },
