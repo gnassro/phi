@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.0] - 2026-04-30
+
+### Added
+- add experimental task alert sounds for success and failure
+
+### Fixed
+- upgrade phi to pi sdk 0.70.6
+
+
 ## [0.3.3] - 2026-04-22
 
 ### Docs
