@@ -66,6 +66,7 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - **Thinking level** — cycle off / low / medium / high
 - **Auto-compaction** — toggle automatic context compaction
 - **Manual compaction** — via command palette with progress indicator
+- **Experimental task alert sounds** — optional sounds for successful completion and failed runs (still under development/testing)
 - **Session cost & token usage** — live display in the footer with context window visualizer
 
 ### 🔑 Accounts & Auth

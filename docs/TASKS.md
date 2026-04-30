@@ -96,6 +96,7 @@ This file tracks all tasks for the Phi project.
 - [x] Show thinking toggle (local pref, hide/show `.thinking-block`)
 - [x] Thinking level cycle button
 - [x] Auto-compaction toggle
+- [x] Experimental task alert sounds toggle (local pref for success/failure sounds, still under development/testing)
 - [x] ~~Theme grid~~ — REMOVED: VS Code handles theming natively via `--vscode-*` variables
 - [x] Accounts section moved to separate Accounts panel
 
@@ -272,6 +273,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify editor context: select code → "Phi: Ask About Selection" → correct file + lines in prompt
 - [ ] Verify image attachment: attach image → send → Pi receives it
 - [ ] Verify abort: click abort button → Pi stops streaming
+- [ ] Verify experimental task alert sounds: enable toggle → success and failure runs play distinct short alerts
 - [ ] Verify session continuity: close and reopen VS Code → session history preserved
 
 ### Packaging & Local Install
