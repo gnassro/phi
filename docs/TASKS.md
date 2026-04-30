@@ -96,6 +96,7 @@ This file tracks all tasks for the Phi project.
 - [x] Show thinking toggle (local pref, hide/show `.thinking-block`)
 - [x] Thinking level cycle button
 - [x] Auto-compaction toggle
+- [x] Experimental task alert sounds toggle (local pref for success/failure sounds, still under development/testing)
 - [x] ~~Theme grid~~ — REMOVED: VS Code handles theming natively via `--vscode-*` variables
 - [x] Accounts section moved to separate Accounts panel
 
@@ -103,7 +104,7 @@ This file tracks all tasks for the Phi project.
 - [x] Separate panel with 🔑 key icon button in header (next to ⚙️ settings)
 - [x] OAuth Login button (triggers VS Code QuickPick → browser auth)
 - [x] API Keys Add/Remove buttons (VS Code QuickPick + masked input)
-- [x] 18 predefined providers
+- [x] 20 predefined providers
 - [x] Shows only active accounts (logged-in OAuth + set API keys)
 - [x] Empty state: "No accounts configured"
 - [x] Closes with ✕, overlay click, or Escape
@@ -272,6 +273,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify editor context: select code → "Phi: Ask About Selection" → correct file + lines in prompt
 - [ ] Verify image attachment: attach image → send → Pi receives it
 - [ ] Verify abort: click abort button → Pi stops streaming
+- [ ] Verify experimental task alert sounds: enable toggle → success and failure runs play distinct short alerts
 - [ ] Verify session continuity: close and reopen VS Code → session history preserved
 
 ### Packaging & Local Install
@@ -282,7 +284,7 @@ This file tracks all tasks for the Phi project.
 - [x] `CHANGELOG.md` created (required by Open VSX)
 - [x] `LICENSE` file (MIT) created
 - [x] Publisher set to `gnassro`
-- [x] Pi SDK updated to `^0.68.1`
+- [x] Pi SDK updated to `^0.70.6`
 - [x] AgentManager migrated from direct `AgentSession` replacement APIs to `AgentSessionRuntime`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window

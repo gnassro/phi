@@ -419,11 +419,13 @@ export function setAutoCompaction(enabled: boolean): void {
 const API_KEY_PROVIDERS: Array<{ name: string; id: string }> = [
   { name: 'Anthropic', id: 'anthropic' },
   { name: 'OpenAI', id: 'openai' },
+  { name: 'DeepSeek', id: 'deepseek' },
   { name: 'Google Gemini', id: 'google' },
   { name: 'Azure OpenAI Responses', id: 'azure-openai-responses' },
   { name: 'Mistral', id: 'mistral' },
   { name: 'Groq', id: 'groq' },
   { name: 'Cerebras', id: 'cerebras' },
+  { name: 'Cloudflare Workers AI', id: 'cloudflare-workers-ai' },
   { name: 'xAI', id: 'xai' },
   { name: 'OpenRouter', id: 'openrouter' },
   { name: 'Vercel AI Gateway', id: 'vercel-ai-gateway' },

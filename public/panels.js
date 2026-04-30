@@ -6,11 +6,12 @@
 import { VscodeIPC } from './vscode-ipc.js';
 
 export class PanelsManager {
-  constructor({ sidebar, chatInput, onSessionSelect, onNewSession }) {
+  constructor({ sidebar, chatInput, onSessionSelect, onNewSession, onToggleCompletionSound }) {
     this.sidebar = sidebar;
     this.chatInput = chatInput;
     this.onSessionSelect = onSessionSelect;
     this.onNewSession = onNewSession;
+    this.onToggleCompletionSound = onToggleCompletionSound;
     this.loadedSkills = [];
 
     // DOM refs - Settings
@@ -21,6 +22,7 @@ export class PanelsManager {
     this.toggleAutoCompact = document.getElementById('toggle-auto-compact');
     this.btnThinkingLevel = document.getElementById('btn-thinking-level');
     this.toggleShowThinking = document.getElementById('toggle-show-thinking');
+    this.toggleCompletionSound = document.getElementById('toggle-completion-sound');
 
     // DOM refs - About
     this.aboutInfoBtn = document.getElementById('about-info-btn');
@@ -83,6 +85,17 @@ export class PanelsManager {
       this.toggleShowThinking.className = `settings-toggle${isOn ? '' : ' on'}`;
       document.body.classList.toggle('hide-thinking', isOn);
       localStorage.setItem('phi-show-thinking', !isOn);
+    });
+
+    const completionSoundEnabled = localStorage.getItem('phi-completion-sound') === 'true';
+    this.toggleCompletionSound.className = `settings-toggle${completionSoundEnabled ? ' on' : ''}`;
+
+    this.toggleCompletionSound.addEventListener('click', () => {
+      const isOn = this.toggleCompletionSound.classList.contains('on');
+      const nextValue = !isOn;
+      this.toggleCompletionSound.className = `settings-toggle${nextValue ? ' on' : ''}`;
+      localStorage.setItem('phi-completion-sound', String(nextValue));
+      this.onToggleCompletionSound?.(nextValue);
     });
 
     // ── About ──

@@ -44,6 +44,13 @@ const sidebar = new SessionSidebar(
   (session) => panels.handleSessionSelect(session)
 );
 
+const COMPLETION_SOUND_STORAGE_KEY = 'phi-completion-sound';
+
+let completionSoundEnabled = localStorage.getItem(COMPLETION_SOUND_STORAGE_KEY) === 'true';
+let completionSoundAudioContext = null;
+let shouldNotifyOnAgentEnd = false;
+let currentAgentOutcome = 'success';
+
 const panels = new PanelsManager({
   sidebar,
   chatInput,
@@ -53,6 +60,10 @@ const panels = new PanelsManager({
   onNewSession: () => {
     VscodeIPC.send({ type: 'new_session' });
     costMonitor.reset();
+  },
+  onToggleCompletionSound: (enabled) => {
+    completionSoundEnabled = enabled;
+    if (enabled) unlockCompletionSound();
   },
 });
 
@@ -103,11 +114,79 @@ let messageQueue = [];
 let isScrolledUp = false;
 let hasNewWhileScrolled = false;
 
+function getCompletionSoundContext() {
+  if (!completionSoundAudioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    completionSoundAudioContext = new AudioContextClass();
+  }
+  return completionSoundAudioContext;
+}
+
+async function unlockCompletionSound() {
+  if (!completionSoundEnabled) return;
+  const ctx = getCompletionSoundContext();
+  if (!ctx || ctx.state !== 'suspended') return;
+  try {
+    await ctx.resume();
+  } catch {
+    // Ignore — some environments require another explicit user gesture.
+  }
+}
+
+function scheduleCompletionTone(ctx, startTime, frequency, duration, gainValue) {
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(frequency, startTime);
+
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(gainValue, startTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  oscillator.connect(gain);
+  gain.connect(ctx.destination);
+
+  oscillator.start(startTime);
+  oscillator.stop(startTime + duration + 0.02);
+}
+
+async function playTaskAlertSound(outcome) {
+  if (!completionSoundEnabled) return;
+
+  const ctx = getCompletionSoundContext();
+  if (!ctx) return;
+
+  if (ctx.state === 'suspended') {
+    try {
+      await ctx.resume();
+    } catch {
+      return;
+    }
+  }
+
+  if (ctx.state !== 'running') return;
+
+  const startTime = ctx.currentTime + 0.02;
+
+  if (outcome === 'failure') {
+    scheduleCompletionTone(ctx, startTime, 440, 0.12, 0.028);
+    scheduleCompletionTone(ctx, startTime + 0.14, 349.23, 0.18, 0.022);
+    return;
+  }
+
+  scheduleCompletionTone(ctx, startTime, 880, 0.09, 0.025);
+  scheduleCompletionTone(ctx, startTime + 0.12, 1174.66, 0.12, 0.02);
+}
+
 // ═══════════════════════════════════════
 // Send message
 // ═══════════════════════════════════════
 
 function sendMessage(text) {
+  unlockCompletionSound();
+
   let message = typeof text === 'string' ? text : chatInput.getText();
   if (!message && !attachmentManager.hasPending()) return;
   chatInput.clear();
@@ -159,6 +238,7 @@ function flushQueue() {
 }
 
 abortBtn?.addEventListener('click', () => {
+  currentAgentOutcome = 'aborted';
   VscodeIPC.send({ type: 'abort' });
   messageRenderer.renderError('Aborted by user');
   showTypingIndicator(false);
@@ -171,12 +251,20 @@ abortBtn?.addEventListener('click', () => {
 function handlePiEvent(event) {
   switch (event.type) {
     case 'agent_start':
+      shouldNotifyOnAgentEnd = true;
+      currentAgentOutcome = 'success';
       state.setStreaming(true);
       showTypingIndicator(true, 'Thinking');
       updateUI();
       break;
 
-    case 'agent_end':
+    case 'agent_end': {
+      const alertOutcome = (
+        shouldNotifyOnAgentEnd && messageQueue.length === 0
+      ) ? currentAgentOutcome : null;
+
+      shouldNotifyOnAgentEnd = false;
+      currentAgentOutcome = 'success';
       state.setStreaming(false);
       showTypingIndicator(false);
       currentStreamingEl = null;
@@ -184,7 +272,11 @@ function handlePiEvent(event) {
       currentThinking = '';
       updateUI();
       flushQueue();
+      if (alertOutcome === 'success' || alertOutcome === 'failure') {
+        playTaskAlertSound(alertOutcome);
+      }
       break;
+    }
 
     case 'message_start': {
       const msg = event.message;
@@ -223,6 +315,12 @@ function handlePiEvent(event) {
         const errorMsg = (msg?.stopReason === 'error' || msg?.stopReason === 'aborted')
           ? msg?.errorMessage
           : null;
+
+        if (msg?.stopReason === 'error') {
+          currentAgentOutcome = 'failure';
+        } else if (msg?.stopReason === 'aborted') {
+          currentAgentOutcome = 'aborted';
+        }
 
         messageRenderer.finalizeStreamingMessage(currentStreamingEl, usage, currentThinking, errorMsg);
         currentStreamingEl = null;
@@ -460,6 +558,7 @@ document.addEventListener('keydown', (e) => {
     if (commandPalette.isOpen()) { commandPalette.close(); return; }
     if (modelPicker.isOpen()) { modelPicker.close(); return; }
     if (state.isStreaming) {
+      currentAgentOutcome = 'aborted';
       VscodeIPC.send({ type: 'abort' });
       messageRenderer.renderError('Aborted by user');
       showTypingIndicator(false);

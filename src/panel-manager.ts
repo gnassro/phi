@@ -317,6 +317,13 @@ function buildWebviewHtml(
           <span class="settings-label">Show thinking</span>
           <button class="settings-toggle on" id="toggle-show-thinking"></button>
         </div>
+        <div class="settings-row settings-row-stack">
+          <div class="settings-row-text">
+            <span class="settings-label">Task alert sounds</span>
+            <span class="settings-meta">Experimental — still under development and testing</span>
+          </div>
+          <button class="settings-toggle" id="toggle-completion-sound"></button>
+        </div>
       </div>
       <div class="settings-section">
         <div class="settings-section-title">About</div>
