@@ -20,8 +20,12 @@ webviews), accounts icon changed to person-in-circle SVG, error message tooltips
 paste fixed in chat input (Range API fallback for VS Code webview), webview asset cache-busting
 to prevent stale JS/CSS after rebuilds.
 
-Auth system: OAuth login via browser + API key management via VS Code QuickPick. Saved to
-`~/.phi/auth.json`. Sessions shared with pi CLI at `~/.pi/agent/sessions/`.
+Auth system: unified login/setup flow via VS Code QuickPick. Phi now mirrors Pi's `/login`
+provider discovery by combining OAuth providers with model-registry-discovered API-key/setup
+providers. Provider setup can also guide users through required environment variables, offering
+existing global VS Code process env values or Phi-local values stored in VS Code SecretStorage.
+Phi-managed credentials still live in `~/.phi/auth.json`; sessions remain shared with pi CLI at
+`~/.pi/agent/sessions/`.
 
 Build: Extension host bundled with esbuild (Pi SDK `0.70.6` included). Self-contained `.vsix`
 at 1.5 MB — no `node_modules` required. Published as `gnassro` on Open VSX.
@@ -29,7 +33,7 @@ Auto-incrementing build numbers injected directly into the webview footer.
 
 Added Skills integration: Phi now fully supports Pi SDK skills. A dedicated "Skills" panel has been added to the header overlay, and typing `/` in the chat input instantly triggers an interactive slash-command autocomplete to quickly inject `/skill:name` templates.
 
-Current focus: Milestone 4 (packaging) nearly complete. Manual testing ongoing.
+Current focus: Milestone 3 manual testing plus provider/auth UX parity work. Packaging and release automation are complete.
 
 ---
 
@@ -65,7 +69,7 @@ File browser, code editor, project launcher, PWA, mobile UI, auth, Tailscale.
 - Header bar with model dropdown, thinking level, new chat, history, settings, accounts buttons
 - Session history panel (overlay) with search, favourites, session switching
 - Settings panel with thinking toggle, auto-compaction toggle (no theme picker — VS Code handles theming)
-- Accounts panel (separate from settings) with OAuth login, API key add/remove, active-only list
+- Accounts panel (separate from settings) with one Login / Setup entry point, per-account Logout/Remove actions, and an active-only list
 - UI follows user's VS Code theme via `--vscode-*` CSS variables
 - Scroll-to-bottom button with "New" badge
 - Session cost and token usage display in footer

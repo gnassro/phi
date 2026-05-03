@@ -11,9 +11,12 @@ export class ModelPicker {
     this.availableModels = [];
     this.currentThinkingLevel = 'off';
     this.contextWindowSize = 0;
+    this.requiresLogin = false;
 
     /** Optional callback when context window size changes */
     this.onContextWindowChange = null;
+    /** Optional callback when no model is available and the user clicks Login */
+    this.onRequestLogin = null;
 
     // DOM refs
     this.dropdown = document.getElementById('model-dropdown');
@@ -27,6 +30,11 @@ export class ModelPicker {
 
   _init() {
     this.dropdownBtn.addEventListener('click', () => {
+      if (this.requiresLogin) {
+        this.close();
+        this.onRequestLogin?.();
+        return;
+      }
       if (!this.dropdownMenu.classList.contains('hidden')) { this.close(); return; }
       VscodeIPC.send({ type: 'get_available_models' });
       this.dropdown._pendingOpen = true;
@@ -43,10 +51,17 @@ export class ModelPicker {
 
   setModel(model) {
     if (model) {
+      this.requiresLogin = false;
       this.currentModelId = model.id || '';
-      if (model.contextWindow) this.contextWindowSize = model.contextWindow;
-      this._updateLabel();
+      this.contextWindowSize = model.contextWindow || 0;
+    } else {
+      this.requiresLogin = true;
+      this.currentModelId = '';
+      this.contextWindowSize = 0;
+      this.close();
     }
+    this._updateLabel();
+    this._updateButtonState();
   }
 
   setThinkingLevel(level) {
@@ -66,12 +81,8 @@ export class ModelPicker {
 
   /** Handle RPC response for get_state */
   handleStateResponse(data) {
-    if (data.model) {
-      this.currentModelId = data.model.id || '';
-      if (data.model.contextWindow) this.contextWindowSize = data.model.contextWindow;
-      this._updateLabel();
-    }
-    if (data.thinkingLevel) {
+    this.setModel(data?.model || null);
+    if (data?.thinkingLevel) {
       this.currentThinkingLevel = data.thinkingLevel;
       this._updateThinkingBtn();
     }
@@ -97,8 +108,18 @@ export class ModelPicker {
   }
 
   _updateLabel() {
+    if (this.requiresLogin) {
+      this.dropdownLabel.textContent = 'Login';
+      return;
+    }
     const shortName = this.currentModelId.replace(/^claude-/, '').replace(/-\d{8}$/, '');
     this.dropdownLabel.textContent = shortName || 'model';
+  }
+
+  _updateButtonState() {
+    this.dropdown.classList.toggle('login-required', this.requiresLogin);
+    this.dropdownBtn.setAttribute('aria-label', this.requiresLogin ? 'Open Accounts' : 'Switch model');
+    this.dropdownBtn.setAttribute('title', this.requiresLogin ? 'Open Accounts' : 'Switch model');
   }
 
   _updateThinkingBtn() {

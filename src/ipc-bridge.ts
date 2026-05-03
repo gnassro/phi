@@ -35,10 +35,10 @@ type WebviewMessage =
   | { type: 'get_session_stats' }
   // Auth
   | { type: 'login' }
-  | { type: 'logout' }
+  | { type: 'logout'; providerId?: string; providerName?: string }
   | { type: 'get_accounts' }
   | { type: 'add_api_key' }
-  | { type: 'remove_api_key' }
+  | { type: 'remove_api_key'; providerId?: string; providerName?: string }
 
   // Tree
   | { type: 'get_tree' }
@@ -173,7 +173,7 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
       break;
 
     case 'logout':
-      vscode.commands.executeCommand('phi.logout');
+      vscode.commands.executeCommand('phi.logout', message.providerId, message.providerName);
       break;
 
     case 'get_accounts': {
@@ -188,7 +188,7 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
       break;
 
     case 'remove_api_key':
-      vscode.commands.executeCommand('phi.removeApiKey');
+      vscode.commands.executeCommand('phi.removeApiKey', message.providerId, message.providerName);
       break;
 
     // ── Skills ──

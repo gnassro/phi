@@ -38,10 +38,10 @@ type WebviewMessage =
 
   // Auth & API keys
   | { type: "login" }
-  | { type: "logout" }
+  | { type: "logout"; providerId?: string; providerName?: string }
   | { type: "get_accounts" }
   | { type: "add_api_key" }
-  | { type: "remove_api_key" }
+  | { type: "remove_api_key"; providerId?: string; providerName?: string }
 
   // Tree navigation
   | { type: "get_tree" }
@@ -167,34 +167,36 @@ VscodeIPC.send({ type: "get_session_stats" });
 ### Auth & API Key Messages
 
 #### `login`
-Opens VS Code QuickPick to select an OAuth provider, then opens browser for auth.
+Opens VS Code QuickPick for unified provider login/setup. Users first choose subscription vs API key/setup, then select a provider. OAuth providers open a browser flow; non-OAuth providers prompt for an API key or show setup guidance.
 ```javascript
 VscodeIPC.send({ type: "login" });
 ```
 
 #### `logout`
-Opens VS Code QuickPick to select a logged-in provider to log out from.
+Without a provider ID, opens VS Code QuickPick to select a stored OAuth provider. With `providerId`, asks for confirmation and logs out that specific provider directly.
 ```javascript
 VscodeIPC.send({ type: "logout" });
+VscodeIPC.send({ type: "logout", providerId: "anthropic", providerName: "Anthropic" });
 ```
 
 #### `get_accounts`
-Request OAuth providers and API key providers with their status.
+Request OAuth providers and dynamically discovered API-key providers with their status.
 ```javascript
 VscodeIPC.send({ type: "get_accounts" });
 // Response: { type: "accounts_list", providers: [...], apiKeyProviders: [...] }
 ```
 
 #### `add_api_key`
-Opens VS Code QuickPick to select a provider (from predefined list or custom), then masked input for key. Saved to `~/.phi/auth.json`.
+Opens the direct API-key setup shortcut: provider picker (from Pi's discovered non-OAuth providers, excluding setup-only entries like Bedrock) followed by masked input. Saved to `~/.phi/auth.json`.
 ```javascript
 VscodeIPC.send({ type: "add_api_key" });
 ```
 
 #### `remove_api_key`
-Opens VS Code QuickPick showing providers with API keys set, removes selected key from `~/.phi/auth.json`.
+Without a provider ID, opens VS Code QuickPick showing providers with stored API keys. With `providerId`, asks for confirmation and removes that specific key from `~/.phi/auth.json` directly.
 ```javascript
 VscodeIPC.send({ type: "remove_api_key" });
+VscodeIPC.send({ type: "remove_api_key", providerId: "openai", providerName: "OpenAI" });
 ```
 
 ---

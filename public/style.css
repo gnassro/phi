@@ -155,6 +155,21 @@ body {
   transform: rotate(180deg);
 }
 
+.model-dropdown.login-required .model-dropdown-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-background);
+}
+
+.model-dropdown.login-required .model-dropdown-btn:hover {
+  background: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+  border-color: var(--vscode-button-hoverBackground, var(--vscode-button-background));
+}
+
+.model-dropdown.login-required .model-dropdown-chevron {
+  display: none;
+}
+
 .model-dropdown-label {
   max-width: 160px;
   overflow: hidden;

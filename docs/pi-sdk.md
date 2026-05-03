@@ -19,7 +19,7 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 
 ## Session Initialization
 
-All Pi SDK code lives in `src/agent-manager.ts`. Phi now creates an `AgentSessionRuntime` once on activation and reads the current live `runtime.session` from it.
+All Pi SDK code lives in `src/agent-manager.ts`. Phi applies Phi-local provider environment variables before this step (`EnvManager.initialize(ctx)` in `extension.ts`), then creates an `AgentSessionRuntime` once on activation and reads the current live `runtime.session` from it.
 
 ```typescript
 import {
@@ -179,6 +179,60 @@ export async function newSession() {
 
 ---
 
+## Phi-Local Provider Environment
+
+Provider environment variables that are required in addition to auth credentials are handled outside the Pi SDK in `src/env-manager.ts`.
+
+Key behaviors:
+
+- Initialize `EnvManager` before `AgentManager.initialize(cwd)` so `process.env` is ready when `ModelRegistry` and provider code load.
+- Store Phi-local env values in VS Code `SecretStorage`.
+- Store per-provider preferences (`global` vs `local`) in VS Code global state.
+- If a global env var is present in the VS Code extension host process, offer to use it instead of storing a Phi-local value.
+- After env changes, refresh the model registry and reconcile the active model.
+
+Currently guided providers include Cloudflare Workers AI, Azure OpenAI Responses, Amazon Bedrock, Google Vertex AI, and optional Google Gemini CLI paid project setup.
+
+---
+
+## Login-Capable Provider Discovery
+
+Phi mirrors Pi's interactive `/login` discovery logic using public SDK surfaces instead of importing Pi's internal interactive-mode code.
+
+```typescript
+export function getLoginProviders(authType?: "oauth" | "api_key") {
+  const oauthProviders = authStorage.getOAuthProviders();
+  const oauthIds = new Set(oauthProviders.map(provider => provider.id));
+
+  const apiKeyProviders = new Set(
+    session.modelRegistry.getAll().map(model => model.provider)
+  );
+
+  return {
+    oauth: oauthProviders,
+    apiKey: [...apiKeyProviders].filter((providerId) => {
+      // Built-in API-key providers stay on a local display-name map.
+      if (providerId in API_KEY_PROVIDER_DISPLAY_NAMES) return true;
+      // Custom providers from models.json are login-capable unless they already
+      // registered themselves as OAuth providers.
+      return !oauthIds.has(providerId);
+    }),
+  };
+}
+```
+
+Important details:
+
+- **Use `authStorage.getOAuthProviders()` for subscription/OAuth providers.**
+- **Use `session.modelRegistry.getAll()` to discover API-key/setup providers dynamically.** This keeps Phi aligned with built-ins added by newer Pi releases and with custom providers from `~/.pi/agent/models.json`.
+- **Use `session.modelRegistry.getProviderAuthStatus(providerId)` for auth-source labels** (`environment`, `models_json_key`, etc.).
+- **Check `authStorage.get(providerId)?.type` before labeling a provider as logged in or having an API key.** Some providers share the same ID across OAuth and API-key flows (for example `anthropic`), so `authStorage.has(providerId)` alone is not enough.
+- **Call `modelRegistry.refresh()` after login/logout/API-key changes** so provider availability and custom `modifyModels()` hooks stay in sync.
+- **After auth changes, reconcile the active model against `modelRegistry.getAvailable()`.** If the current model disappeared, switch to another available model; if none remain, clear the current model so the UI can fall back to Login/Setup instead of showing a stale provider.
+- **Do not deep-import Pi internals from `dist/modes/interactive/*`.** Recreate the behavior from public SDK methods only.
+
+---
+
 ## Building a State Snapshot (for `sync` message)
 
 When the webview requests a full sync (`request_sync`), build this:
@@ -271,3 +325,7 @@ Call this from `deactivate()` in `extension.ts` and await it.
 7. **Image data must have the `data:` prefix stripped** before passing to the SDK. The SDK expects raw base64, not data URIs.
 
 8. **Dispose the runtime in `deactivate()`**. Call `await runtime.dispose()` to avoid leaking the agent process.
+
+9. **Mirror Pi's `/login` discovery using public SDK methods only**. Use `authStorage.getOAuthProviders()`, `session.modelRegistry.getAll()`, and `session.modelRegistry.getProviderAuthStatus()` instead of hardcoding provider lists or deep-importing Pi's interactive-mode internals.
+
+10. **After auth changes, reconcile the current model before refreshing the UI.** The selected model can become invalid after logout or API-key removal. Switch to another available model if possible; otherwise clear `session.state.model` so Phi shows Login/Setup instead of a stale model label.

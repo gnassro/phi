@@ -16,6 +16,7 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  panel-manager.ts (Webview)     │      VS Code API            │
 │  │  ipc-bridge.ts   (routing)      │◄────(vscode.*)─────────────►│
 │  │  editor-context.ts (VS Code)    │                             │
+│  │  env-manager.ts  (provider env) │                             │
 │  │  commands.ts     (commands)     │                             │
 │  │                                 │                             │
 │  │  @mariozechner/pi-coding-agent      │                         │
@@ -52,6 +53,7 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 The entry point. VS Code calls `activate(ctx)` when the extension loads.
 
 Responsibilities:
+- Call `EnvManager.initialize(ctx)` before Pi boots so Phi-local provider env vars are visible to the SDK
 - Call `AgentManager.initialize(cwd)` to boot the Pi session
 - Call `PanelManager.initialize(ctx)` to set up webview factory
 - Register all commands via `commands.ts`
@@ -61,6 +63,7 @@ Responsibilities:
 ```typescript
 export async function activate(ctx: vscode.ExtensionContext) {
   const cwd = vscode.workspace.workspaceFolders?.[0].uri.fsPath ?? process.cwd();
+  await EnvManager.initialize(ctx);
   await AgentManager.initialize(cwd);
   PanelManager.initialize(ctx);
   registerCommands(ctx);
@@ -118,6 +121,16 @@ Responsibilities:
 - `watchSelection(callback)` — fires callback when user changes selection
 - `watchDiagnostics(callback)` — fires callback when errors change
 
+### `src/env-manager.ts`
+Manages Phi-local provider environment setup.
+
+Responsibilities:
+- Store provider-specific env preferences in VS Code global state
+- Store Phi-local env values in VS Code `SecretStorage`
+- Apply Phi-local env values to `process.env` before the Pi SDK initializes
+- Guide provider setup flows for required env vars such as `CLOUDFLARE_ACCOUNT_ID`
+- Prefer existing global VS Code process env vars when the user chooses them
+
 ### `src/commands.ts`
 All `vscode.commands.registerCommand()` calls.
 
@@ -126,10 +139,10 @@ Commands registered:
 - `phi.askAboutSelection` — get selection context → send to Pi
 - `phi.newSession` — create a new Pi session
 - `phi.abortSession` — abort the current Pi turn
-- `phi.login` — OAuth login (QuickPick → browser auth)
+- `phi.login` — unified provider login/setup (auth method picker → provider picker → OAuth browser flow or API-key/setup guidance)
 - `phi.logout` — OAuth logout (QuickPick)
-- `phi.addApiKey` — add API key (QuickPick → masked input → `~/.phi/auth.json`)
-- `phi.removeApiKey` — remove API key (QuickPick → `~/.phi/auth.json`)
+- `phi.addApiKey` — direct API-key setup shortcut (provider picker → masked input → `~/.phi/auth.json`)
+- `phi.removeApiKey` — remove stored API key (QuickPick → `~/.phi/auth.json`)
 - `phi.openTree` — open conversation tree panel (browse/navigate branches)
 
 ---
