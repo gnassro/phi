@@ -70,10 +70,11 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - **Session cost & token usage** — live display in the footer with context window visualizer
 
 ### 🔑 Accounts & Auth
-- **OAuth login** — Claude Pro/Max, ChatGPT Plus/Pro, GitHub Copilot, Google Gemini, and more
-- **API keys** — 20 predefined providers
-- Saved to `~/.phi/auth.json` — separate from Pi CLI auth
+- **Unified login / setup flow** — subscriptions via OAuth plus API-key-capable providers discovered from Pi's model registry
+- **`Phi: Add API Key` remains a shortcut** — for built-in and custom non-OAuth providers, but `Phi: Login` is now the primary entry point
+- Stored credentials live in `~/.phi/auth.json` — separate from Pi CLI auth; environment and `models.json` auth still work too
 - **Cloudflare Workers AI note** — also requires `CLOUDFLARE_ACCOUNT_ID` to be set in your environment
+- **Amazon Bedrock note** — shown as setup guidance in `Phi: Login` because it uses AWS credentials, not a single API key
 
 ### 🖥️ Custom Providers (Ollama, vLLM, LM Studio…)
 Phi inherits full custom provider support from the Pi SDK. Add any OpenAI-compatible local or remote model by editing `~/.pi/agent/models.json` — no extension restart needed, changes are picked up next time you open the model picker.
@@ -132,8 +133,8 @@ code --install-extension phi-agent-0.4.0.vsix
 | Switch model | Click the model dropdown in the header |
 | Compact context | Click the commands button (in chat input) → "Compact" |
 | View session stats | Click the commands button (in chat input) → "Session Stats" |
-| Login (OAuth) | Command Palette → "Phi: Login" |
-| Add API key | Command Palette → "Phi: Add API Key" |
+| Login / provider setup | Command Palette → "Phi: Login" or the Accounts panel button |
+| Add API key (direct shortcut) | Command Palette → "Phi: Add API Key" |
 | Add custom provider | Edit `~/.pi/agent/models.json` (see [Custom Providers](#-custom-providers)) |
 
 ---
@@ -297,7 +298,7 @@ Phi is functional and covers the core Pi agent experience, but it is **not yet a
 - Session history, switching, and continuity
 - Conversation tree with branching and navigation
 - Model switching, thinking levels, context compaction
-- OAuth login + API key management
+- Unified subscription login/setup + API key management
 - Editor context integration (selection, file, diagnostics)
 - Cost and token tracking with context window visualizer
 

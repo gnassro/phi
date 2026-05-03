@@ -189,11 +189,11 @@ Full specification: `docs/ipc-protocol.md`
 | `compact` | Trigger context compaction |
 | `set_auto_compaction` | Enable/disable auto-compaction |
 | `get_session_stats` | Fetch session statistics (messages, tokens, cost) |
-| `login` | Trigger OAuth login (opens VS Code QuickPick) |
+| `login` | Trigger unified provider login/setup (subscription OAuth + API-key/setup providers) |
 | `logout` | Trigger OAuth logout (opens VS Code QuickPick) |
-| `get_accounts` | Fetch OAuth + API key provider status |
-| `add_api_key` | Add API key (opens VS Code QuickPick + masked input) |
-| `remove_api_key` | Remove API key (opens VS Code QuickPick) |
+| `get_accounts` | Fetch OAuth + discovered API-key provider status |
+| `add_api_key` | Open direct API-key setup flow (provider picker + masked input) |
+| `remove_api_key` | Remove a stored API key (opens VS Code QuickPick) |
 | `get_tree` | Fetch conversation tree structure |
 | `navigate_tree` | Navigate to a tree node (with optional branch summary) |
 | `set_label` | Set or clear a label on a tree entry |
@@ -212,7 +212,7 @@ Full specification: `docs/ipc-protocol.md`
 | `add_context` | Context block from editor selection or file (right-click / Cmd+Shift+L) |
 | `prefill_input` | Prefill the chat input with text (Ask About Selection) |
 | `rpc_response` | Response to RPC commands (get_state, set_model, etc.) |
-| `accounts_list` | OAuth providers + API key providers with active status |
+| `accounts_list` | OAuth providers + discovered API-key providers with active status |
 | `tree_data` | Flat array of serialized session tree nodes + current leaf ID |
 | `navigate_result` | Result of tree navigation (success/cancelled) |
 | `open_tree` | Signal webview to open the tree panel |
@@ -259,6 +259,8 @@ Full reference: `docs/pi-sdk.md`
 
 8. **Call `await runtime.dispose()` in `deactivate()`.** Failing to do so leaks the agent process.
 
+9. **Mirror Pi's `/login` provider discovery from public SDK methods only.** Use `authStorage.getOAuthProviders()`, `session.modelRegistry.getAll()`, and `session.modelRegistry.getProviderAuthStatus()` instead of hardcoding API-key providers or importing Pi's internal interactive-mode code.
+
 ---
 
 ## Development Rules
@@ -300,6 +302,8 @@ Full reference: `docs/pi-sdk.md`
 16. **Visibility toggles need an `else` branch.** Any `_update*()` method that conditionally adds a `visible` class must also have an `else` branch that removes it and clears the element content. Otherwise, stale data stays visible after state resets (e.g. switching sessions). Similarly, `handleSync()` must fully reset UI components before restoring the new session's state — don't assume a prior `reset()` call has already run.
 
 17. **Send flat arrays, not deeply nested trees.** The VS Code webview `postMessage` uses structured cloning. If an object is too deeply nested (e.g., a tree with ~1,500 levels), structured clone fails silently with `Uncaught TypeError: Cannot read properties of null (reading 'channel')` inside VS Code's core. Always flatten recursive structures into arrays (e.g., using `parentId`/`childIds`) before sending via IPC.
+
+18. **Distinguish OAuth vs API-key credentials by stored credential type, not just `has()`.** Providers like `anthropic` support both flows under the same provider ID. Use `authStorage.get(providerId)?.type` when deciding whether something is "logged in" or has a stored API key, or the Accounts UI will place providers in the wrong section.
 
 ---
 

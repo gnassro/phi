@@ -126,10 +126,10 @@ Commands registered:
 - `phi.askAboutSelection` — get selection context → send to Pi
 - `phi.newSession` — create a new Pi session
 - `phi.abortSession` — abort the current Pi turn
-- `phi.login` — OAuth login (QuickPick → browser auth)
+- `phi.login` — unified provider login/setup (auth method picker → provider picker → OAuth browser flow or API-key/setup guidance)
 - `phi.logout` — OAuth logout (QuickPick)
-- `phi.addApiKey` — add API key (QuickPick → masked input → `~/.phi/auth.json`)
-- `phi.removeApiKey` — remove API key (QuickPick → `~/.phi/auth.json`)
+- `phi.addApiKey` — direct API-key setup shortcut (provider picker → masked input → `~/.phi/auth.json`)
+- `phi.removeApiKey` — remove stored API key (QuickPick → `~/.phi/auth.json`)
 - `phi.openTree` — open conversation tree panel (browse/navigate branches)
 
 ---

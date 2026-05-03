@@ -102,10 +102,11 @@ This file tracks all tasks for the Phi project.
 
 #### Accounts Panel ✅
 - [x] Separate panel with 🔑 key icon button in header (next to ⚙️ settings)
-- [x] OAuth Login button (triggers VS Code QuickPick → browser auth)
-- [x] API Keys Add/Remove buttons (VS Code QuickPick + masked input)
-- [x] 20 predefined providers
-- [x] Shows only active accounts (logged-in OAuth + set API keys)
+- [x] Login / Setup button (subscription OAuth + API-key/provider setup via VS Code QuickPick)
+- [x] Per-account Logout / Remove actions in the active accounts list
+- [x] `Phi: Add API Key` kept as a command shortcut instead of a separate Accounts-panel button
+- [x] Dynamic API-key provider discovery from Pi's model registry (built-ins + custom providers)
+- [x] Shows only active accounts (logged-in OAuth + stored API keys)
 - [x] Empty state: "No accounts configured"
 - [x] Closes with ✕, overlay click, or Escape
 
@@ -175,10 +176,12 @@ This file tracks all tasks for the Phi project.
 - [x] `setAutoCompaction(enabled)` — calls `session.setAutoCompactionEnabled()`
 - [x] `getSessionStats()` — calls `session.getSessionStats()`
 - [x] `getContextUsage()` — calls `session.getContextUsage()`
-- [x] `getOAuthProviders()` — returns OAuth provider list with login status
+- [x] `getOAuthProviders()` — returns OAuth provider list with typed login status
+- [x] `getLoginProviders(authType)` — mirrors Pi's `/login` provider discovery using OAuth providers + model registry providers
+- [x] `getStoredCredentialProviders(authType)` — lists stored OAuth/API-key credentials for removal flows
 - [x] `login(providerId, callbacks)` — OAuth login via AuthStorage
 - [x] `logout(providerId)` — OAuth logout via AuthStorage
-- [x] `getApiKeyProviders()` — returns predefined API key providers with status
+- [x] `getApiKeyProviders()` — returns dynamically discovered API-key providers with stored-key status
 - [x] `setApiKey(providerId, key)` — saves API key to `~/.phi/auth.json`
 - [x] `removeApiKey(providerId)` — removes API key from `~/.phi/auth.json`
 
@@ -188,6 +191,7 @@ This file tracks all tasks for the Phi project.
 - [x] Thinking block collapse broken: same CSP issue — `renderThinkingBlock` now returns DOM elements with proper event listeners
 - [x] `IpcBridge.initialize()` only called in command handler, not on activation → moved to `activate()` with idempotence guard
 - [x] OAuth manual code input box lingering after success → cancelled via `CancellationTokenSource`
+- [x] Shared provider IDs (e.g. Anthropic) now distinguish stored OAuth vs stored API key so accounts don’t appear in the wrong section
 - [x] Error-only assistant messages: inline layout with copy button at right (`.assistant-error-row`)
 - [x] Error tooltips: CSS `::after` pseudo-element via `data-error` attribute (native `title` unreliable in webviews)
 - [x] Copy button on error-only messages: `_setupCopyBtn` falls back to `.assistant-error` when `.message-content` absent
@@ -270,6 +274,11 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify scroll-to-bottom button appears/hides correctly
 - [ ] Verify cost and token display updates after each assistant message
 - [ ] Verify context visualizer shows correct breakdown
+- [ ] Verify unified login flow: `Phi: Login` shows both subscription and API-key/provider setup modes
+- [ ] Verify API-key provider discovery includes custom/model-registry providers and excludes OAuth-only providers from the API-key shortcut
+- [ ] Verify shared provider IDs (Anthropic) appear in the correct Accounts section depending on stored credential type
+- [ ] Verify Bedrock shows setup guidance instead of an API-key prompt
+- [ ] Verify Cloudflare save flow reminds users about `CLOUDFLARE_ACCOUNT_ID`
 - [ ] Verify editor context: select code → "Phi: Ask About Selection" → correct file + lines in prompt
 - [ ] Verify image attachment: attach image → send → Pi receives it
 - [ ] Verify abort: click abort button → Pi stops streaming

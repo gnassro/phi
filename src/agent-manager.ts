@@ -413,36 +413,128 @@ export function setAutoCompaction(enabled: boolean): void {
   session.setAutoCompactionEnabled(enabled);
 }
 
-// ─── OAuth login ──────────────────────────────────────────────────────────────
+// ─── Auth / login-capable providers ───────────────────────────────────────────
 
-/** Predefined API key providers (name → auth.json key) */
-const API_KEY_PROVIDERS: Array<{ name: string; id: string }> = [
-  { name: 'Anthropic', id: 'anthropic' },
-  { name: 'OpenAI', id: 'openai' },
-  { name: 'DeepSeek', id: 'deepseek' },
-  { name: 'Google Gemini', id: 'google' },
-  { name: 'Azure OpenAI Responses', id: 'azure-openai-responses' },
-  { name: 'Mistral', id: 'mistral' },
-  { name: 'Groq', id: 'groq' },
-  { name: 'Cerebras', id: 'cerebras' },
-  { name: 'Cloudflare Workers AI', id: 'cloudflare-workers-ai' },
-  { name: 'xAI', id: 'xai' },
-  { name: 'OpenRouter', id: 'openrouter' },
-  { name: 'Vercel AI Gateway', id: 'vercel-ai-gateway' },
-  { name: 'ZAI', id: 'zai' },
-  { name: 'OpenCode Zen', id: 'opencode' },
-  { name: 'OpenCode Go', id: 'opencode-go' },
-  { name: 'Hugging Face', id: 'huggingface' },
-  { name: 'Fireworks', id: 'fireworks' },
-  { name: 'Kimi For Coding', id: 'kimi-coding' },
-  { name: 'MiniMax', id: 'minimax' },
-  { name: 'MiniMax (China)', id: 'minimax-cn' },
-];
+type ProviderAuthSource =
+  | 'stored'
+  | 'runtime'
+  | 'environment'
+  | 'fallback'
+  | 'models_json_key'
+  | 'models_json_command';
+
+type ProviderCredentialType = 'oauth' | 'api_key';
+
+const BEDROCK_PROVIDER_ID = 'amazon-bedrock';
+const CLOUDFLARE_PROVIDER_ID = 'cloudflare-workers-ai';
+
+/** Built-in provider display names mirrored from Pi's interactive /login flow. */
+const API_KEY_PROVIDER_DISPLAY_NAMES: Record<string, string> = {
+  anthropic: 'Anthropic',
+  [BEDROCK_PROVIDER_ID]: 'Amazon Bedrock',
+  'azure-openai-responses': 'Azure OpenAI Responses',
+  cerebras: 'Cerebras',
+  [CLOUDFLARE_PROVIDER_ID]: 'Cloudflare Workers AI',
+  deepseek: 'DeepSeek',
+  fireworks: 'Fireworks',
+  google: 'Google Gemini',
+  'google-vertex': 'Google Vertex AI',
+  groq: 'Groq',
+  huggingface: 'Hugging Face',
+  'kimi-coding': 'Kimi For Coding',
+  mistral: 'Mistral',
+  minimax: 'MiniMax',
+  'minimax-cn': 'MiniMax (China)',
+  opencode: 'OpenCode Zen',
+  'opencode-go': 'OpenCode Go',
+  openai: 'OpenAI',
+  openrouter: 'OpenRouter',
+  'vercel-ai-gateway': 'Vercel AI Gateway',
+  xai: 'xAI',
+  zai: 'ZAI',
+};
+
+export interface ProviderAuthStatusInfo {
+  configured: boolean;
+  source?: ProviderAuthSource;
+  label?: string;
+}
 
 export interface OAuthProviderInfo {
   id: string;
   name: string;
   loggedIn: boolean;
+  authStatus: ProviderAuthStatusInfo;
+}
+
+export interface ApiKeyProviderInfo {
+  name: string;
+  id: string;
+  hasKey: boolean;
+  authStatus: ProviderAuthStatusInfo;
+  setupHint?: string;
+}
+
+export interface LoginProviderInfo {
+  id: string;
+  name: string;
+  authType: ProviderCredentialType;
+  storedCredentialType: ProviderCredentialType | null;
+  authStatus: ProviderAuthStatusInfo;
+  setupHint?: string;
+  setupOnly: boolean;
+}
+
+export interface StoredCredentialProviderInfo {
+  id: string;
+  name: string;
+  authType: ProviderCredentialType;
+}
+
+function getCurrentModelRegistry(): ModelRegistry | null {
+  return modelRegistry ?? session?.modelRegistry ?? null;
+}
+
+function refreshModelRegistryAuthState(): void {
+  getCurrentModelRegistry()?.refresh();
+}
+
+function getStoredCredentialType(providerId: string): ProviderCredentialType | null {
+  const credential = authStorage?.get(providerId);
+  if (credential?.type === 'oauth') return 'oauth';
+  if (credential?.type === 'api_key') return 'api_key';
+  return null;
+}
+
+function getProviderAuthStatus(providerId: string): ProviderAuthStatusInfo {
+  const status = getCurrentModelRegistry()?.getProviderAuthStatus(providerId) ?? { configured: false };
+  return {
+    configured: !!status.configured,
+    source: status.source as ProviderAuthSource | undefined,
+    label: status.label,
+  };
+}
+
+function getApiKeyProviderDisplayName(providerId: string): string {
+  return API_KEY_PROVIDER_DISPLAY_NAMES[providerId] ?? providerId;
+}
+
+function isApiKeyLoginProvider(providerId: string, oauthProviderIds: Set<string>): boolean {
+  if (providerId in API_KEY_PROVIDER_DISPLAY_NAMES) {
+    return true;
+  }
+  return !oauthProviderIds.has(providerId);
+}
+
+function getProviderSetupHint(providerId: string): string | undefined {
+  switch (providerId) {
+    case BEDROCK_PROVIDER_ID:
+      return 'Uses AWS credentials or bearer tokens instead of a single API key.';
+    case CLOUDFLARE_PROVIDER_ID:
+      return 'Requires CLOUDFLARE_ACCOUNT_ID in your environment in addition to the API key.';
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -451,11 +543,90 @@ export interface OAuthProviderInfo {
 export function getOAuthProviders(): OAuthProviderInfo[] {
   if (!authStorage) return [];
   const providers = authStorage.getOAuthProviders();
-  return providers.map(p => ({
-    id: p.id,
-    name: p.name,
-    loggedIn: authStorage!.has(p.id),
+  return providers.map((provider) => ({
+    id: provider.id,
+    name: provider.name,
+    loggedIn: getStoredCredentialType(provider.id) === 'oauth',
+    authStatus: getProviderAuthStatus(provider.id),
   }));
+}
+
+/**
+ * Get login-capable providers, mirroring Pi's interactive /login discovery.
+ * OAuth providers come from AuthStorage. API-key providers are discovered from
+ * the live model registry so built-ins and models.json custom providers stay in sync.
+ */
+export function getLoginProviders(
+  authType?: ProviderCredentialType
+): LoginProviderInfo[] {
+  if (!authStorage || !session) return [];
+
+  const oauthProviders = authStorage.getOAuthProviders();
+  const oauthProviderIds = new Set(oauthProviders.map((provider) => provider.id));
+  const providers: LoginProviderInfo[] = [];
+
+  if (!authType || authType === 'oauth') {
+    for (const provider of oauthProviders) {
+      providers.push({
+        id: provider.id,
+        name: provider.name,
+        authType: 'oauth',
+        storedCredentialType: getStoredCredentialType(provider.id),
+        authStatus: getProviderAuthStatus(provider.id),
+        setupHint: undefined,
+        setupOnly: false,
+      });
+    }
+  }
+
+  if (!authType || authType === 'api_key') {
+    const modelProviders = new Set(session.modelRegistry.getAll().map((model) => model.provider));
+    for (const providerId of modelProviders) {
+      if (!isApiKeyLoginProvider(providerId, oauthProviderIds)) continue;
+      providers.push({
+        id: providerId,
+        name: getApiKeyProviderDisplayName(providerId),
+        authType: 'api_key',
+        storedCredentialType: getStoredCredentialType(providerId),
+        authStatus: getProviderAuthStatus(providerId),
+        setupHint: getProviderSetupHint(providerId),
+        setupOnly: providerId === BEDROCK_PROVIDER_ID,
+      });
+    }
+  }
+
+  return providers.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Get stored credentials of a specific type (or all stored credentials).
+ */
+export function getStoredCredentialProviders(
+  authType?: ProviderCredentialType
+): StoredCredentialProviderInfo[] {
+  if (!authStorage) return [];
+
+  const oauthNameById = new Map(
+    authStorage.getOAuthProviders().map((provider) => [provider.id, provider.name])
+  );
+
+  const providers: StoredCredentialProviderInfo[] = [];
+  for (const providerId of authStorage.list()) {
+    const credential = authStorage.get(providerId);
+    if (!credential) continue;
+    const credentialType = credential.type === 'oauth' ? 'oauth' : 'api_key';
+    if (authType && credentialType !== authType) continue;
+
+    providers.push({
+      id: providerId,
+      name: credentialType === 'oauth'
+        ? (oauthNameById.get(providerId) ?? providerId)
+        : getApiKeyProviderDisplayName(providerId),
+      authType: credentialType,
+    });
+  }
+
+  return providers.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -475,6 +646,7 @@ export async function login(
 ): Promise<void> {
   if (!authStorage) throw new Error('[Phi] AgentManager not initialized');
   await authStorage.login(providerId, callbacks);
+  refreshModelRegistryAuthState();
 }
 
 /**
@@ -483,6 +655,7 @@ export async function login(
 export function logout(providerId: string): void {
   if (!authStorage) return;
   authStorage.logout(providerId);
+  refreshModelRegistryAuthState();
 }
 
 /**
@@ -493,23 +666,16 @@ export function hasAuth(providerId: string): boolean {
   return authStorage.hasAuth(providerId);
 }
 
-// ─── API key management ───────────────────────────────────────────────────────
-
-export interface ApiKeyProviderInfo {
-  name: string;
-  id: string;
-  hasKey: boolean;
-}
-
 /**
- * Get list of predefined API key providers with their status.
+ * Get dynamic API-key providers with their stored-key status.
  */
 export function getApiKeyProviders(): ApiKeyProviderInfo[] {
-  if (!authStorage) return [];
-  return API_KEY_PROVIDERS.map(p => ({
-    name: p.name,
-    id: p.id,
-    hasKey: authStorage!.has(p.id),
+  return getLoginProviders('api_key').map((provider) => ({
+    name: provider.name,
+    id: provider.id,
+    hasKey: provider.storedCredentialType === 'api_key',
+    authStatus: provider.authStatus,
+    setupHint: provider.setupHint,
   }));
 }
 
@@ -519,6 +685,7 @@ export function getApiKeyProviders(): ApiKeyProviderInfo[] {
 export function setApiKey(providerId: string, key: string): void {
   if (!authStorage) throw new Error('[Phi] AgentManager not initialized');
   authStorage.set(providerId, { type: 'api_key', key });
+  refreshModelRegistryAuthState();
 }
 
 /**
@@ -527,6 +694,7 @@ export function setApiKey(providerId: string, key: string): void {
 export function removeApiKey(providerId: string): void {
   if (!authStorage) return;
   authStorage.remove(providerId);
+  refreshModelRegistryAuthState();
 }
 
 // ─── Tree / branching ─────────────────────────────────────────────────────────

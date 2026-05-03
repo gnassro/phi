@@ -39,7 +39,6 @@ export class PanelsManager {
     this.accountsClose = document.getElementById('accounts-close');
     this.accountsList = document.getElementById('accounts-list');
     this.btnLogin = document.getElementById('btn-login');
-    this.btnAddApiKey = document.getElementById('btn-add-api-key');
 
     // DOM refs - History
     this.historyBtn = document.getElementById('history-btn');
@@ -114,7 +113,6 @@ export class PanelsManager {
     this.accountsClose.addEventListener('click', () => this.closeAccounts());
     this.accountsOverlay.addEventListener('click', () => this.closeAccounts());
     this.btnLogin.addEventListener('click', () => VscodeIPC.send({ type: 'login' }));
-    this.btnAddApiKey.addEventListener('click', () => VscodeIPC.send({ type: 'add_api_key' }));
 
     VscodeIPC.on('accounts_list', (msg) => this._renderAccountsList(msg));
 

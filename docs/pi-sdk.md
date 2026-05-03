@@ -179,6 +179,43 @@ export async function newSession() {
 
 ---
 
+## Login-Capable Provider Discovery
+
+Phi mirrors Pi's interactive `/login` discovery logic using public SDK surfaces instead of importing Pi's internal interactive-mode code.
+
+```typescript
+export function getLoginProviders(authType?: "oauth" | "api_key") {
+  const oauthProviders = authStorage.getOAuthProviders();
+  const oauthIds = new Set(oauthProviders.map(provider => provider.id));
+
+  const apiKeyProviders = new Set(
+    session.modelRegistry.getAll().map(model => model.provider)
+  );
+
+  return {
+    oauth: oauthProviders,
+    apiKey: [...apiKeyProviders].filter((providerId) => {
+      // Built-in API-key providers stay on a local display-name map.
+      if (providerId in API_KEY_PROVIDER_DISPLAY_NAMES) return true;
+      // Custom providers from models.json are login-capable unless they already
+      // registered themselves as OAuth providers.
+      return !oauthIds.has(providerId);
+    }),
+  };
+}
+```
+
+Important details:
+
+- **Use `authStorage.getOAuthProviders()` for subscription/OAuth providers.**
+- **Use `session.modelRegistry.getAll()` to discover API-key/setup providers dynamically.** This keeps Phi aligned with built-ins added by newer Pi releases and with custom providers from `~/.pi/agent/models.json`.
+- **Use `session.modelRegistry.getProviderAuthStatus(providerId)` for auth-source labels** (`environment`, `models_json_key`, etc.).
+- **Check `authStorage.get(providerId)?.type` before labeling a provider as logged in or having an API key.** Some providers share the same ID across OAuth and API-key flows (for example `anthropic`), so `authStorage.has(providerId)` alone is not enough.
+- **Call `modelRegistry.refresh()` after login/logout/API-key changes** so provider availability and custom `modifyModels()` hooks stay in sync.
+- **Do not deep-import Pi internals from `dist/modes/interactive/*`.** Recreate the behavior from public SDK methods only.
+
+---
+
 ## Building a State Snapshot (for `sync` message)
 
 When the webview requests a full sync (`request_sync`), build this:
@@ -271,3 +308,5 @@ Call this from `deactivate()` in `extension.ts` and await it.
 7. **Image data must have the `data:` prefix stripped** before passing to the SDK. The SDK expects raw base64, not data URIs.
 
 8. **Dispose the runtime in `deactivate()`**. Call `await runtime.dispose()` to avoid leaking the agent process.
+
+9. **Mirror Pi's `/login` discovery using public SDK methods only**. Use `authStorage.getOAuthProviders()`, `session.modelRegistry.getAll()`, and `session.modelRegistry.getProviderAuthStatus()` instead of hardcoding provider lists or deep-importing Pi's interactive-mode internals.
