@@ -106,6 +106,7 @@ This file tracks all tasks for the Phi project.
 - [x] Per-account Logout / Remove actions in the active accounts list
 - [x] `Phi: Add API Key` kept as a command shortcut instead of a separate Accounts-panel button
 - [x] Dynamic API-key provider discovery from Pi's model registry (built-ins + custom providers)
+- [x] Guided provider env setup during Login / Setup (global env detection + Phi-local SecretStorage values)
 - [x] Shows only active accounts (logged-in OAuth + stored API keys)
 - [x] Empty state: "No accounts configured"
 - [x] Closes with ✕, overlay click, or Escape
@@ -166,6 +167,18 @@ This file tracks all tasks for the Phi project.
 #### Extension Host → Webview (all implemented)
 - [x] `rpc_response` — generic response for RPC-style commands (success, data, error)
 - [x] `accounts_list` — OAuth providers + API key providers with active status
+
+### Env Manager (`src/env-manager.ts`) ✅
+- [x] New provider environment manager module
+- [x] Applies Phi-local provider env vars before Pi SDK initialization
+- [x] Stores local env values in VS Code `SecretStorage`
+- [x] Stores per-provider env preferences in VS Code global state
+- [x] Detects existing global env vars from the VS Code extension host process
+- [x] Guided setup for Cloudflare Workers AI (`CLOUDFLARE_ACCOUNT_ID`)
+- [x] Guided setup for Azure OpenAI Responses endpoint env vars
+- [x] Guided setup for Amazon Bedrock AWS profile / IAM key / bearer token env vars
+- [x] Guided setup for Google Vertex AI project/location/credentials env vars
+- [x] Optional `GOOGLE_CLOUD_PROJECT` setup for Google Gemini CLI paid Cloud Code Assist
 
 ### Agent Manager Additions (`src/agent-manager.ts`) ✅
 - [x] `getState()` — returns `{ model, thinkingLevel, autoCompactionEnabled, sessionName }`
@@ -280,7 +293,10 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify shared provider IDs (Anthropic) appear in the correct Accounts section depending on stored credential type
 - [ ] Verify logout/remove-key from the active model provider automatically switches to another available model, or shows Login in the header when none remain
 - [ ] Verify Bedrock shows setup guidance instead of an API-key prompt
-- [ ] Verify Cloudflare save flow reminds users about `CLOUDFLARE_ACCOUNT_ID`
+- [ ] Verify Cloudflare save flow asks for `CLOUDFLARE_ACCOUNT_ID`, offers global env if detected, or saves a Phi-local value otherwise
+- [ ] Verify Azure OpenAI setup asks for base URL or resource name after API key setup
+- [ ] Verify Bedrock setup asks for AWS profile / IAM keys / bearer token instead of an API key
+- [ ] Verify Phi-local env values are applied after reload before Pi SDK initialization
 - [ ] Verify editor context: select code → "Phi: Ask About Selection" → correct file + lines in prompt
 - [ ] Verify image attachment: attach image → send → Pi receives it
 - [ ] Verify abort: click abort button → Pi stops streaming

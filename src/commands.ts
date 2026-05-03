@@ -3,6 +3,7 @@ import * as PanelManager from './panel-manager.js';
 import * as AgentManager from './agent-manager.js';
 import * as IpcBridge from './ipc-bridge.js';
 import * as EditorContext from './editor-context.js';
+import * as EnvManager from './env-manager.js';
 
 /**
  * Push updated accounts list to the webview.
@@ -133,18 +134,24 @@ async function pickLoginProvider(
   return picked?.provider;
 }
 
-async function showBedrockSetup(providerName: string): Promise<void> {
-  const openDocs = 'Open Pi Provider Docs';
-  const picked = await vscode.window.showInformationMessage(
-    `${providerName} uses AWS credentials or bearer tokens instead of a single API key. Configure AWS_PROFILE, IAM keys, bearer tokens, or role-based credentials first.`,
-    openDocs
-  );
-
-  if (picked === openDocs) {
-    await vscode.env.openExternal(vscode.Uri.parse(
-      'https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/providers.md#amazon-bedrock'
-    ));
+function getEnvSetupSuffix(result: EnvManager.ProviderEnvSetupResult): string {
+  if (!result.attempted) return '';
+  if (result.completed) {
+    const configured = [
+      ...result.configuredGlobal.map((name) => `${name} from global env`),
+      ...result.configuredLocal.map((name) => `${name} locally`),
+    ];
+    return configured.length > 0
+      ? ` Environment configured: ${configured.join(', ')}.`
+      : '';
   }
+  return result.missingRequired.length > 0
+    ? ` Environment setup incomplete: ${result.missingRequired.join(', ')} missing.`
+    : ' Environment setup incomplete.';
+}
+
+async function runProviderEnvSetup(provider: AgentManager.LoginProviderInfo): Promise<EnvManager.ProviderEnvSetupResult> {
+  return await EnvManager.configureProviderEnvironment(provider.id, provider.name);
 }
 
 async function runOAuthLogin(provider: AgentManager.LoginProviderInfo): Promise<void> {
@@ -191,11 +198,14 @@ async function runOAuthLogin(provider: AgentManager.LoginProviderInfo): Promise<
         });
 
         manualCodeCts.cancel();
+        const envResult = await runProviderEnvSetup(provider);
         const authResult = await handleAuthChange();
         const selectedModelSuffix = authResult.switchedModel && authResult.selectedModel
           ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`
           : '';
-        vscode.window.showInformationMessage(`✓ Logged in to ${provider.name} successfully.${selectedModelSuffix}`);
+        vscode.window.showInformationMessage(
+          `✓ Logged in to ${provider.name} successfully.${getEnvSetupSuffix(envResult)}${selectedModelSuffix}`
+        );
       } catch (err) {
         manualCodeCts.cancel();
         if (abortController.signal.aborted) {
@@ -212,7 +222,16 @@ async function runOAuthLogin(provider: AgentManager.LoginProviderInfo): Promise<
 
 async function runApiKeySetup(provider: AgentManager.LoginProviderInfo): Promise<void> {
   if (provider.setupOnly) {
-    await showBedrockSetup(provider.name);
+    const envResult = await runProviderEnvSetup(provider);
+    const authResult = await handleAuthChange();
+    const selectedModelSuffix = authResult.switchedModel && authResult.selectedModel
+      ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`
+      : authResult.clearedModel
+        ? ' No authenticated models remain.'
+        : '';
+    vscode.window.showInformationMessage(
+      `${provider.name} setup finished.${getEnvSetupSuffix(envResult)}${selectedModelSuffix}`
+    );
     return;
   }
 
@@ -225,11 +244,13 @@ async function runApiKeySetup(provider: AgentManager.LoginProviderInfo): Promise
   if (!apiKey) return;
 
   AgentManager.setApiKey(provider.id, apiKey);
+  const envResult = await runProviderEnvSetup(provider);
   const authResult = await handleAuthChange();
 
   const parts = [`✓ API key saved for ${provider.name}.`];
-  if (provider.id === 'cloudflare-workers-ai') {
-    parts.push('Also set CLOUDFLARE_ACCOUNT_ID in your environment.');
+  const envSuffix = getEnvSetupSuffix(envResult).trim();
+  if (envSuffix) {
+    parts.push(envSuffix);
   }
   if (authResult.switchedModel && authResult.selectedModel) {
     parts.push(`Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`);

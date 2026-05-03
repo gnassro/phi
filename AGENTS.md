@@ -69,6 +69,7 @@ phi/
 │   ├── panel-manager.ts          ← WebviewPanel creation, lifecycle, asset loading
 │   ├── ipc-bridge.ts             ← Routes messages: Webview ↔ Extension Host
 │   ├── editor-context.ts         ← Reads VS Code editor state (read-only)
+│   ├── env-manager.ts            ← Phi-local provider environment setup/storage
 │   ├── commands.ts               ← All vscode.commands.registerCommand() calls
 │   └── utils.ts                  ← Shared helpers (getNonce for CSP)
 ├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
@@ -133,6 +134,7 @@ phi/
 │  │  panel-manager.ts  ← WebviewPanel lifecycle               │   │
 │  │  ipc-bridge.ts     ← message routing                     │   │
 │  │  editor-context.ts ← vscode.window, workspace, git       │   │
+│  │  env-manager.ts    ← Phi-local provider environment      │   │
 │  │  commands.ts       ← vscode.commands                     │   │
 │  │                                                           │   │
 │  └───────────────┬───────────────────────────────────────────┘   │
@@ -261,7 +263,9 @@ Full reference: `docs/pi-sdk.md`
 
 9. **Mirror Pi's `/login` provider discovery from public SDK methods only.** Use `authStorage.getOAuthProviders()`, `session.modelRegistry.getAll()`, and `session.modelRegistry.getProviderAuthStatus()` instead of hardcoding API-key providers or importing Pi's internal interactive-mode code.
 
-10. **After auth changes, reconcile the active model before refreshing the UI.** Logout/API-key removal can invalidate the current model. Switch to another available model if possible; otherwise clear `session.state.model` so the header falls back to Login/Setup instead of showing a stale provider.
+10. **Initialize `EnvManager` before `AgentManager`.** Phi-local provider env vars must be applied to `process.env` before the Pi SDK runtime/model registry initializes.
+
+11. **After auth changes, reconcile the active model before refreshing the UI.** Logout/API-key removal can invalidate the current model. Switch to another available model if possible; otherwise clear `session.state.model` so the header falls back to Login/Setup instead of showing a stale provider.
 
 ---
 
@@ -308,6 +312,8 @@ Full reference: `docs/pi-sdk.md`
 18. **Distinguish OAuth vs API-key credentials by stored credential type, not just `has()`.** Providers like `anthropic` support both flows under the same provider ID. Use `authStorage.get(providerId)?.type` when deciding whether something is "logged in" or has a stored API key, or the Accounts UI will place providers in the wrong section.
 
 19. **Header model state must clear on no-auth states.** If auth changes leave Phi with zero available models, the webview model control must reset to a Login/Setup affordance. Don’t leave stale model labels or stale context-window state visible after logout.
+
+20. **Store Phi-local provider env values in VS Code SecretStorage.** Do not put env secrets in webview localStorage or plain JSON. `env-manager.ts` may apply values to `process.env`, but it must preserve the original global env snapshot so users can switch between global and Phi-local values.
 
 ---
 

@@ -22,8 +22,10 @@ to prevent stale JS/CSS after rebuilds.
 
 Auth system: unified login/setup flow via VS Code QuickPick. Phi now mirrors Pi's `/login`
 provider discovery by combining OAuth providers with model-registry-discovered API-key/setup
-providers, while still storing Phi-managed credentials in `~/.phi/auth.json`. Sessions remain
-shared with pi CLI at `~/.pi/agent/sessions/`.
+providers. Provider setup can also guide users through required environment variables, offering
+existing global VS Code process env values or Phi-local values stored in VS Code SecretStorage.
+Phi-managed credentials still live in `~/.phi/auth.json`; sessions remain shared with pi CLI at
+`~/.pi/agent/sessions/`.
 
 Build: Extension host bundled with esbuild (Pi SDK `0.70.6` included). Self-contained `.vsix`
 at 1.5 MB — no `node_modules` required. Published as `gnassro` on Open VSX.

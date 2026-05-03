@@ -19,7 +19,7 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 
 ## Session Initialization
 
-All Pi SDK code lives in `src/agent-manager.ts`. Phi now creates an `AgentSessionRuntime` once on activation and reads the current live `runtime.session` from it.
+All Pi SDK code lives in `src/agent-manager.ts`. Phi applies Phi-local provider environment variables before this step (`EnvManager.initialize(ctx)` in `extension.ts`), then creates an `AgentSessionRuntime` once on activation and reads the current live `runtime.session` from it.
 
 ```typescript
 import {
@@ -176,6 +176,22 @@ export async function newSession() {
   IpcBridge.sendSync();
 }
 ```
+
+---
+
+## Phi-Local Provider Environment
+
+Provider environment variables that are required in addition to auth credentials are handled outside the Pi SDK in `src/env-manager.ts`.
+
+Key behaviors:
+
+- Initialize `EnvManager` before `AgentManager.initialize(cwd)` so `process.env` is ready when `ModelRegistry` and provider code load.
+- Store Phi-local env values in VS Code `SecretStorage`.
+- Store per-provider preferences (`global` vs `local`) in VS Code global state.
+- If a global env var is present in the VS Code extension host process, offer to use it instead of storing a Phi-local value.
+- After env changes, refresh the model registry and reconcile the active model.
+
+Currently guided providers include Cloudflare Workers AI, Azure OpenAI Responses, Amazon Bedrock, Google Vertex AI, and optional Google Gemini CLI paid project setup.
 
 ---
 
