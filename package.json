@@ -2,7 +2,7 @@
   "name": "phi-agent",
   "displayName": "Phi — Pi AI Agent",
   "description": "The Pi AI coding agent, natively inside VS Code. Full session continuity, real-time streaming, and deep editor context awareness.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "gnassro",
   "icon": "assets/phi-icon.png",
   "license": "MIT",

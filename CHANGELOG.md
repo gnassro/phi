@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0] - 2026-05-03
+
+### Added
+- add guided provider environment setup
+- unify auth ui around login setup flow
+
+### Fixed
+- target clicked provider for account logout and key removal
+- reconcile selected model after auth changes
+
+
 ## [0.4.0] - 2026-04-30
 
 ### Added
