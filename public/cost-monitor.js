@@ -60,7 +60,7 @@ export class CostMonitor {
   }
 
   setContextWindowSize(size) {
-    if (size) this.contextWindowSize = size;
+    this.contextWindowSize = size || 0;
     this._updateTokenUsage();
   }
 

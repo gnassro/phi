@@ -75,6 +75,7 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - Stored credentials live in `~/.phi/auth.json` — separate from Pi CLI auth; environment and `models.json` auth still work too
 - **Cloudflare Workers AI note** — also requires `CLOUDFLARE_ACCOUNT_ID` to be set in your environment
 - **Amazon Bedrock note** — shown as setup guidance in `Phi: Login` because it uses AWS credentials, not a single API key
+- **No model available?** — the header model control turns into a **Login** button that opens the Accounts panel
 
 ### 🖥️ Custom Providers (Ollama, vLLM, LM Studio…)
 Phi inherits full custom provider support from the Pi SDK. Add any OpenAI-compatible local or remote model by editing `~/.pi/agent/models.json` — no extension restart needed, changes are picked up next time you open the model picker.

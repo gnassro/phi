@@ -212,6 +212,7 @@ Important details:
 - **Use `session.modelRegistry.getProviderAuthStatus(providerId)` for auth-source labels** (`environment`, `models_json_key`, etc.).
 - **Check `authStorage.get(providerId)?.type` before labeling a provider as logged in or having an API key.** Some providers share the same ID across OAuth and API-key flows (for example `anthropic`), so `authStorage.has(providerId)` alone is not enough.
 - **Call `modelRegistry.refresh()` after login/logout/API-key changes** so provider availability and custom `modifyModels()` hooks stay in sync.
+- **After auth changes, reconcile the active model against `modelRegistry.getAvailable()`.** If the current model disappeared, switch to another available model; if none remain, clear the current model so the UI can fall back to Login/Setup instead of showing a stale provider.
 - **Do not deep-import Pi internals from `dist/modes/interactive/*`.** Recreate the behavior from public SDK methods only.
 
 ---
@@ -310,3 +311,5 @@ Call this from `deactivate()` in `extension.ts` and await it.
 8. **Dispose the runtime in `deactivate()`**. Call `await runtime.dispose()` to avoid leaking the agent process.
 
 9. **Mirror Pi's `/login` discovery using public SDK methods only**. Use `authStorage.getOAuthProviders()`, `session.modelRegistry.getAll()`, and `session.modelRegistry.getProviderAuthStatus()` instead of hardcoding provider lists or deep-importing Pi's interactive-mode internals.
+
+10. **After auth changes, reconcile the current model before refreshing the UI.** The selected model can become invalid after logout or API-key removal. Switch to another available model if possible; otherwise clear `session.state.model` so Phi shows Login/Setup instead of a stale model label.

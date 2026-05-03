@@ -192,6 +192,7 @@ This file tracks all tasks for the Phi project.
 - [x] `IpcBridge.initialize()` only called in command handler, not on activation → moved to `activate()` with idempotence guard
 - [x] OAuth manual code input box lingering after success → cancelled via `CancellationTokenSource`
 - [x] Shared provider IDs (e.g. Anthropic) now distinguish stored OAuth vs stored API key so accounts don’t appear in the wrong section
+- [x] After auth changes, current model is reconciled to another available provider or cleared so the header can fall back to Login / Setup
 - [x] Error-only assistant messages: inline layout with copy button at right (`.assistant-error-row`)
 - [x] Error tooltips: CSS `::after` pseudo-element via `data-error` attribute (native `title` unreliable in webviews)
 - [x] Copy button on error-only messages: `_setupCopyBtn` falls back to `.assistant-error` when `.message-content` absent
@@ -277,6 +278,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify unified login flow: `Phi: Login` shows both subscription and API-key/provider setup modes
 - [ ] Verify API-key provider discovery includes custom/model-registry providers and excludes OAuth-only providers from the API-key shortcut
 - [ ] Verify shared provider IDs (Anthropic) appear in the correct Accounts section depending on stored credential type
+- [ ] Verify logout/remove-key from the active model provider automatically switches to another available model, or shows Login in the header when none remain
 - [ ] Verify Bedrock shows setup guidance instead of an API-key prompt
 - [ ] Verify Cloudflare save flow reminds users about `CLOUDFLARE_ACCOUNT_ID`
 - [ ] Verify editor context: select code → "Phi: Ask About Selection" → correct file + lines in prompt

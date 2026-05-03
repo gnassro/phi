@@ -261,6 +261,8 @@ Full reference: `docs/pi-sdk.md`
 
 9. **Mirror Pi's `/login` provider discovery from public SDK methods only.** Use `authStorage.getOAuthProviders()`, `session.modelRegistry.getAll()`, and `session.modelRegistry.getProviderAuthStatus()` instead of hardcoding API-key providers or importing Pi's internal interactive-mode code.
 
+10. **After auth changes, reconcile the active model before refreshing the UI.** Logout/API-key removal can invalidate the current model. Switch to another available model if possible; otherwise clear `session.state.model` so the header falls back to Login/Setup instead of showing a stale provider.
+
 ---
 
 ## Development Rules
@@ -304,6 +306,8 @@ Full reference: `docs/pi-sdk.md`
 17. **Send flat arrays, not deeply nested trees.** The VS Code webview `postMessage` uses structured cloning. If an object is too deeply nested (e.g., a tree with ~1,500 levels), structured clone fails silently with `Uncaught TypeError: Cannot read properties of null (reading 'channel')` inside VS Code's core. Always flatten recursive structures into arrays (e.g., using `parentId`/`childIds`) before sending via IPC.
 
 18. **Distinguish OAuth vs API-key credentials by stored credential type, not just `has()`.** Providers like `anthropic` support both flows under the same provider ID. Use `authStorage.get(providerId)?.type` when deciding whether something is "logged in" or has a stored API key, or the Accounts UI will place providers in the wrong section.
+
+19. **Header model state must clear on no-auth states.** If auth changes leave Phi with zero available models, the webview model control must reset to a Login/Setup affordance. Don’t leave stale model labels or stale context-window state visible after logout.
 
 ---
 

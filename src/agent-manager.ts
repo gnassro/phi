@@ -139,6 +139,7 @@ export async function initialize(workspaceCwd: string): Promise<void> {
   });
 
   bindSession(runtime.session);
+  await reconcileModelAfterAuthChange();
   logRuntimeDiagnostics('Session startup', runtime.diagnostics);
   logModelFallbackMessage('Session startup', runtime.modelFallbackMessage);
 }
@@ -259,6 +260,7 @@ export async function switchSession(sessionPath: string): Promise<void> {
   if (!runtime) throw new Error('[Phi] AgentManager not initialized');
   await runtime.switchSession(sessionPath);
   bindSession(runtime.session);
+  await reconcileModelAfterAuthChange();
   logRuntimeDiagnostics('Session switch', runtime.diagnostics);
   logModelFallbackMessage('Session switch', runtime.modelFallbackMessage);
 }
@@ -270,6 +272,7 @@ export async function newSession(): Promise<void> {
   if (!runtime) throw new Error('[Phi] AgentManager not initialized');
   await runtime.newSession();
   bindSession(runtime.session);
+  await reconcileModelAfterAuthChange();
   logRuntimeDiagnostics('New session', runtime.diagnostics);
   logModelFallbackMessage('New session', runtime.modelFallbackMessage);
 }
@@ -296,6 +299,21 @@ export function getCwd(): string {
   return cwd;
 }
 
+function serializeModelInfo(model: { id: string; provider: string; contextWindow: number } | null) {
+  return model
+    ? { id: model.id, provider: model.provider, contextWindow: model.contextWindow }
+    : null;
+}
+
+function resolveCurrentAvailableModel() {
+  if (!session) return null;
+  const currentModel = session.model;
+  if (!currentModel) return null;
+  return session.modelRegistry.getAvailable().find(
+    (model) => model.id === currentModel.id && model.provider === currentModel.provider
+  ) ?? null;
+}
+
 // ─── Model & thinking ─────────────────────────────────────────────────────────
 
 /**
@@ -303,11 +321,9 @@ export function getCwd(): string {
  */
 export function getState() {
   if (!session) return null;
-  const model = session.model;
+  const model = resolveCurrentAvailableModel();
   return {
-    model: model
-      ? { id: model.id, provider: model.provider, contextWindow: model.contextWindow }
-      : null,
+    model: serializeModelInfo(model),
     thinkingLevel: session.thinkingLevel,
     autoCompactionEnabled: session.autoCompactionEnabled,
     sessionName: session.sessionName ?? null,
@@ -497,6 +513,68 @@ function getCurrentModelRegistry(): ModelRegistry | null {
 
 function refreshModelRegistryAuthState(): void {
   getCurrentModelRegistry()?.refresh();
+}
+
+export interface AuthModelReconciliationResult {
+  selectedModel: { id: string; provider: string; contextWindow: number } | null;
+  switchedModel: boolean;
+  clearedModel: boolean;
+}
+
+/**
+ * After auth changes, ensure the active model still points to an available model.
+ * - If the current model is still available, keep it (refreshing the object reference if needed)
+ * - Otherwise switch to the first available model
+ * - If nothing is available anymore, clear the current model so the UI can show Login/Setup
+ */
+export async function reconcileModelAfterAuthChange(): Promise<AuthModelReconciliationResult> {
+  if (!session) {
+    return { selectedModel: null, switchedModel: false, clearedModel: false };
+  }
+
+  refreshModelRegistryAuthState();
+
+  const availableModels = session.modelRegistry.getAvailable();
+  const currentModel = session.model;
+  const matchingModel = currentModel
+    ? availableModels.find(
+      (model) => model.id === currentModel.id && model.provider === currentModel.provider
+    ) ?? null
+    : null;
+
+  if (matchingModel) {
+    if (currentModel !== matchingModel) {
+      session.state.model = matchingModel;
+    }
+    return {
+      selectedModel: serializeModelInfo(matchingModel),
+      switchedModel: false,
+      clearedModel: false,
+    };
+  }
+
+  const fallbackModel = availableModels[0] ?? null;
+  if (fallbackModel) {
+    await session.setModel(fallbackModel);
+    return {
+      selectedModel: serializeModelInfo(fallbackModel),
+      switchedModel: true,
+      clearedModel: false,
+    };
+  }
+
+  if (currentModel) {
+    // Pi allows the live agent state to have no selected model; the getter docs
+    // note that `session.model` may be undefined even though the generated TS type
+    // does not currently include it.
+    (session.state as any).model = undefined;
+  }
+
+  return {
+    selectedModel: null,
+    switchedModel: false,
+    clearedModel: !!currentModel,
+  };
 }
 
 function getStoredCredentialType(providerId: string): ProviderCredentialType | null {

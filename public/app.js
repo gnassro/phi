@@ -87,6 +87,7 @@ const autocomplete = new PromptAutocomplete(chatInput, {
 
 // Wire model picker context window changes to cost monitor
 modelPicker.onContextWindowChange = (size) => costMonitor.setContextWindowSize(size);
+modelPicker.onRequestLogin = () => panels.openAccounts();
 
 // Set version info
 document.getElementById('about-version').textContent = `v${EXTENSION_VERSION}`;
@@ -432,10 +433,8 @@ function handleSync(syncState) {
     }
   }
 
-  if (syncState.model) {
-    modelPicker.setModel(syncState.model);
-    if (syncState.model.contextWindow) costMonitor.setContextWindowSize(syncState.model.contextWindow);
-  }
+  modelPicker.setModel(syncState.model ?? null);
+  costMonitor.setContextWindowSize(syncState.model?.contextWindow ?? 0);
   if (syncState.thinkingLevel) {
     modelPicker.setThinkingLevel(syncState.thinkingLevel);
   }
@@ -637,7 +636,7 @@ VscodeIPC.on('rpc_response', (msg) => {
       if (data) {
         modelPicker.handleStateResponse(data);
         panels.handleStateResponse(data);
-        if (data.model?.contextWindow) costMonitor.setContextWindowSize(data.model.contextWindow);
+        costMonitor.setContextWindowSize(data.model?.contextWindow ?? 0);
       }
       break;
 

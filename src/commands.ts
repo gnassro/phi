@@ -14,6 +14,18 @@ function refreshAccountsList(): void {
   PanelManager.send({ type: 'accounts_list', providers, apiKeyProviders });
 }
 
+function refreshAuthDependentUi(): void {
+  const state = AgentManager.getState();
+  PanelManager.send({ type: 'rpc_response', command: 'get_state', success: true, data: state });
+}
+
+async function handleAuthChange(): Promise<AgentManager.AuthModelReconciliationResult> {
+  const result = await AgentManager.reconcileModelAfterAuthChange();
+  refreshAccountsList();
+  refreshAuthDependentUi();
+  return result;
+}
+
 type LoginAuthType = 'oauth' | 'api_key';
 
 function getProviderStatusDescription(provider: AgentManager.LoginProviderInfo): string {
@@ -179,8 +191,11 @@ async function runOAuthLogin(provider: AgentManager.LoginProviderInfo): Promise<
         });
 
         manualCodeCts.cancel();
-        refreshAccountsList();
-        vscode.window.showInformationMessage(`✓ Logged in to ${provider.name} successfully.`);
+        const authResult = await handleAuthChange();
+        const selectedModelSuffix = authResult.switchedModel && authResult.selectedModel
+          ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`
+          : '';
+        vscode.window.showInformationMessage(`✓ Logged in to ${provider.name} successfully.${selectedModelSuffix}`);
       } catch (err) {
         manualCodeCts.cancel();
         if (abortController.signal.aborted) {
@@ -210,13 +225,17 @@ async function runApiKeySetup(provider: AgentManager.LoginProviderInfo): Promise
   if (!apiKey) return;
 
   AgentManager.setApiKey(provider.id, apiKey);
-  refreshAccountsList();
+  const authResult = await handleAuthChange();
 
-  const suffix = provider.id === 'cloudflare-workers-ai'
-    ? ' Also set CLOUDFLARE_ACCOUNT_ID in your environment.'
-    : '';
+  const parts = [`✓ API key saved for ${provider.name}.`];
+  if (provider.id === 'cloudflare-workers-ai') {
+    parts.push('Also set CLOUDFLARE_ACCOUNT_ID in your environment.');
+  }
+  if (authResult.switchedModel && authResult.selectedModel) {
+    parts.push(`Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`);
+  }
 
-  vscode.window.showInformationMessage(`✓ API key saved for ${provider.name}.${suffix}`);
+  vscode.window.showInformationMessage(parts.join(' '));
 }
 
 async function runLoginFlow(options: {
@@ -418,8 +437,13 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
       if (!picked) return;
 
       AgentManager.logout(picked.id);
-      refreshAccountsList();
-      vscode.window.showInformationMessage(`Logged out from ${picked.name}.`);
+      const authResult = await handleAuthChange();
+      const suffix = authResult.switchedModel && authResult.selectedModel
+        ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`
+        : authResult.clearedModel
+          ? ' No authenticated models remain.'
+          : '';
+      vscode.window.showInformationMessage(`Logged out from ${picked.name}.${suffix}`);
     })
   );
 
@@ -447,8 +471,13 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
       if (!picked) return;
 
       AgentManager.removeApiKey(picked.id);
-      refreshAccountsList();
-      vscode.window.showInformationMessage(`API key removed for ${picked.name}.`);
+      const authResult = await handleAuthChange();
+      const suffix = authResult.switchedModel && authResult.selectedModel
+        ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`
+        : authResult.clearedModel
+          ? ' No authenticated models remain.'
+          : '';
+      vscode.window.showInformationMessage(`API key removed for ${picked.name}.${suffix}`);
     })
   );
 
