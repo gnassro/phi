@@ -266,7 +266,7 @@ export class PanelsManager {
 
       activeOAuth.forEach(p => {
         this.accountsList.appendChild(this._createAccountRow(p.name, '✓', 'Logout', () => {
-          VscodeIPC.send({ type: 'logout' });
+          VscodeIPC.send({ type: 'logout', providerId: p.id, providerName: p.name });
         }));
       });
     }
@@ -279,7 +279,7 @@ export class PanelsManager {
 
       activeApiKeys.forEach(p => {
         this.accountsList.appendChild(this._createAccountRow(p.name, '✓', 'Remove', () => {
-          VscodeIPC.send({ type: 'remove_api_key' });
+          VscodeIPC.send({ type: 'remove_api_key', providerId: p.id, providerName: p.name });
         }));
       });
     }

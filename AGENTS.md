@@ -192,10 +192,10 @@ Full specification: `docs/ipc-protocol.md`
 | `set_auto_compaction` | Enable/disable auto-compaction |
 | `get_session_stats` | Fetch session statistics (messages, tokens, cost) |
 | `login` | Trigger unified provider login/setup (subscription OAuth + API-key/setup providers) |
-| `logout` | Trigger OAuth logout (opens VS Code QuickPick) |
+| `logout` | Trigger OAuth logout (with providerId: confirm direct provider logout; without providerId: QuickPick) |
 | `get_accounts` | Fetch OAuth + discovered API-key provider status |
 | `add_api_key` | Open direct API-key setup flow (provider picker + masked input) |
-| `remove_api_key` | Remove a stored API key (opens VS Code QuickPick) |
+| `remove_api_key` | Remove a stored API key (with providerId: confirm direct removal; without providerId: QuickPick) |
 | `get_tree` | Fetch conversation tree structure |
 | `navigate_tree` | Navigate to a tree node (with optional branch summary) |
 | `set_label` | Set or clear a label on a tree entry |

@@ -313,6 +313,29 @@ async function pickStoredCredentialProvider(
   return picked?.provider;
 }
 
+function getStoredCredentialProvider(
+  authType: LoginAuthType,
+  providerId: string,
+  providerName?: string
+): AgentManager.StoredCredentialProviderInfo | undefined {
+  const provider = AgentManager.getStoredCredentialProviders(authType)
+    .find((candidate) => candidate.id === providerId);
+  if (!provider) return undefined;
+  return providerName ? { ...provider, name: providerName } : provider;
+}
+
+async function confirmProviderCredentialAction(
+  actionLabel: string,
+  message: string
+): Promise<boolean> {
+  const confirmed = await vscode.window.showWarningMessage(
+    message,
+    { modal: true },
+    actionLabel
+  );
+  return confirmed === actionLabel;
+}
+
 /**
  * registerCommands
  *
@@ -449,13 +472,26 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
 
   // ── phi.logout ────────────────────────────────────────────────────────────
   ctx.subscriptions.push(
-    vscode.commands.registerCommand('phi.logout', async () => {
-      const picked = await pickStoredCredentialProvider('oauth', {
-        title: 'Phi: Logout',
-        placeHolder: 'Select a provider to log out from',
-        emptyMessage: '[Phi] Not logged in to any provider.',
-      });
-      if (!picked) return;
+    vscode.commands.registerCommand('phi.logout', async (providerId?: string, providerName?: string) => {
+      const picked = providerId
+        ? getStoredCredentialProvider('oauth', providerId, providerName)
+        : await pickStoredCredentialProvider('oauth', {
+          title: 'Phi: Logout',
+          placeHolder: 'Select a provider to log out from',
+          emptyMessage: '[Phi] Not logged in to any provider.',
+        });
+      if (!picked) {
+        if (providerId) vscode.window.showInformationMessage(`[Phi] ${providerName ?? providerId} is not logged in.`);
+        return;
+      }
+
+      if (providerId) {
+        const confirmed = await confirmProviderCredentialAction(
+          'Logout',
+          `Are you sure you want to log out from ${picked.name}?`
+        );
+        if (!confirmed) return;
+      }
 
       AgentManager.logout(picked.id);
       const authResult = await handleAuthChange();
@@ -483,13 +519,26 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
 
   // ── phi.removeApiKey ──────────────────────────────────────────────────────
   ctx.subscriptions.push(
-    vscode.commands.registerCommand('phi.removeApiKey', async () => {
-      const picked = await pickStoredCredentialProvider('api_key', {
-        title: 'Phi: Remove API Key',
-        placeHolder: 'Select a provider to remove the API key',
-        emptyMessage: '[Phi] No API keys configured.',
-      });
-      if (!picked) return;
+    vscode.commands.registerCommand('phi.removeApiKey', async (providerId?: string, providerName?: string) => {
+      const picked = providerId
+        ? getStoredCredentialProvider('api_key', providerId, providerName)
+        : await pickStoredCredentialProvider('api_key', {
+          title: 'Phi: Remove API Key',
+          placeHolder: 'Select a provider to remove the API key',
+          emptyMessage: '[Phi] No API keys configured.',
+        });
+      if (!picked) {
+        if (providerId) vscode.window.showInformationMessage(`[Phi] No API key stored for ${providerName ?? providerId}.`);
+        return;
+      }
+
+      if (providerId) {
+        const confirmed = await confirmProviderCredentialAction(
+          'Remove API Key',
+          `Are you sure you want to remove the API key for ${picked.name}?`
+        );
+        if (!confirmed) return;
+      }
 
       AgentManager.removeApiKey(picked.id);
       const authResult = await handleAuthChange();

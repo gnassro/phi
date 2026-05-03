@@ -38,10 +38,10 @@ type WebviewMessage =
 
   // Auth & API keys
   | { type: "login" }
-  | { type: "logout" }
+  | { type: "logout"; providerId?: string; providerName?: string }
   | { type: "get_accounts" }
   | { type: "add_api_key" }
-  | { type: "remove_api_key" }
+  | { type: "remove_api_key"; providerId?: string; providerName?: string }
 
   // Tree navigation
   | { type: "get_tree" }
@@ -173,9 +173,10 @@ VscodeIPC.send({ type: "login" });
 ```
 
 #### `logout`
-Opens VS Code QuickPick to select a stored OAuth provider to log out from.
+Without a provider ID, opens VS Code QuickPick to select a stored OAuth provider. With `providerId`, asks for confirmation and logs out that specific provider directly.
 ```javascript
 VscodeIPC.send({ type: "logout" });
+VscodeIPC.send({ type: "logout", providerId: "anthropic", providerName: "Anthropic" });
 ```
 
 #### `get_accounts`
@@ -192,9 +193,10 @@ VscodeIPC.send({ type: "add_api_key" });
 ```
 
 #### `remove_api_key`
-Opens VS Code QuickPick showing providers with stored API keys, removes the selected key from `~/.phi/auth.json`.
+Without a provider ID, opens VS Code QuickPick showing providers with stored API keys. With `providerId`, asks for confirmation and removes that specific key from `~/.phi/auth.json` directly.
 ```javascript
 VscodeIPC.send({ type: "remove_api_key" });
+VscodeIPC.send({ type: "remove_api_key", providerId: "openai", providerName: "OpenAI" });
 ```
 
 ---

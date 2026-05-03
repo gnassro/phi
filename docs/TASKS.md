@@ -206,6 +206,7 @@ This file tracks all tasks for the Phi project.
 - [x] OAuth manual code input box lingering after success → cancelled via `CancellationTokenSource`
 - [x] Shared provider IDs (e.g. Anthropic) now distinguish stored OAuth vs stored API key so accounts don’t appear in the wrong section
 - [x] After auth changes, current model is reconciled to another available provider or cleared so the header can fall back to Login / Setup
+- [x] Accounts panel row actions now target the clicked provider directly and ask for confirmation instead of reopening the full provider picker
 - [x] Error-only assistant messages: inline layout with copy button at right (`.assistant-error-row`)
 - [x] Error tooltips: CSS `::after` pseudo-element via `data-error` attribute (native `title` unreliable in webviews)
 - [x] Copy button on error-only messages: `_setupCopyBtn` falls back to `.assistant-error` when `.message-content` absent
