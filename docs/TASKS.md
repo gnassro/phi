@@ -37,6 +37,7 @@ This file tracks all tasks for the Phi project.
 - [x] `public/chat-input.js` — ContentEditable rich-text input
 - [x] `public/message-renderer.js` — message DOM rendering
 - [x] `public/markdown.js` — Markdown → HTML renderer
+- [x] `public/syntax-highlighter.js` — Shiki wrapper for fenced code blocks
 - [x] `public/style.css` — basic styles
 
 ### Build & Launch
@@ -154,6 +155,8 @@ This file tracks all tasks for the Phi project.
 - [x] Proper content block handling (text + thinking interleaved)
 - [x] Restore full current branch history after compaction instead of only compacted LLM context
 - [x] Render compaction markers with expandable summaries in restored history
+- [x] Syntax-highlight assistant fenced code blocks with bundled Shiki/TextMate grammar support
+- [x] Replace code-block copy button inline handler with delegated `addEventListener` for CSP compliance
 
 ### New IPC Messages ✅
 
@@ -289,6 +292,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify session history panel lists sessions and switching works
 - [ ] Verify compaction via command palette works
 - [ ] Verify restored compacted sessions show pre-compaction messages and a compaction marker with expandable summary
+- [ ] Verify assistant code blocks are syntax-highlighted for tagged languages across several grammars, and copy buttons still work
 - [ ] Verify scroll-to-bottom button appears/hides correctly
 - [ ] Verify cost and token display updates after each assistant message
 - [ ] Verify context visualizer shows correct breakdown

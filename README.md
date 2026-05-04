@@ -37,7 +37,7 @@ Phi brings the [Pi](https://github.com/badlogic/pi-mono) AI coding agent into VS
 ## ✨ Features
 
 ### 💬 AI Chat in the Sidebar
-A full-featured chat interface right inside VS Code. Send messages, receive streamed responses, and watch the agent think and work in real time.
+A full-featured chat interface right inside VS Code. Send messages, receive streamed responses, and watch the agent think and work in real time. Assistant code blocks are syntax-highlighted across many programming languages and follow your VS Code theme.
 
 ### 🛠️ Tool Execution Cards
 See exactly what the agent is doing — read, write, edit, and bash tool calls render as collapsible cards with live output streaming, inline diffs for edits, copy buttons, and auto-collapse on completion.

@@ -89,6 +89,7 @@ phi/
 │   ├── panels.js                 ← Settings, About, Accounts, History, Skills panels
 │   ├── themes.js                 ← No-op stub (VS Code handles theming natively)
 │   ├── markdown.js               ← Markdown → HTML renderer
+│   ├── syntax-highlighter.js     ← Shiki wrapper for fenced code blocks
 │   └── style.css                 ← All styles using CSS variables
 ├── docs/
 │   ├── architecture.md           ← Full system design and data flows
@@ -115,6 +116,7 @@ phi/
 | Pi agent engine | `@mariozechner/pi-coding-agent` | The Pi SDK — runs in extension host only |
 | UI framework | Vanilla JS + CSS | No build complexity for webview |
 | Webview bundler | `esbuild` | Fast, zero-config, single-file output |
+| Syntax highlighting | `shiki` | Offline TextMate grammar highlighting in the webview |
 | TypeScript compiler | `tsc` | Type checking (`pnpm run typecheck`) |
 | VS Code types | `@types/vscode` | Full type coverage for VS Code API |
 
@@ -161,6 +163,7 @@ phi/
 │  │  panels.js            ← Side panels (settings, etc.)     │   │
 │  │  themes.js            ← No-op (VS Code theming)          │   │
 │  │  markdown.js          ← Markdown → HTML                  │   │
+│  │  syntax-highlighter.js ← Shiki wrapper                   │   │
 │  │  style.css            ← All visual styles                │   │
 │  └───────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
