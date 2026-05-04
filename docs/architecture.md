@@ -36,6 +36,7 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  public/state.js                │                             │
 │  │  public/session-sidebar.js      │                             │
 │  │  public/markdown.js             │                             │
+│  │  public/syntax-highlighter.js   │                             │
 │  │  public/themes.js  (no-op)      │                             │
 │  │  public/style.css               │                             │
 │  │                                 │                             │
@@ -170,6 +171,12 @@ Slim orchestrator (~430 lines):
 - On load: sends `request_sync` to get current state
 - Handles `pi_event` messages from extension host
 - Delegates to extracted modules: `AttachmentManager`, `ModelPicker`, `CostMonitor`, `CommandPalette`, `TreePanel`, `PromptAutocomplete`, `Panels`
+
+### `public/markdown.js`
+Renders assistant/user markdown into webview HTML. Fenced code blocks are routed through `syntax-highlighter.js`, then rendered with local copy buttons that use delegated `addEventListener` handlers instead of inline event attributes.
+
+### `public/syntax-highlighter.js`
+Wraps the bundled `shiki` full language build. It uses TextMate grammars for broad language coverage, lazily loads explicitly tagged fenced-code languages, converts Shiki's Dark+ token palette to VS Code theme variables, and falls back to escaped plain text if a grammar is unavailable.
 
 ### `public/vscode-ipc.js`
 Thin wrapper around VS Code's message API:

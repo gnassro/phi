@@ -509,6 +509,24 @@ body {
   color: var(--vscode-editor-foreground);
 }
 
+.code-block-wrapper .shiki {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--vscode-editor-background) !important;
+  color: var(--vscode-descriptionForeground, var(--vscode-editor-foreground));
+  overflow-x: auto;
+}
+
+.code-block-wrapper .shiki code {
+  display: block;
+}
+
+.code-block-wrapper .shiki .line {
+  min-height: 1.5em;
+}
+
+/* Shiki's Dark+ token colors are converted to VS Code CSS variables in JS. */
+
 /* Tables */
 .table-wrapper {
   overflow-x: auto;

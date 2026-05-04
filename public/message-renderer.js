@@ -2,7 +2,7 @@
  * Message Renderer - Renders chat messages with markdown support
  */
 
-import { renderMarkdown, renderUserMarkdown } from './markdown.js';
+import { highlightRenderedCodeBlocks, renderMarkdown, renderUserMarkdown } from './markdown.js';
 
 export class MessageRenderer {
   constructor(container) {
@@ -149,6 +149,7 @@ export class MessageRenderer {
 
     if (!isStreaming) this._setupCopyBtn(div);
     this.container.appendChild(div);
+    if (!isStreaming) highlightRenderedCodeBlocks(div);
     if (!isHistory) this.scrollToBottom();
 
     return div;
@@ -233,7 +234,7 @@ export class MessageRenderer {
       // Store raw text for finalization
       messageElement.dataset.rawText = content;
 
-      const rendered = renderMarkdown(content);
+      const rendered = renderMarkdown(content, { highlightCodeBlocks: false });
       // Keep any thinking block, update only the text part
       const thinkingBlock = contentDiv.querySelector('.streaming-thinking');
       if (thinkingBlock) {
@@ -337,6 +338,8 @@ export class MessageRenderer {
         actionsRow.insertBefore(span, actionsRow.firstChild);
       }
     }
+
+    highlightRenderedCodeBlocks(messageElement);
   }
 
   renderSystemMessage(text) {

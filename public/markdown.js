@@ -1,11 +1,13 @@
 /**
- * Lightweight Markdown renderer — no dependencies.
+ * Lightweight Markdown renderer with bundled Shiki fenced-code support.
  * Handles: headings, bold, italic, inline code, code blocks with language,
  * links, unordered/ordered lists, blockquotes, horizontal rules, tables,
  * task lists, images, paragraphs.
  */
 
-export function renderMarkdown(text) {
+import { getLanguageLabel, highlightRenderedCodeBlocks } from './syntax-highlighter.js';
+
+export function renderMarkdown(text, options = {}) {
   if (!text) return '';
 
   // Normalize line endings
@@ -13,9 +15,9 @@ export function renderMarkdown(text) {
 
   // Extract code blocks first to protect them
   const codeBlocks = [];
-  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+  text = text.replace(/```([^\n`]*)\n([\s\S]*?)```/g, (_, languageInfo, code) => {
     const idx = codeBlocks.length;
-    codeBlocks.push({ lang, code: code.replace(/\n$/, '') });
+    codeBlocks.push({ languageInfo, code: code.replace(/\n$/, '') });
     return `%%CODEBLOCK_${idx}%%`;
   });
 
@@ -68,9 +70,11 @@ export function renderMarkdown(text) {
       flushList();
       flushBlockquote();
       const block = codeBlocks[parseInt(codeMatch[1])];
-      const langLabel = block.lang || 'code';
-      html += `<div class="code-block-wrapper">`;
-      html += `<div class="code-block-header"><span>${escapeHtml(langLabel)}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>`;
+      const shouldHighlight = options.highlightCodeBlocks !== false;
+      const langLabel = getLanguageLabel(block.languageInfo);
+      const highlightAttrs = shouldHighlight ? ` data-language="${escapeHtml(block.languageInfo || '')}"` : '';
+      html += `<div class="code-block-wrapper"${highlightAttrs}>`;
+      html += `<div class="code-block-header"><span>${escapeHtml(langLabel)}</span><button class="copy-btn" type="button">Copy</button></div>`;
       html += `<pre><code>${escapeHtml(block.code)}</code></pre></div>`;
       continue;
     }
@@ -310,6 +314,8 @@ function renderInline(text) {
   return text;
 }
 
+export { highlightRenderedCodeBlocks };
+
 function escapeHtml(text) {
   return text
     .replace(/&/g, '&amp;')
@@ -318,16 +324,42 @@ function escapeHtml(text) {
     .replace(/"/g, '&quot;');
 }
 
-// Global copy function for code blocks
-window.copyCode = function(btn) {
-  const codeBlock = btn.closest('.code-block-wrapper').querySelector('code');
-  const text = codeBlock.textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => {
-      btn.textContent = 'Copy';
-      btn.classList.remove('copied');
-    }, 2000);
+installCodeBlockCopyHandler();
+
+function installCodeBlockCopyHandler() {
+  if (typeof document === 'undefined') return;
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const btn = target.closest('.code-block-header .copy-btn');
+    if (!btn) return;
+
+    const codeBlock = btn.closest('.code-block-wrapper')?.querySelector('code');
+    const text = codeBlock?.textContent || '';
+    if (!text) return;
+
+    copyText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
   });
-};
+}
+
+function copyText(text) {
+  if (navigator.clipboard) return navigator.clipboard.writeText(text);
+
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;left:-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
