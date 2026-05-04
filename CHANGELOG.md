@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.0] - 2026-05-04
+
+### Added
+- add shiki syntax highlighting for code blocks
+
+
 ## [0.5.1] - 2026-05-04
 
 ### Fixed
