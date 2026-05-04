@@ -306,11 +306,7 @@ export function forwardPiEvent(event: AgentSessionEvent): void {
  * Build and send a full state snapshot to the webview.
  */
 export function sendSync(): void {
-  const messages = AgentManager.getMessages();
-  const entries = messages.map((msg) => ({
-    type: 'message' as const,
-    message: msg,
-  }));
+  const entries = AgentManager.getHistoryEntries();
 
   const state = AgentManager.getState();
   const sessionStats = AgentManager.getSessionStats();

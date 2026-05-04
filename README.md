@@ -56,7 +56,7 @@ Phi knows what you're working on:
 Context references appear as lightweight chips showing the filename only — Pi reads the full file content itself.
 
 ### 📜 Session History
-Browse and switch between past conversations, grouped by project. Search sessions by name. Favorites supported.
+Browse and switch between past conversations, grouped by project. Search sessions by name. Favorites supported. Restored chats show the full current branch and mark where context compaction happened, with expandable compaction summaries.
 
 ### 🌿 Conversation Tree
 Navigate conversation branches, set labels on entries, and branch with optional context summaries. Full tree visualization with role icons and branch count badges.

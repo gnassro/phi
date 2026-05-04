@@ -11,6 +11,7 @@ import {
   type AgentSessionRuntime,
   type AgentSessionRuntimeDiagnostic,
   type CreateAgentSessionRuntimeFactory,
+  type SessionEntry,
   type SessionInfo,
   type SessionStats,
 } from '@mariozechner/pi-coding-agent';
@@ -285,6 +286,14 @@ export function isStreaming(): boolean {
 
 export function getMessages() {
   return session?.messages ?? [];
+}
+
+/**
+ * Full visible history for the current branch, including entries that are not
+ * part of the current LLM context after compaction. Use this for UI restore.
+ */
+export function getHistoryEntries(): SessionEntry[] {
+  return session?.sessionManager.getBranch() ?? [];
 }
 
 export function getSessionFile(): string {

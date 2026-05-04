@@ -85,6 +85,7 @@ Responsibilities:
 - `switchSession(path)` — replaces the active session via `runtime.switchSession()` and rebinds listeners
 - `newSession()` — replaces the active session via `runtime.newSession()` and rebinds listeners
 - `getSessions()` — returns `SessionManager.list(cwd)`
+- `getHistoryEntries()` — returns the full current branch from `session.sessionManager.getBranch()` so restored chats can show pre-compaction messages and compaction markers
 - `subscribe(listener)` — forward all `AgentSessionEvent` to callers
 - `dispose()` — cleans up runtime on extension deactivate
 

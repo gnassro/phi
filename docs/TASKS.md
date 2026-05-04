@@ -152,6 +152,8 @@ This file tracks all tasks for the Phi project.
 - [x] Render `toolResult` entries → attach output to tool cards
 - [x] Render thinking blocks in history assistant messages
 - [x] Proper content block handling (text + thinking interleaved)
+- [x] Restore full current branch history after compaction instead of only compacted LLM context
+- [x] Render compaction markers with expandable summaries in restored history
 
 ### New IPC Messages ✅
 
@@ -286,6 +288,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify thinking level cycling works via IPC
 - [ ] Verify session history panel lists sessions and switching works
 - [ ] Verify compaction via command palette works
+- [ ] Verify restored compacted sessions show pre-compaction messages and a compaction marker with expandable summary
 - [ ] Verify scroll-to-bottom button appears/hides correctly
 - [ ] Verify cost and token display updates after each assistant message
 - [ ] Verify context visualizer shows correct breakdown
