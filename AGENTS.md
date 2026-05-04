@@ -208,7 +208,7 @@ Full specification: `docs/ipc-protocol.md`
 | Message type | Purpose |
 |---|---|
 | `pi_event` | Raw Pi SDK `AgentSessionEvent` forwarded to webview |
-| `sync` | Full state snapshot (history, isStreaming, model, cwd) |
+| `sync` | Full state snapshot (current branch history including compaction markers, isStreaming, model, cwd) |
 | `sessions_list` | Array of `SessionInfo` for the current project |
 | `editor_context` | Active file, selection, language, diagnostics from VS Code |
 | `add_context` | Context block from editor selection or file (right-click / Cmd+Shift+L) |

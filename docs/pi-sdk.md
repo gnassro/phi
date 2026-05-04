@@ -235,15 +235,16 @@ Important details:
 
 ## Building a State Snapshot (for `sync` message)
 
-When the webview requests a full sync (`request_sync`), build this:
+When the webview requests a full sync (`request_sync`), send the current session branch, not just `session.messages`:
 
 ```typescript
+export function getHistoryEntries() {
+  return session.sessionManager.getBranch();
+}
+
 export function buildSnapshot(): SyncState {
   return {
-    entries: session.messages.map(msg => ({
-      type: "message",
-      message: msg,
-    })),
+    entries: getHistoryEntries(),
     isStreaming: session.isStreaming,
     cwd,
     sessionFile: session.sessionFile ?? "",
@@ -251,6 +252,8 @@ export function buildSnapshot(): SyncState {
   };
 }
 ```
+
+`session.messages` is the current LLM context. After compaction it contains a compaction summary plus kept/post-compaction messages, so it can omit older visible conversation messages. `session.sessionManager.getBranch()` preserves the current visible branch, including pre-compaction messages and `compaction` entries for UI markers.
 
 ---
 

@@ -457,6 +457,16 @@ function handleSync(syncState) {
 
 function renderHistory(entries) {
   for (const entry of entries) {
+    if (entry.type === 'compaction') {
+      renderCompactionMarker(entry);
+      continue;
+    }
+
+    if (entry.type === 'branch_summary') {
+      renderBranchSummaryMarker(entry);
+      continue;
+    }
+
     if (entry.type !== 'message') continue;
     const msg = entry.message;
     if (!msg) continue;
@@ -512,6 +522,87 @@ function renderHistory(entries) {
   requestAnimationFrame(() => {
     messagesEl.scrollTop = messagesEl.scrollHeight;
     requestAnimationFrame(() => { messagesEl.style.scrollBehavior = ''; });
+  });
+}
+
+function formatHistoryTimestamp(timestamp) {
+  if (!timestamp) return '';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString();
+}
+
+function formatHistoryTokens(tokens) {
+  if (typeof tokens !== 'number' || tokens <= 0) return '';
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M tokens`;
+  if (tokens >= 1_000) return `${Math.round(tokens / 1000)}k tokens`;
+  return `${tokens} tokens`;
+}
+
+function renderHistoryMarker({ className, title, meta, summary, emptySummary }) {
+  const el = document.createElement('div');
+  el.className = `history-marker ${className || ''}`.trim();
+
+  const header = document.createElement('button');
+  header.type = 'button';
+  header.className = 'history-marker-header';
+
+  const left = document.createElement('div');
+  left.className = 'history-marker-text';
+
+  const titleEl = document.createElement('div');
+  titleEl.className = 'history-marker-title';
+  titleEl.textContent = title;
+  left.appendChild(titleEl);
+
+  if (meta) {
+    const metaEl = document.createElement('div');
+    metaEl.className = 'history-marker-meta';
+    metaEl.textContent = meta;
+    left.appendChild(metaEl);
+  }
+
+  const chevron = document.createElement('span');
+  chevron.className = 'history-marker-chevron';
+  chevron.textContent = '›';
+
+  header.appendChild(left);
+  header.appendChild(chevron);
+
+  const content = document.createElement('pre');
+  content.className = 'history-marker-summary hidden';
+  content.textContent = summary || emptySummary || 'No summary available.';
+
+  header.addEventListener('click', () => {
+    el.classList.toggle('expanded');
+    content.classList.toggle('hidden');
+  });
+
+  el.appendChild(header);
+  el.appendChild(content);
+  messagesEl.appendChild(el);
+}
+
+function renderCompactionMarker(entry) {
+  const tokens = formatHistoryTokens(entry.tokensBefore);
+  const timestamp = formatHistoryTimestamp(entry.timestamp);
+  renderHistoryMarker({
+    className: 'compaction-history-marker',
+    title: 'Context compacted here',
+    meta: [tokens ? `Compacted from ${tokens}` : '', timestamp].filter(Boolean).join(' • '),
+    summary: entry.summary || '',
+    emptySummary: 'This session was compacted, but no summary was saved.',
+  });
+}
+
+function renderBranchSummaryMarker(entry) {
+  const timestamp = formatHistoryTimestamp(entry.timestamp);
+  renderHistoryMarker({
+    className: 'branch-summary-history-marker',
+    title: 'Branch summary inserted here',
+    meta: timestamp,
+    summary: entry.summary || '',
+    emptySummary: 'No branch summary text was saved.',
   });
 }
 

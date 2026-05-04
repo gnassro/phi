@@ -1762,6 +1762,71 @@ body.hide-thinking .thinking-block { display: none; }
   border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-focusBorder));
 }
 
+.history-marker {
+  margin: 12px 0;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-left: 3px solid var(--vscode-focusBorder);
+  border-radius: 6px;
+  background: var(--vscode-textBlockQuote-background, var(--vscode-editor-background));
+  overflow: hidden;
+}
+
+.history-marker-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-marker-header:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.history-marker-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.history-marker-meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.history-marker-chevron {
+  color: var(--vscode-descriptionForeground);
+  transition: transform 0.15s ease;
+}
+
+.history-marker.expanded .history-marker-chevron {
+  transform: rotate(90deg);
+}
+
+.history-marker-summary {
+  margin: 0;
+  padding: 10px;
+  border-top: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  color: var(--vscode-descriptionForeground);
+  white-space: pre-wrap;
+  font-family: var(--vscode-editor-font-family), monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.branch-summary-history-marker {
+  border-left-color: var(--vscode-symbolIcon-functionForeground, var(--vscode-focusBorder));
+}
+
 .error-message {
   padding: 8px 12px;
   margin: 8px 0;

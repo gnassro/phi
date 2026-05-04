@@ -250,7 +250,7 @@ Full state snapshot. Sent in response to `request_sync` and after session switch
 
 ```typescript
 interface SyncState {
-  entries: SessionEntry[];    // full message history
+  entries: SessionEntry[];    // current session branch, including compaction and branch_summary entries
   isStreaming: boolean;
   cwd: string;
   sessionFile: string;
