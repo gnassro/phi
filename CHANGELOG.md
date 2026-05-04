@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1] - 2026-05-04
+
+### Fixed
+- restore full branch history after compaction
+
+
 ## [0.5.0] - 2026-05-03
 
 ### Added
