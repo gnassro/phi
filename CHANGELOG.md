@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0] - 2026-05-05
+
+### Added
+- add build-time google oauth injection
+- upgrade pi sdk and add extension manager
+
+
 ## [0.6.0] - 2026-05-04
 
 ### Added

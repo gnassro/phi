@@ -7,7 +7,7 @@
 > The golden ratio of AI-powered development.
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.0-blue" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.7.0-blue" alt="Version">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
   <a href="https://github.com/gnassro/phi/stargazers"><img src="https://img.shields.io/github/stars/gnassro/phi?style=social" alt="Stars"></a>
 </p>
@@ -128,7 +128,7 @@ pnpm run build            # or: npm run build
 ```bash
 # automatically runs build first
 pnpm run package          # or: npm run package
-code --install-extension phi-agent-0.6.0.vsix
+code --install-extension phi-agent-0.7.0.vsix
 ```
 
 ---
