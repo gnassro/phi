@@ -1518,6 +1518,81 @@ body.hide-thinking .thinking-block { display: none; }
 
 .settings-value-btn:hover { border-color: var(--vscode-focusBorder); }
 
+.settings-nav-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--vscode-foreground);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.settings-nav-row:hover .settings-label,
+.settings-nav-row:hover .settings-nav-icon {
+  color: var(--vscode-textLink-foreground);
+}
+
+.settings-nav-icon {
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  align-items: center;
+}
+
+.extensions-body {
+  padding: 8px 10px 10px;
+}
+
+.extensions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.extensions-loading {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.extension-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+}
+
+.extension-name-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.extension-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.extension-id {
+  word-break: break-all;
+}
+
+.extension-row .settings-toggle {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 /* ═══════════════════════════════════════════════════════
    Session List (in history panel)
    ═══════════════════════════════════════════════════════ */

@@ -28,8 +28,9 @@ This file tracks all tasks for the Phi project.
 - [x] `src/panel-manager.ts` — WebviewPanel creation with CSP nonce
 - [x] `src/ipc-bridge.ts` — message routing between webview and extension host
 - [x] `src/editor-context.ts` — reads VS Code selection, diagnostics (read-only)
-- [x] `src/commands.ts` — all four VS Code commands registered
+- [x] `src/commands.ts` — all VS Code commands registered
 - [x] `src/utils.ts` — `getNonce()` helper for Content Security Policy
+- [x] `src/legacy-google/oauth-credentials.ts` — resolves legacy Google OAuth credentials from build-time injection or runtime env/SecretStorage
 
 ### Webview UI (`public/`)
 - [x] `public/vscode-ipc.js` — `acquireVsCodeApi()` wrapper (replaces WebSocket)
@@ -98,6 +99,7 @@ This file tracks all tasks for the Phi project.
 - [x] Thinking level cycle button
 - [x] Auto-compaction toggle
 - [x] Experimental task alert sounds toggle (local pref for success/failure sounds, still under development/testing)
+- [x] Manage Pi Extensions button opens a dedicated extension manager with enabled/disabled toggles, including the built-in legacy Google providers extension
 - [x] ~~Theme grid~~ — REMOVED: VS Code handles theming natively via `--vscode-*` variables
 - [x] Accounts section moved to separate Accounts panel
 
@@ -108,6 +110,9 @@ This file tracks all tasks for the Phi project.
 - [x] `Phi: Add API Key` kept as a command shortcut instead of a separate Accounts-panel button
 - [x] Dynamic API-key provider discovery from Pi's model registry (built-ins + custom providers)
 - [x] Guided provider env setup during Login / Setup (global env detection + Phi-local SecretStorage values)
+- [x] Legacy Google OAuth client credentials are prompted/stored via env setup instead of committed in source
+- [x] Legacy Google OAuth credentials can be embedded at build time via `PHI_EMBEDDED_GOOGLE_*` env vars for Pi-like release behavior
+- [x] `@google/genai` declared as a direct dependency so legacy Google provider imports bundle reliably under pnpm
 - [x] Shows only active accounts (logged-in OAuth + stored API keys)
 - [x] Empty state: "No accounts configured"
 - [x] Closes with ✕, overlay click, or Escape
@@ -301,7 +306,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify shared provider IDs (Anthropic) appear in the correct Accounts section depending on stored credential type
 - [ ] Verify logout/remove-key from the active model provider automatically switches to another available model, or shows Login in the header when none remain
 - [ ] Verify Bedrock shows setup guidance instead of an API-key prompt
-- [ ] Verify Cloudflare save flow asks for `CLOUDFLARE_ACCOUNT_ID`, offers global env if detected, or saves a Phi-local value otherwise
+- [ ] Verify Cloudflare save flow asks for `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_GATEWAY_ID` (for AI Gateway), offers global env if detected, or saves a Phi-local value otherwise
 - [ ] Verify Azure OpenAI setup asks for base URL or resource name after API key setup
 - [ ] Verify Bedrock setup asks for AWS profile / IAM keys / bearer token instead of an API key
 - [ ] Verify Phi-local env values are applied after reload before Pi SDK initialization
@@ -319,7 +324,7 @@ This file tracks all tasks for the Phi project.
 - [x] `CHANGELOG.md` created (required by Open VSX)
 - [x] `LICENSE` file (MIT) created
 - [x] Publisher set to `gnassro`
-- [x] Pi SDK updated to `^0.70.6`
+- [x] Pi SDK updated to `^0.73.0`
 - [x] AgentManager migrated from direct `AgentSession` replacement APIs to `AgentSessionRuntime`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window
@@ -329,8 +334,10 @@ This file tracks all tasks for the Phi project.
 - [x] `.github/workflows/publish.yml` — GitHub Actions workflow triggered on `v*` tag push
 - [x] Workflow validates tag matches `package.json` version before publishing
 - [x] Workflow runs `typecheck` → `package` → `ovsx publish`
+- [x] `.env` / `.env.*` excluded from VSIX packaging for local build secrets
 - [x] Workflow auto-generates changelog from conventional commits
 - [x] Workflow creates GitHub Release with changelog + `.vsix` attached
+- [x] `scripts/build-ext.mjs` — extension host bundler with optional build-time Google OAuth credential injection and local `.env` loading
 - [x] `scripts/release.mjs` — one-command release: bump → changelog → commit → tag → push
 - [x] `pnpm run release` / `release:status` / `release:publish` npm scripts added
 - [ ] Add `OVSX_PAT` secret to GitHub repo settings (manual, one-time)

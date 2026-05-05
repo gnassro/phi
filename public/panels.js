@@ -23,6 +23,13 @@ export class PanelsManager {
     this.btnThinkingLevel = document.getElementById('btn-thinking-level');
     this.toggleShowThinking = document.getElementById('toggle-show-thinking');
     this.toggleCompletionSound = document.getElementById('toggle-completion-sound');
+    this.manageExtensionsBtn = document.getElementById('manage-extensions-btn');
+
+    // DOM refs - Extensions
+    this.extensionsPanel = document.getElementById('extensions-panel');
+    this.extensionsOverlay = document.getElementById('extensions-overlay');
+    this.extensionsClose = document.getElementById('extensions-close');
+    this.extensionsList = document.getElementById('settings-extensions-list');
 
     // DOM refs - About
     this.aboutInfoBtn = document.getElementById('about-info-btn');
@@ -68,6 +75,14 @@ export class PanelsManager {
       const isOn = this.toggleAutoCompact.classList.contains('on');
       this.toggleAutoCompact.className = `settings-toggle${isOn ? '' : ' on'}`;
       VscodeIPC.send({ type: 'set_auto_compaction', enabled: !isOn });
+    });
+
+    this.manageExtensionsBtn.addEventListener('click', () => this.openExtensions());
+    this.extensionsClose.addEventListener('click', () => this.closeExtensions());
+    this.extensionsOverlay.addEventListener('click', () => this.closeExtensions());
+
+    VscodeIPC.on('extensions_list', (data) => {
+      this.renderExtensions(data.extensions || []);
     });
 
     this.btnThinkingLevel.addEventListener('click', () => {
@@ -169,6 +184,86 @@ export class PanelsManager {
     }
   }
 
+  openExtensions() {
+    this.closeSettings();
+    this.extensionsList.replaceChildren(this._createExtensionsLoading());
+    this.extensionsOverlay.classList.remove('hidden');
+    this.extensionsPanel.classList.remove('hidden');
+    VscodeIPC.send({ type: 'get_extensions' });
+  }
+
+  closeExtensions() {
+    this.extensionsOverlay.classList.add('hidden');
+    this.extensionsPanel.classList.add('hidden');
+  }
+
+  isExtensionsOpen() { return !this.extensionsPanel.classList.contains('hidden'); }
+
+  renderExtensions(extensions) {
+    if (!this.extensionsList) return;
+    this.extensionsList.replaceChildren();
+
+    if (extensions.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'extensions-loading';
+      empty.textContent = 'No extensions loaded.';
+      this.extensionsList.appendChild(empty);
+      return;
+    }
+
+    for (const ext of extensions) {
+      const row = document.createElement('div');
+      row.className = 'extension-row';
+
+      const labelContainer = document.createElement('div');
+      labelContainer.className = 'settings-row-text';
+
+      const nameLine = document.createElement('div');
+      nameLine.className = 'extension-name-line';
+
+      const nameLabel = document.createElement('span');
+      nameLabel.className = 'settings-label';
+      nameLabel.textContent = ext.name;
+      nameLabel.dataset.tooltip = ext.id;
+      nameLine.appendChild(nameLabel);
+
+      if (ext.isBuiltIn) {
+        const badge = document.createElement('span');
+        badge.className = 'extension-badge';
+        badge.textContent = 'Built-in';
+        nameLine.appendChild(badge);
+      }
+
+      const idLabel = document.createElement('span');
+      idLabel.className = 'settings-meta extension-id';
+      idLabel.textContent = ext.id;
+
+      labelContainer.appendChild(nameLine);
+      labelContainer.appendChild(idLabel);
+
+      const toggle = document.createElement('button');
+      toggle.className = `settings-toggle${ext.enabled ? ' on' : ''}`;
+      toggle.setAttribute('aria-label', `${ext.enabled ? 'Disable' : 'Enable'} ${ext.name}`);
+      toggle.addEventListener('click', () => {
+        const isCurrentlyOn = toggle.classList.contains('on');
+        toggle.className = `settings-toggle${isCurrentlyOn ? '' : ' on'}`;
+        toggle.setAttribute('aria-label', `${isCurrentlyOn ? 'Enable' : 'Disable'} ${ext.name}`);
+        VscodeIPC.send({ type: 'toggle_extension', id: ext.id, enabled: !isCurrentlyOn });
+      });
+
+      row.appendChild(labelContainer);
+      row.appendChild(toggle);
+      this.extensionsList.appendChild(row);
+    }
+  }
+
+  _createExtensionsLoading() {
+    const loading = document.createElement('div');
+    loading.className = 'extensions-loading';
+    loading.textContent = 'Loading extensions...';
+    return loading;
+  }
+
   // ── About ──
   openAbout() {
     this.closeSettings();
@@ -235,6 +330,7 @@ export class PanelsManager {
 
   /** Try to close the topmost open panel. Returns true if one was closed. */
   tryCloseTopmost() {
+    if (this.isExtensionsOpen()) { this.closeExtensions(); return true; }
     if (this.isSettingsOpen()) { this.closeSettings(); return true; }
     if (this.isAccountsOpen()) { this.closeAccounts(); return true; }
     if (this.isHistoryOpen()) { this.closeHistory(); return true; }

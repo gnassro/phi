@@ -17,5 +17,7 @@ pnpm-lock.yaml
 src/version.ts
 public/version.js
 scripts
+.env
+.env.*
 
 .published-version

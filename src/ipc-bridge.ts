@@ -46,6 +46,9 @@ type WebviewMessage =
   | { type: 'set_label'; entryId: string; label: string }
   // Skills
   | { type: 'get_skills' }
+  // Extensions
+  | { type: 'get_extensions' }
+  | { type: 'toggle_extension'; id: string; enabled: boolean }
   // Misc
   | { type: 'open_url'; url: string }
   | { type: 'open_file_picker' };
@@ -195,6 +198,21 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
     case 'get_skills': {
       const skills = AgentManager.getSkills();
       PanelManager.send({ type: 'skills_data', skills });
+      break;
+    }
+
+    // ── Extensions ──
+    case 'get_extensions': {
+      const extensions = AgentManager.getExtensionsList();
+      PanelManager.send({ type: 'extensions_list', extensions });
+      break;
+    }
+
+    case 'toggle_extension': {
+      const extMsg = message as { id: string; enabled: boolean };
+      await AgentManager.toggleExtension(extMsg.id, extMsg.enabled);
+      sendSync();
+      PanelManager.send({ type: 'extensions_list', extensions: AgentManager.getExtensionsList() });
       break;
     }
 

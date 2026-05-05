@@ -27,13 +27,13 @@ existing global VS Code process env values or Phi-local values stored in VS Code
 Phi-managed credentials still live in `~/.phi/auth.json`; sessions remain shared with pi CLI at
 `~/.pi/agent/sessions/`.
 
-Build: Extension host bundled with esbuild (Pi SDK `0.70.6` included). Self-contained `.vsix`
-at 1.5 MB — no `node_modules` required. Published as `gnassro` on Open VSX.
+Build: Extension host bundled with esbuild (Pi SDK `0.73.0` included). Self-contained `.vsix`
+at 1.5 MB — no `node_modules` required (though the webview bundle is slightly larger due to full Shiki language support). Published as `gnassro` on Open VSX.
 Auto-incrementing build numbers injected directly into the webview footer.
 
 Added Skills integration: Phi now fully supports Pi SDK skills. A dedicated "Skills" panel has been added to the header overlay, and typing `/` in the chat input instantly triggers an interactive slash-command autocomplete to quickly inject `/skill:name` templates.
 
-Current focus: Milestone 3 manual testing plus provider/auth UX parity work. Packaging and release automation are complete.
+Current focus: Upgraded Pi SDK to `0.73.0` with live incremental bash streaming, extracted legacy Google providers into a custom extension to preserve login flows, and implemented full offline syntax highlighting for code blocks using Shiki TextMate grammars.
 
 ---
 
