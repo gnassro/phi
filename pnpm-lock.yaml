@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@google/genai':
+        specifier: 1.46.0
+        version: 1.46.0
       '@mariozechner/pi-ai':
         specifier: 0.70.6
         version: 0.70.6(ws@8.20.0)(zod@4.3.6)

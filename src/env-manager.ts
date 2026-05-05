@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { hasEmbeddedLegacyGoogleOAuthCredentials } from './legacy-google/oauth-credentials.js';
 
 type EnvPreference = 'global' | 'local';
 
@@ -296,6 +297,26 @@ function getPreferenceKey(providerId: string, envName: string): string {
 
 function getSecretKey(providerId: string, envName: string): string {
   return `phi.env.local.${providerId}.${envName}`;
+}
+
+function getEffectiveSetup(baseSetup: ProviderEnvSetupDefinition): ProviderEnvSetupDefinition {
+  if (baseSetup.providerId === 'google-gemini-cli' && hasEmbeddedLegacyGoogleOAuthCredentials('google-gemini-cli')) {
+    return {
+      ...baseSetup,
+      intro: 'Paid Cloud Code Assist can use GOOGLE_CLOUD_PROJECT.',
+      requiredEnv: [],
+    };
+  }
+
+  if (baseSetup.providerId === 'google-antigravity' && hasEmbeddedLegacyGoogleOAuthCredentials('google-antigravity')) {
+    return {
+      ...baseSetup,
+      intro: undefined,
+      requiredEnv: [],
+    };
+  }
+
+  return baseSetup;
 }
 
 function getPreference(providerId: string, envName: string): EnvPreference | undefined {
@@ -626,9 +647,10 @@ export async function configureProviderEnvironment(
   };
 
   if (!baseSetup) return result;
-  const setup: ProviderEnvSetupDefinition = providerName && providerName !== baseSetup.name
-    ? { ...baseSetup, name: providerName }
-    : baseSetup;
+  const effectiveSetup = getEffectiveSetup(baseSetup);
+  const setup: ProviderEnvSetupDefinition = providerName && providerName !== effectiveSetup.name
+    ? { ...effectiveSetup, name: providerName }
+    : effectiveSetup;
 
   if (setup.intro) {
     const proceed = await vscode.window.showInformationMessage(

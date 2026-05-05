@@ -78,11 +78,21 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - Stored credentials live in `~/.phi/auth.json` — separate from Pi CLI auth; environment and `models.json` auth still work too
 - **Cloudflare Workers AI & AI Gateway** — guided setup for required `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_GATEWAY_ID`
 - **Amazon Bedrock** — guided setup for AWS profile, IAM keys, or bearer-token env vars
-- **Built-in legacy Google providers extension** — Phi keeps Google Cloud Code Assist (Gemini CLI) and Google Antigravity available via a built-in Pi extension, even though newer Pi SDK versions removed these providers after Google started restricting some external OAuth usage. Phi does not bundle Google OAuth client credentials; configure your own client ID/secret during **Login / Setup**. Use responsibly and follow Google's account terms; the extension can be disabled from **Settings → Manage Pi Extensions**.
+- **Built-in legacy Google providers extension** — Phi keeps Google Cloud Code Assist (Gemini CLI) and Google Antigravity available via a built-in Pi extension, even though newer Pi SDK versions removed these providers after Google started restricting some external OAuth usage. Release builds can embed Google OAuth credentials at build time for Pi-like out-of-the-box login; if none are embedded, configure your own client ID/secret during **Login / Setup**. Use responsibly and follow Google's account terms; the extension can be disabled from **Settings → Manage Pi Extensions**.
 - **No model available?** — the header model control turns into a **Login** button that opens the Accounts panel
 
 ### 🖥️ Custom Providers (Ollama, vLLM, LM Studio…)
 Phi inherits full custom provider support from the Pi SDK. Add any OpenAI-compatible local or remote model by editing `~/.pi/agent/models.json` — no extension restart needed, changes are picked up next time you open the model picker.
+
+### Maintainer note: legacy Google OAuth defaults
+To make published builds behave like Pi 0.70.6, set these as CI/local build environment secrets before packaging. For local testing, `scripts/build-ext.mjs` also loads them from `.env`. They are embedded into the generated `.vsix`, but never committed to source:
+
+```text
+PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_ID
+PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_SECRET
+PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_ID
+PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_SECRET
+```
 
 See [Custom Providers](#-custom-providers) for setup instructions.
 

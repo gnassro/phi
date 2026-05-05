@@ -73,6 +73,17 @@ phi/
 │   ├── commands.ts               ← All vscode.commands.registerCommand() calls
 │   ├── utils.ts                  ← Shared helpers (getNonce for CSP)
 │   └── legacy-google/            ← Extracted Google Gemini CLI / Antigravity providers
+│       ├── index.ts              ← Registers legacy Google providers as a Pi extension
+│       ├── oauth-credentials.ts  ← Runtime/build-time OAuth credential resolver (no committed secrets)
+│       ├── oauth-google-gemini-cli.ts ← Google Cloud Code Assist OAuth flow
+│       ├── oauth-google-antigravity.ts ← Google Antigravity OAuth flow
+│       ├── google-gemini-cli.ts  ← Streaming implementation copied from Pi 0.70.6
+│       ├── google-shared.ts      ← Shared Google request helpers
+│       ├── models.ts             ← Legacy Google model definitions
+│       ├── oauth-page.ts         ← Local OAuth callback HTML
+│       ├── pkce.ts               ← PKCE helper
+│       ├── simple-options.ts     ← Stream option helpers
+│       └── transform-messages.ts ← Google message transformation
 ├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
 │   ├── app.js                    ← Main UI coordinator (slim orchestrator)
 │   ├── vscode-ipc.js             ← VS Code IPC wrapper
@@ -100,6 +111,10 @@ phi/
 │   └── ROADMAP.md                ← Milestone-level project roadmap
 ├── assets/
 │   └── phi-icon.png              ← Extension icon (128x128, dark background)
+├── scripts/
+│   ├── build-ext.mjs             ← Bundles extension host; injects optional built-in Google OAuth creds from env
+│   ├── build-num.mjs             ← Auto-increments build metadata
+│   └── release.mjs               ← Release automation (version, changelog, tag)
 ├── AGENTS.md                     ← THIS FILE — master guide for AI agents
 ├── README.md                     ← User-facing documentation
 ├── package.json                  ← Extension manifest + dependencies
@@ -322,7 +337,9 @@ Full reference: `docs/pi-sdk.md`
 
 20. **Store Phi-local provider env values in VS Code SecretStorage.** Do not put env secrets in webview localStorage or plain JSON. `env-manager.ts` may apply values to `process.env`, but it must preserve the original global env snapshot so users can switch between global and Phi-local values.
 
-21. **Never commit OAuth client IDs/secrets or API credentials, even if copied from upstream or base64-encoded.** Public source must use env vars/SecretStorage prompts for provider credentials. GitHub push protection scans encoded values too, and blocked commits must be rewritten out of history.
+21. **Never commit OAuth client IDs/secrets or API credentials, even if copied from upstream or base64-encoded.** Public source must use env vars/SecretStorage prompts for provider credentials. Optional built-in legacy Google OAuth credentials may be injected only at build time via `PHI_EMBEDDED_GOOGLE_*` environment variables. GitHub push protection scans encoded values too, and blocked commits must be rewritten out of history.
+
+22. **Direct imports need direct dependencies.** If Phi source imports a package directly (for example legacy provider code importing `@google/genai`), list it in `package.json` dependencies even if it also exists transitively. pnpm's strict node_modules layout can make transitive-only imports fail during esbuild bundling.
 
 ---
 
@@ -390,6 +407,7 @@ pnpm run release -- minor
 - Validates tag matches `package.json` version (safety net)
 - Runs `typecheck` → `package` → `ovsx publish` → creates GitHub Release with auto-generated changelog
 - Requires `OVSX_PAT` secret in GitHub repo settings (Settings → Secrets → Actions)
+- Optional Pi-like legacy Google OAuth defaults require four GitHub Actions secrets: `PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_ID`, `PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_SECRET`, `PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_ID`, `PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_SECRET`
 
 **Version management:**
 - `scripts/release.mjs` — one-command release: queries Open VSX API, bumps, generates changelog, commits, tags, asks to push
@@ -402,7 +420,7 @@ pnpm run release -- minor
 
 **Build details:**
 - `build` — first runs `scripts/build-num.mjs` to auto-increment `.build-number` and generate `src/version.ts` / `public/version.js`, then runs `build:ext` and `build:web`
-- `build:ext` — bundles `src/extension.ts` + all dependencies (including Pi SDK) into a single `dist/extension.js` via esbuild (ESM, Node.js, minified)
+- `build:ext` — runs `scripts/build-ext.mjs` to bundle `src/extension.ts` + all dependencies (including Pi SDK) into a single `dist/extension.js` via esbuild (ESM, Node.js, minified). It loads local `.env` first (ignored by git and excluded from VSIX packaging), then optionally embeds legacy Google OAuth credentials from `PHI_EMBEDDED_GOOGLE_*` environment variables so release builds can match Pi's old out-of-box Google login without committing secrets to git.
 - `build:web` — bundles `public/app.js` (and all its module imports) into `dist/public/app.js` via esbuild (ESM) + copies `style.css`
 - `vscode` is marked as external (provided by VS Code at runtime)
 

@@ -158,7 +158,7 @@
   },
   "scripts": {
     "build": "node scripts/build-num.mjs && pnpm run build:ext && pnpm run build:web",
-    "build:ext": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --format=esm --platform=node --target=node18 --external:vscode --minify --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
+    "build:ext": "node scripts/build-ext.mjs",
     "build:web": "esbuild public/app.js --bundle --outdir=dist/public --format=esm && cp public/style.css dist/public/style.css",
     "watch": "node scripts/build-num.mjs && concurrently \"pnpm run build:ext -- --watch\" \"pnpm run build:web -- --watch\"",
     "typecheck": "tsc --noEmit",
@@ -179,6 +179,7 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
+    "@google/genai": "1.46.0",
     "@mariozechner/pi-ai": "0.70.6",
     "@mariozechner/pi-coding-agent": "^0.73.0",
     "shiki": "^4.0.2"

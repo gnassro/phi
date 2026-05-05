@@ -8,6 +8,7 @@
  */
 import { oauthErrorHtml, oauthSuccessHtml } from "./oauth-page.js";
 import { generatePKCE } from "./pkce.js";
+import { getLegacyGoogleOAuthCredentials } from "./oauth-credentials.js";
 const CALLBACK_HOST = process.env.PI_OAUTH_CALLBACK_HOST || "127.0.0.1";
 let _createServer = null;
 let _httpImportPromise = null;
@@ -16,16 +17,8 @@ if (typeof process !== "undefined" && (process.versions?.node || process.version
         _createServer = m.createServer;
     });
 }
-// Antigravity OAuth credentials are intentionally not bundled in Phi.
-const CLIENT_ID_ENV = "PHI_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_ID";
-const CLIENT_SECRET_ENV = "PHI_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_SECRET";
 function getOAuthClientCredentials() {
-    const clientId = process.env[CLIENT_ID_ENV]?.trim();
-    const clientSecret = process.env[CLIENT_SECRET_ENV]?.trim();
-    if (!clientId || !clientSecret) {
-        throw new Error(`Missing Google Antigravity OAuth credentials. Configure ${CLIENT_ID_ENV} and ${CLIENT_SECRET_ENV} from Phi Login / Setup, VS Code settings, or your shell environment.`);
-    }
-    return { clientId, clientSecret };
+    return getLegacyGoogleOAuthCredentials("google-antigravity");
 }
 const REDIRECT_URI = "http://localhost:51121/oauth-callback";
 // Antigravity requires additional scopes

@@ -18,7 +18,8 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  editor-context.ts (VS Code)    │                             │
 │  │  env-manager.ts  (provider env) │                             │
 │  │  commands.ts     (commands)     │                             │
-│  │  legacy-google/  (providers)    │                             │
+│  │  legacy-google/  (providers +   │                             │
+│  │                  OAuth resolver) │                             │
 │  │                                 │                             │
 │  │  @mariozechner/pi-coding-agent      │                         │
 │  │  (createAgentSessionRuntime runs here) │                      │
@@ -124,6 +125,9 @@ Responsibilities:
 - `watchSelection(callback)` — fires callback when user changes selection
 - `watchDiagnostics(callback)` — fires callback when errors change
 
+### `src/legacy-google/`
+Contains the Phi-maintained compatibility extension for Google Cloud Code Assist / Gemini CLI and Google Antigravity providers removed from newer Pi SDK versions. `oauth-credentials.ts` resolves Google OAuth credentials from build-time embedded values first, then runtime env/SecretStorage values. No OAuth client ID/secret is committed to source.
+
 ### `src/env-manager.ts`
 Manages Phi-local provider environment setup.
 
@@ -132,7 +136,7 @@ Responsibilities:
 - Store Phi-local env values in VS Code `SecretStorage`
 - Apply Phi-local env values to `process.env` before the Pi SDK initializes
 - Guide provider setup flows for required env vars such as `CLOUDFLARE_ACCOUNT_ID`
-- Prompt for Phi-local legacy Google OAuth client credentials instead of bundling client IDs/secrets in source
+- Prompt for Phi-local legacy Google OAuth client credentials when a build does not include embedded Google credentials
 - Prefer existing global VS Code process env vars when the user chooses them
 
 ### `src/commands.ts`
@@ -250,7 +254,8 @@ All styles use VS Code's built-in `--vscode-*` CSS variables exclusively. The ex
 node scripts/build-num.mjs
 
 # Bundle extension host (src/ + Pi SDK → dist/extension.js)
-esbuild src/extension.ts --bundle --outfile=dist/extension.js --format=esm --platform=node --external:vscode --minify
+# Optional PHI_EMBEDDED_GOOGLE_* env vars are injected here for Pi-like Google OAuth defaults.
+node scripts/build-ext.mjs
 
 # Bundle webview assets (public/ → dist/public/)
 esbuild public/app.js --bundle --outdir=dist/public
@@ -265,7 +270,7 @@ pnpm run typecheck        # or: npx tsc --noEmit
 pnpm run watch            # or: npm run watch
 ```
 
-VS Code launches the extension from `dist/extension.js` (defined in package.json `"main"` field). The Pi SDK and all dependencies are bundled into this single file — no `node_modules` needed at runtime.
+VS Code launches the extension from `dist/extension.js` (defined in package.json `"main"` field). The Pi SDK and all dependencies are bundled into this single file — no `node_modules` needed at runtime. `scripts/build-ext.mjs` loads local `.env` values before bundling. If the optional `PHI_EMBEDDED_GOOGLE_*` variables are present during `build:ext`, the resulting bundle includes legacy Google OAuth defaults so users get Pi-like Google login behavior; the values must come from CI/local secrets and must never be committed to source. `.env` / `.env.*` are ignored by git and excluded from VSIX packaging.
 
 ---
 
