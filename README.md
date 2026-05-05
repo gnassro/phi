@@ -67,6 +67,7 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - **Auto-compaction** — toggle automatic context compaction
 - **Manual compaction** — via command palette with progress indicator
 - **Experimental task alert sounds** — optional sounds for successful completion and failed runs (still under development/testing)
+- **Manage Pi Extensions** — Settings opens a dedicated extension manager where loaded Pi extensions, including the built-in legacy Google providers, can be enabled or disabled
 - **Session cost & token usage** — live display in the footer with context window visualizer
 
 ### 🔑 Accounts & Auth
@@ -75,8 +76,9 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - **Global or Phi-local env vars** — if VS Code sees an existing env var, Phi offers to use it; otherwise values can be saved locally in VS Code SecretStorage and applied only inside Phi
 - **`Phi: Add API Key` remains a shortcut** — for built-in and custom non-OAuth providers, but `Phi: Login` is now the primary entry point
 - Stored credentials live in `~/.phi/auth.json` — separate from Pi CLI auth; environment and `models.json` auth still work too
-- **Cloudflare Workers AI** — guided setup for required `CLOUDFLARE_ACCOUNT_ID`
+- **Cloudflare Workers AI & AI Gateway** — guided setup for required `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_GATEWAY_ID`
 - **Amazon Bedrock** — guided setup for AWS profile, IAM keys, or bearer-token env vars
+- **Built-in legacy Google providers extension** — Phi keeps Google Cloud Code Assist (Gemini CLI) and Google Antigravity available via a built-in Pi extension, even though newer Pi SDK versions removed these providers after Google started restricting some external OAuth usage. Phi does not bundle Google OAuth client credentials; configure your own client ID/secret during **Login / Setup**. Use responsibly and follow Google's account terms; the extension can be disabled from **Settings → Manage Pi Extensions**.
 - **No model available?** — the header model control turns into a **Login** button that opens the Accounts panel
 
 ### 🖥️ Custom Providers (Ollama, vLLM, LM Studio…)

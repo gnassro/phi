@@ -49,6 +49,9 @@ type WebviewMessage =
   | { type: "set_label"; entryId: string; label: string }
   // Skills
   | { type: "get_skills" }
+  // Extensions
+  | { type: "get_extensions" }
+  | { type: "toggle_extension"; id: string; enabled: boolean }
   // Misc
   | { type: "open_url"; url: string }
   | { type: "open_file_picker" };
@@ -219,6 +222,7 @@ type ExtensionMessage =
   | { type: "navigate_result"; success: boolean; cancelled?: boolean; error?: string }
   | { type: "open_tree" }
   | { type: "skills_data"; skills: Skill[] }
+  | { type: "extensions_list"; extensions: ExtensionInfo[] }
   | { type: "add_image_attachment"; data: string; mimeType: string };
 ```
 

@@ -98,6 +98,7 @@ This file tracks all tasks for the Phi project.
 - [x] Thinking level cycle button
 - [x] Auto-compaction toggle
 - [x] Experimental task alert sounds toggle (local pref for success/failure sounds, still under development/testing)
+- [x] Manage Pi Extensions button opens a dedicated extension manager with enabled/disabled toggles, including the built-in legacy Google providers extension
 - [x] ~~Theme grid~~ — REMOVED: VS Code handles theming natively via `--vscode-*` variables
 - [x] Accounts section moved to separate Accounts panel
 
@@ -108,6 +109,7 @@ This file tracks all tasks for the Phi project.
 - [x] `Phi: Add API Key` kept as a command shortcut instead of a separate Accounts-panel button
 - [x] Dynamic API-key provider discovery from Pi's model registry (built-ins + custom providers)
 - [x] Guided provider env setup during Login / Setup (global env detection + Phi-local SecretStorage values)
+- [x] Legacy Google OAuth client credentials are prompted/stored via env setup instead of committed in source
 - [x] Shows only active accounts (logged-in OAuth + stored API keys)
 - [x] Empty state: "No accounts configured"
 - [x] Closes with ✕, overlay click, or Escape
@@ -301,7 +303,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify shared provider IDs (Anthropic) appear in the correct Accounts section depending on stored credential type
 - [ ] Verify logout/remove-key from the active model provider automatically switches to another available model, or shows Login in the header when none remain
 - [ ] Verify Bedrock shows setup guidance instead of an API-key prompt
-- [ ] Verify Cloudflare save flow asks for `CLOUDFLARE_ACCOUNT_ID`, offers global env if detected, or saves a Phi-local value otherwise
+- [ ] Verify Cloudflare save flow asks for `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_GATEWAY_ID` (for AI Gateway), offers global env if detected, or saves a Phi-local value otherwise
 - [ ] Verify Azure OpenAI setup asks for base URL or resource name after API key setup
 - [ ] Verify Bedrock setup asks for AWS profile / IAM keys / bearer token instead of an API key
 - [ ] Verify Phi-local env values are applied after reload before Pi SDK initialization

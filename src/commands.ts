@@ -155,6 +155,14 @@ async function runProviderEnvSetup(provider: AgentManager.LoginProviderInfo): Pr
 }
 
 async function runOAuthLogin(provider: AgentManager.LoginProviderInfo): Promise<void> {
+  const envResult = await runProviderEnvSetup(provider);
+  if (!envResult.completed) {
+    vscode.window.showWarningMessage(
+      `${provider.name} login cancelled.${getEnvSetupSuffix(envResult)}`
+    );
+    return;
+  }
+
   const abortController = new AbortController();
   const manualCodeCts = new vscode.CancellationTokenSource();
 
@@ -198,7 +206,6 @@ async function runOAuthLogin(provider: AgentManager.LoginProviderInfo): Promise<
         });
 
         manualCodeCts.cancel();
-        const envResult = await runProviderEnvSetup(provider);
         const authResult = await handleAuthChange();
         const selectedModelSuffix = authResult.switchedModel && authResult.selectedModel
           ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`

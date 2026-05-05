@@ -15,6 +15,8 @@ import {
   type SessionInfo,
   type SessionStats,
 } from '@mariozechner/pi-coding-agent';
+import { legacyGoogleProvidersExtension } from './legacy-google/index.js';
+import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
 
@@ -115,11 +117,45 @@ export async function initialize(workspaceCwd: string): Promise<void> {
     sessionManager,
     sessionStartEvent,
   }) => {
+    const disabledIds = vscode.workspace.getConfiguration('phi').get<string[]>('disabledExtensions') || [];
+    const disabledSet = new Set(disabledIds.filter((id) => !id.startsWith('<inline:')));
+
+    const activeFactories = [];
+    if (!disabledSet.has('phi.legacy-google-providers')) {
+      activeFactories.push(legacyGoogleProvidersExtension);
+    }
+
     const services = await createAgentSessionServices({
       cwd: runtimeCwd,
       agentDir,
       authStorage: storage,
       modelRegistry: registry,
+      resourceLoaderOptions: {
+        extensionFactories: activeFactories,
+        extensionsOverride: (base) => {
+          const userExtensions = base.extensions.filter((ext) => !ext.path.startsWith('<inline:'));
+
+          loadedExtensions = [
+            {
+              id: 'phi.legacy-google-providers',
+              name: 'Google Cloud Code Assist & Antigravity (Legacy)',
+              enabled: !disabledSet.has('phi.legacy-google-providers'),
+              isBuiltIn: true,
+            },
+            ...userExtensions.map((ext) => ({
+              id: ext.path,
+              name: path.basename(ext.path),
+              enabled: !disabledSet.has(ext.path),
+              isBuiltIn: false,
+            })),
+          ];
+
+          return {
+            ...base,
+            extensions: base.extensions.filter((ext) => !disabledSet.has(ext.path)),
+          };
+        },
+      },
     });
 
     return {
@@ -196,6 +232,15 @@ export interface ImagePayload {
   data: string;     // raw base64 (NO data: prefix)
   mimeType: string; // 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
 }
+
+export interface ExtensionInfo {
+  id: string;
+  name: string;
+  enabled: boolean;
+  isBuiltIn: boolean;
+}
+
+let loadedExtensions: ExtensionInfo[] = [];
 
 /**
  * Send a user prompt to Pi.
@@ -782,6 +827,34 @@ export function removeApiKey(providerId: string): void {
   if (!authStorage) return;
   authStorage.remove(providerId);
   refreshModelRegistryAuthState();
+}
+
+/**
+ * Get all loaded extensions
+ */
+export function getExtensionsList(): ExtensionInfo[] {
+  return loadedExtensions;
+}
+
+/**
+ * Toggle an extension's enabled state and restart the runtime to apply changes.
+ */
+export async function toggleExtension(id: string, enabled: boolean): Promise<void> {
+  const config = vscode.workspace.getConfiguration('phi');
+  let disabledIds = [...(config.get<string[]>('disabledExtensions') || [])]
+    .filter((x) => !x.startsWith('<inline:'));
+
+  if (enabled) {
+    disabledIds = disabledIds.filter((x) => x !== id);
+  } else if (!disabledIds.includes(id)) {
+    disabledIds.push(id);
+  }
+
+  await config.update('disabledExtensions', disabledIds, vscode.ConfigurationTarget.Global);
+  
+  // Restart runtime to apply extension changes
+  await dispose();
+  await initialize(cwd);
 }
 
 // ─── Tree / branching ─────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  editor-context.ts (VS Code)    │                             │
 │  │  env-manager.ts  (provider env) │                             │
 │  │  commands.ts     (commands)     │                             │
+│  │  legacy-google/  (providers)    │                             │
 │  │                                 │                             │
 │  │  @mariozechner/pi-coding-agent      │                         │
 │  │  (createAgentSessionRuntime runs here) │                      │
@@ -131,6 +132,7 @@ Responsibilities:
 - Store Phi-local env values in VS Code `SecretStorage`
 - Apply Phi-local env values to `process.env` before the Pi SDK initializes
 - Guide provider setup flows for required env vars such as `CLOUDFLARE_ACCOUNT_ID`
+- Prompt for Phi-local legacy Google OAuth client credentials instead of bundling client IDs/secrets in source
 - Prefer existing global VS Code process env vars when the user chooses them
 
 ### `src/commands.ts`
@@ -177,6 +179,9 @@ Renders assistant/user markdown into webview HTML. Fenced code blocks are routed
 
 ### `public/syntax-highlighter.js`
 Wraps the bundled `shiki` full language build. It uses TextMate grammars for broad language coverage, lazily loads explicitly tagged fenced-code languages, converts Shiki's Dark+ token palette to VS Code theme variables, and falls back to escaped plain text if a grammar is unavailable.
+
+### `public/panels.js`
+Manages Settings, About, Accounts, History, and Skills panels. The Settings panel includes a Manage Pi Extensions row that opens a dedicated extensions box, requests `get_extensions`, renders enabled/disabled toggles, and sends `toggle_extension` so the extension host can persist the setting and restart the Pi runtime.
 
 ### `public/vscode-ipc.js`
 Thin wrapper around VS Code's message API:

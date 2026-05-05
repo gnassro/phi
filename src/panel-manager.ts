@@ -326,6 +326,15 @@ function buildWebviewHtml(
         </div>
       </div>
       <div class="settings-section">
+        <div class="settings-section-title">Extensions</div>
+        <button class="settings-nav-row" id="manage-extensions-btn">
+          <span class="settings-label">Manage Pi Extensions</span>
+          <span class="settings-nav-icon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </span>
+        </button>
+      </div>
+      <div class="settings-section">
         <div class="settings-section-title">About</div>
         <div class="settings-row" style="cursor: pointer;" id="about-info-btn">
           <span class="settings-label">Extension Info</span>
@@ -333,6 +342,24 @@ function buildWebviewHtml(
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Extensions Overlay ── -->
+  <div class="settings-overlay hidden" id="extensions-overlay"></div>
+  <div class="settings-panel hidden" id="extensions-panel">
+    <div class="settings-header">
+      <h3>Pi Extensions</h3>
+      <button class="settings-close" id="extensions-close" aria-label="Close Pi Extensions">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="settings-body extensions-body">
+      <div id="settings-extensions-list" class="extensions-list">
+        <div class="extensions-loading">Loading extensions...</div>
       </div>
     </div>
   </div>
