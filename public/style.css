@@ -933,6 +933,7 @@ body.hide-thinking .thinking-block { display: none; }
   line-height: 1.5;
   color: var(--vscode-input-foreground);
   outline: none;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 
