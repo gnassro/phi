@@ -1144,7 +1144,10 @@ body.hide-thinking .thinking-block { display: none; }
   animation: fadeIn 0.1s ease;
 }
 
-.input-footer-ctx { position: relative; }
+.input-footer-ctx {
+  position: relative;
+  margin-left: auto;
+}
 
 .context-viz-title {
   font-size: 11px;

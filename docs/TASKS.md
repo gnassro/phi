@@ -136,6 +136,7 @@ This file tracks all tasks for the Phi project.
 - [x] Show cost pill when cost > 0
 - [x] Show context percentage when token data available
 - [x] Warning (60%+) and critical (80%+) color states
+- [x] Keep context usage control pinned to the input footer's right edge when the cost pill is hidden
 
 #### Context Window Visualizer ✅
 - [x] Clickable token usage → expand context breakdown
