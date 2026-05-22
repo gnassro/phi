@@ -25,7 +25,10 @@ export class ChatInput {
       }
     };
     this.element.addEventListener('blur', saveRange);
-    this.element.addEventListener('keyup', saveRange);
+    this.element.addEventListener('keyup', () => {
+      saveRange();
+      this._revealCaret();
+    });
     this.element.addEventListener('mouseup', saveRange);
 
     // Keydown (Enter to send, Shift+Enter for newline)
@@ -99,15 +102,63 @@ export class ChatInput {
       }
     });
 
-    // Auto-resize
-    this.element.addEventListener('input', () => {
-      this.element.style.height = 'auto';
-      this.element.style.height = Math.min(this.element.scrollHeight, 200) + 'px';
-    });
+    // Auto-resize and keep the active typing line visible when the input scrolls.
+    this.element.addEventListener('input', () => this._resizeAndRevealCaret());
   }
 
   setAutocompleteActive(isActive) {
     this._autocompleteActive = isActive;
+  }
+
+  _resizeAndRevealCaret() {
+    this.element.style.height = 'auto';
+    this.element.style.height = Math.min(this.element.scrollHeight, 200) + 'px';
+    this._revealCaret();
+  }
+
+  _revealCaret() {
+    requestAnimationFrame(() => {
+      if (document.activeElement !== this.element) return;
+
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) {
+        this.element.scrollTop = this.element.scrollHeight;
+        return;
+      }
+
+      const range = sel.getRangeAt(0).cloneRange();
+      if (!this.element.contains(range.commonAncestorContainer)) return;
+      if (!range.collapsed) range.collapse(false);
+
+      const rect = this._getRangeRect(range);
+      if (!rect) {
+        this.element.scrollTop = this.element.scrollHeight;
+        return;
+      }
+
+      const inputRect = this.element.getBoundingClientRect();
+      const padding = 8;
+      const bottomOverflow = rect.bottom - (inputRect.bottom - padding);
+      if (bottomOverflow > 0) {
+        this.element.scrollTop += bottomOverflow;
+        return;
+      }
+
+      const topOverflow = (inputRect.top + padding) - rect.top;
+      if (topOverflow > 0) {
+        this.element.scrollTop -= topOverflow;
+      }
+    });
+  }
+
+  _getRangeRect(range) {
+    const rects = range.getClientRects();
+    if (rects.length > 0) return rects[rects.length - 1];
+
+    const rect = range.getBoundingClientRect();
+    if (rect && (rect.top || rect.bottom || rect.height)) return rect;
+
+    return null;
   }
 
   /**
