@@ -223,6 +223,7 @@ This file tracks all tasks for the Phi project.
 - [x] Error tooltips: CSS `::after` pseudo-element via `data-error` attribute (native `title` unreliable in webviews)
 - [x] Copy button on error-only messages: `_setupCopyBtn` falls back to `.assistant-error` when `.message-content` absent
 - [x] Paste broken in chat input: added Range API fallback when `document.execCommand('insertText')` fails in VS Code webview
+- [x] Multiline chat input now auto-scrolls to keep the active caret line visible while typing
 - [x] Image paste: added missing `e.preventDefault()` to prevent double-paste
 - [x] Stray `w` character in app.js line 8 caused entire webview JS to fail silently — removed
 - [x] Mic/voice button removed — Web Speech API not available in VS Code webviews (Electron limitation)
