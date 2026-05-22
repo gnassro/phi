@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.2] - 2026-05-22
+
+### Fixed
+- preserve pasted multiline text in chat input
+- keep multiline chat input caret visible while typing #16
+- correct context visualizer legend dot sizing
+- pin context usage control to input footer edge
+
+
 ## [0.7.1] - 2026-05-06
 
 ### Fixed
