@@ -121,7 +121,7 @@ export class CostMonitor {
 
     const segments = [
       { label: 'Cached', tokens: cacheRead, color: 'cache' },
-      { label: 'Input', tokens: input, color: 'messages' },
+      { label: 'Input', tokens: input, color: 'input' },
       { label: 'Available', tokens: free, color: 'free' },
     ];
 

@@ -1171,7 +1171,7 @@ body.hide-thinking .thinking-block { display: none; }
 }
 
 .context-bar-segment.cache { background: var(--vscode-terminal-ansiCyan, #5ac8fa); }
-.context-bar-segment.messages { background: var(--vscode-focusBorder); }
+.context-bar-segment.input { background: var(--vscode-focusBorder); }
 .context-bar-segment.free { background: transparent; }
 
 .context-legend {
@@ -1202,7 +1202,7 @@ body.hide-thinking .thinking-block { display: none; }
 }
 
 .context-legend-dot.cache { background: var(--vscode-terminal-ansiCyan, #5ac8fa); }
-.context-legend-dot.messages { background: var(--vscode-focusBorder); }
+.context-legend-dot.input { background: var(--vscode-focusBorder); }
 .context-legend-dot.free { background: var(--vscode-descriptionForeground); opacity: 0.3; }
 
 .context-legend-value { font-variant-numeric: tabular-nums; }
