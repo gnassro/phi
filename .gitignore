@@ -37,3 +37,4 @@ npm-debug.log*
 src/version.ts
 public/version.js
 /package-lock.json
+/pnpm-workspace.yaml
