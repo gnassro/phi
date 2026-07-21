@@ -1,16 +1,16 @@
 # Phi — Pi SDK Usage Reference
 
-The Pi SDK (`@mariozechner/pi-coding-agent`) is the core engine of Phi. It runs entirely in the Extension Host (Node.js). This document covers all patterns used in this project.
+The Pi SDK (`@earendil-works/pi-coding-agent`) is the core engine of Phi. It runs entirely in the Extension Host (Node.js). This document covers all patterns used in this project.
 
 Official full SDK docs:
-`/Users/macbook/.nvm/versions/node/v24.14.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/sdk.md`
+`node_modules/@earendil-works/pi-coding-agent/docs/sdk.md`
 
 ---
 
 ## Installation
 
 ```bash
-pnpm add @mariozechner/pi-coding-agent    # or: npm install @mariozechner/pi-coding-agent
+pnpm add @earendil-works/pi-coding-agent    # or: npm install @earendil-works/pi-coding-agent
 ```
 
 The SDK is the same package used by the Pi CLI tool. No separate installation.
@@ -34,7 +34,7 @@ import {
   type AgentSessionEvent,
   type AgentSessionRuntime,
   type CreateAgentSessionRuntimeFactory,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import * as os from "os";
 import * as path from "path";
 
@@ -313,7 +313,7 @@ Call this from `deactivate()` in `extension.ts` and await it.
 
 ## Key Rules
 
-1. **Only `agent-manager.ts` imports from `@mariozechner/pi-coding-agent`**. All other files go through `AgentManager`.
+1. **Only `agent-manager.ts` imports from `@earendil-works/pi-coding-agent`**. All other files go through `AgentManager`.
 
 2. **Phi uses `AgentSessionRuntime` for session replacement**. `newSession()` / `switchSession()` now go through the runtime, not `AgentSession`.
 

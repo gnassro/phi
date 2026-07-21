@@ -23,11 +23,11 @@ const version = pkg.version;
 let piSdkVersion = 'unknown';
 try {
   const require = createRequire(import.meta.url);
-  const piPkg = require('@mariozechner/pi-coding-agent/package.json');
+  const piPkg = require('@earendil-works/pi-coding-agent/package.json');
   piSdkVersion = piPkg.version;
 } catch (e) {
   // Fallback: try to read from package.json dependency spec
-  const depVersion = pkg.dependencies?.['@mariozechner/pi-coding-agent'] || 'unknown';
+  const depVersion = pkg.dependencies?.['@earendil-works/pi-coding-agent'] || 'unknown';
   piSdkVersion = depVersion.replace(/[\^~>=<]/g, '');
 }
 

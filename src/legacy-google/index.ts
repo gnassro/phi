@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { ExtensionAPI } from '@mariozechner/pi-coding-agent';
+import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { streamSimpleGoogleGeminiCli } from './google-gemini-cli.ts';
 import { geminiCliOAuthProvider } from './oauth-google-gemini-cli.ts';
 import { antigravityOAuthProvider } from './oauth-google-antigravity.ts';

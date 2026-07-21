@@ -4,8 +4,8 @@ import {
   createAgentSessionServices,
   getAgentDir,
   SessionManager,
-  AuthStorage,
   ModelRegistry,
+  ModelRuntime,
   type AgentSession,
   type AgentSessionEvent,
   type AgentSessionRuntime,
@@ -14,7 +14,18 @@ import {
   type SessionEntry,
   type SessionInfo,
   type SessionStats,
-} from '@mariozechner/pi-coding-agent';
+} from '@earendil-works/pi-coding-agent';
+import type {
+  Credential,
+  CredentialStore,
+  AuthInteraction,
+  AuthPrompt,
+  AuthEvent,
+  Provider,
+  Model,
+  Api,
+} from '@earendil-works/pi-ai';
+import { FileCredentialStore, type StoredCredential, LegacyLoginAdapter } from './credential-store.js';
 import { legacyGoogleProvidersExtension } from './legacy-google/index.js';
 import * as vscode from 'vscode';
 import * as path from 'path';
@@ -23,7 +34,7 @@ import * as os from 'os';
 /**
  * AgentManager
  *
- * The ONLY module in Phi that imports from @mariozechner/pi-coding-agent.
+ * The ONLY module in Phi that imports from @earendil-works/pi-coding-agent.
  * All other files must go through this module's exported functions.
  *
  * Owns the Pi AgentSessionRuntime lifecycle:
@@ -32,19 +43,17 @@ import * as os from 'os';
  * Auth separation:
  *   - Phi uses its own auth file: ~/.phi/auth.json
  *   - Sessions are shared with the pi CLI: ~/.pi/agent/sessions/
- *   This means Phi has its own API keys independent from the pi CLI,
- *   but both can access the same conversation history.
  *
  * Rule: session.prompt() throws if called during streaming without
  * streamingBehavior. Always check isStreaming() first or use steer()/followUp().
+ *
+ * Migrated to @earendil-works/pi-coding-agent 0.80.10 (package renamed, AuthStorage removed,
+ * ModelRuntime is now the canonical auth/model facade).
  */
 
 // ─── Auth paths ──────────────────────────────────────────────────────────────
 
-/** Phi's own config directory — separate from pi CLI's ~/.pi/agent/ */
 const PHI_CONFIG_DIR = path.join(os.homedir(), '.phi');
-
-/** Phi stores its API keys here, independent from the pi CLI */
 const PHI_AUTH_FILE = path.join(PHI_CONFIG_DIR, 'auth.json');
 
 // ─── Internal state ──────────────────────────────────────────────────────────
@@ -52,7 +61,8 @@ const PHI_AUTH_FILE = path.join(PHI_CONFIG_DIR, 'auth.json');
 let runtime: AgentSessionRuntime | null = null;
 let session: AgentSession | null = null;
 let sessionUnsubscribe: (() => void) | null = null;
-let authStorage: AuthStorage | null = null;
+let credentialStore: FileCredentialStore | null = null;
+let modelRuntime: ModelRuntime | null = null;
 let modelRegistry: ModelRegistry | null = null;
 let cwd: string = process.cwd();
 const listeners: Array<(event: AgentSessionEvent) => void> = [];
@@ -91,26 +101,63 @@ function logModelFallbackMessage(source: string, message?: string): void {
   }
 }
 
+// ─── Auth adapter: wraps FileCredentialStore as pi-ai CredentialStore ────────
+
+class PhiCredentialStore implements CredentialStore {
+  private store: FileCredentialStore;
+
+  constructor(store: FileCredentialStore) {
+    this.store = store;
+  }
+
+  async read(providerId: string): Promise<Credential | undefined> {
+    return this.store.getSync(providerId) as Credential | undefined;
+  }
+
+  async list(): Promise<readonly import('@earendil-works/pi-ai').CredentialInfo[]> {
+    const infos = await this.store.list();
+    return infos as import('@earendil-works/pi-ai').CredentialInfo[];
+  }
+
+  async modify(
+    providerId: string,
+    fn: (current: Credential | undefined) => Promise<Credential | undefined>
+  ): Promise<Credential | undefined> {
+    return this.store.modify(
+      providerId,
+      async (current) => fn(current as Credential | undefined) as Promise<StoredCredential | undefined>
+    ) as unknown as Credential | undefined;
+  }
+
+  async delete(providerId: string): Promise<void> {
+    await this.store.delete(providerId);
+  }
+}
+
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
 /**
  * Boot the Pi session runtime for the given workspace directory.
  * Called once from extension.ts activate().
  *
- * Uses SessionManager.continueRecent() so users always resume
- * the most recent conversation for this project. Creates a new
- * session if none exists.
+ * Migrated 0.80.10: AuthStorage is no longer exported. We use
+ * ModelRuntime + FileCredentialStore instead.
  */
 export async function initialize(workspaceCwd: string): Promise<void> {
   cwd = workspaceCwd;
 
-  // Phi uses its own auth file, separate from the pi CLI.
-  // Sessions are still shared (default ~/.pi/agent/sessions/).
   const agentDir = getAgentDir();
-  const storage = AuthStorage.create(PHI_AUTH_FILE);
-  const registry = ModelRegistry.create(storage);
-  authStorage = storage;
-  modelRegistry = registry;
+  credentialStore = new FileCredentialStore(PHI_AUTH_FILE);
+
+  // Create ModelRuntime with our credential store (replaces old AuthStorage).
+  const phiCredStore = new PhiCredentialStore(credentialStore);
+  modelRuntime = await ModelRuntime.create({
+    credentials: phiCredStore,
+    authPath: PHI_AUTH_FILE,
+  });
+
+  // ModelRegistry is a sync compatibility facade wrapping ModelRuntime.
+  modelRegistry = new ModelRegistry(modelRuntime);
 
   const createRuntime: CreateAgentSessionRuntimeFactory = async ({
     cwd: runtimeCwd,
@@ -128,8 +175,7 @@ export async function initialize(workspaceCwd: string): Promise<void> {
     const services = await createAgentSessionServices({
       cwd: runtimeCwd,
       agentDir,
-      authStorage: storage,
-      modelRegistry: registry,
+      modelRuntime: modelRuntime ?? undefined,
       resourceLoaderOptions: {
         extensionFactories: activeFactories,
         extensionsOverride: (base) => {
@@ -181,19 +227,10 @@ export async function initialize(workspaceCwd: string): Promise<void> {
   logModelFallbackMessage('Session startup', runtime.modelFallbackMessage);
 }
 
-/**
- * Update the CWD when the workspace changes.
- * Does NOT restart the session — the existing session keeps its history.
- * A full restart (new session) would require calling dispose() + initialize().
- */
 export function setCwd(newCwd: string): void {
   cwd = newCwd;
 }
 
-/**
- * Dispose the Pi session runtime. Called from extension.ts deactivate().
- * Failing to call this leaks the agent process.
- */
 export async function dispose(): Promise<void> {
   sessionUnsubscribe?.();
   sessionUnsubscribe = null;
@@ -201,7 +238,8 @@ export async function dispose(): Promise<void> {
   const currentRuntime = runtime;
   runtime = null;
   session = null;
-  authStorage = null;
+  credentialStore = null;
+  modelRuntime = null;
   modelRegistry = null;
   listeners.length = 0;
 
@@ -210,11 +248,6 @@ export async function dispose(): Promise<void> {
 
 // ─── Event subscription ───────────────────────────────────────────────────────
 
-/**
- * Register a listener for Pi AgentSessionEvents.
- * Used by IpcBridge to forward events to the webview.
- * Returns an unsubscribe function.
- */
 export function subscribe(
   listener: (event: AgentSessionEvent) => void
 ): () => void {
@@ -229,8 +262,8 @@ export function subscribe(
 
 export interface ImagePayload {
   type: 'image';
-  data: string;     // raw base64 (NO data: prefix)
-  mimeType: string; // 'image/png' | 'image/jpeg' | 'image/gif' | 'image/webp'
+  data: string;
+  mimeType: string;
 }
 
 export interface ExtensionInfo {
@@ -242,14 +275,6 @@ export interface ExtensionInfo {
 
 let loadedExtensions: ExtensionInfo[] = [];
 
-/**
- * Send a user prompt to Pi.
- *
- * If the agent is idle → sends immediately via session.prompt()
- * If the agent is streaming → queues via session.steer() (interrupts current turn)
- *
- * Images: strips the "data:mime;base64," prefix before sending to the SDK.
- */
 export async function prompt(
   text: string,
   images?: ImagePayload[]
@@ -258,31 +283,22 @@ export async function prompt(
 
   const imagePayloads = images?.map((img) => ({
     type: 'image' as const,
-    // Strip "data:mime;base64," prefix if present — SDK expects raw base64
     data: img.data.replace(/^data:[^;]+;base64,/, ''),
     mimeType: img.mimeType,
   }));
 
   if (session.isStreaming) {
-    // Steer: delivered after the current assistant turn finishes its tool calls
     await session.steer(text);
   } else {
     await session.prompt(text, { images: imagePayloads });
   }
 }
 
-/**
- * Queue a message to be delivered only after the agent fully finishes.
- * Use this for "after you're done, also do X" style messages.
- */
 export async function followUp(text: string): Promise<void> {
   if (!session) throw new Error('[Phi] AgentManager not initialized');
   await session.followUp(text);
 }
 
-/**
- * Abort the current Pi turn immediately.
- */
 export async function abort(): Promise<void> {
   if (!session) return;
   await session.abort();
@@ -290,18 +306,10 @@ export async function abort(): Promise<void> {
 
 // ─── Session management ───────────────────────────────────────────────────────
 
-/**
- * List all sessions for the current project (matched by CWD).
- * Returns only sessions for this workspace — no client-side filtering needed.
- */
 export async function getSessions(): Promise<SessionInfo[]> {
   return await SessionManager.list(cwd);
 }
 
-/**
- * Switch to a different session file.
- * After switching, callers should request a full sync from IpcBridge.
- */
 export async function switchSession(sessionPath: string): Promise<void> {
   if (!runtime) throw new Error('[Phi] AgentManager not initialized');
   await runtime.switchSession(sessionPath);
@@ -311,9 +319,6 @@ export async function switchSession(sessionPath: string): Promise<void> {
   logModelFallbackMessage('Session switch', runtime.modelFallbackMessage);
 }
 
-/**
- * Create a brand new empty session.
- */
 export async function newSession(): Promise<void> {
   if (!runtime) throw new Error('[Phi] AgentManager not initialized');
   await runtime.newSession();
@@ -333,10 +338,6 @@ export function getMessages() {
   return session?.messages ?? [];
 }
 
-/**
- * Full visible history for the current branch, including entries that are not
- * part of the current LLM context after compaction. Use this for UI restore.
- */
 export function getHistoryEntries(): SessionEntry[] {
   return session?.sessionManager.getBranch() ?? [];
 }
@@ -363,16 +364,14 @@ function resolveCurrentAvailableModel() {
   if (!session) return null;
   const currentModel = session.model;
   if (!currentModel) return null;
-  return session.modelRegistry.getAvailable().find(
-    (model) => model.id === currentModel.id && model.provider === currentModel.provider
+  const available = session.modelRuntime.getAvailableSnapshot();
+  return available.find(
+    (m: Model<Api>) => m.id === currentModel.id && m.provider === currentModel.provider
   ) ?? null;
 }
 
 // ─── Model & thinking ─────────────────────────────────────────────────────────
 
-/**
- * Get current agent state for the webview.
- */
 export function getState() {
   if (!session) return null;
   const model = resolveCurrentAvailableModel();
@@ -384,47 +383,33 @@ export function getState() {
   };
 }
 
-/**
- * Get all available models from the model registry.
- */
 export function getAvailableModels() {
   if (!session) return [];
-  return session.modelRegistry.getAvailable().map((m) => ({
+  return session.modelRuntime.getAvailableSnapshot().map((m: Model<Api>) => ({
     id: m.id,
     provider: m.provider,
     contextWindow: m.contextWindow,
   }));
 }
 
-/**
- * Switch to a different model by provider + modelId.
- */
 export async function setModel(provider: string, modelId: string): Promise<boolean> {
   if (!session) return false;
-  const models = session.modelRegistry.getAvailable();
-  const target = models.find((m) => m.id === modelId && m.provider === provider);
+  const models = session.modelRuntime.getAvailableSnapshot();
+  const target = models.find((m: Model<Api>) => m.id === modelId && m.provider === provider);
   if (!target) return false;
   await session.setModel(target);
   return true;
 }
 
-/**
- * Cycle thinking level. Returns the new level, or undefined if not supported.
- */
 export function cycleThinkingLevel(): string | undefined {
   if (!session) return undefined;
   return session.cycleThinkingLevel();
 }
 
-/**
- * Get session statistics (message counts, tokens, cost).
- */
 export function getSessionStats(): SessionStats | null {
   if (!session) return null;
   const stats = session.getSessionStats();
 
-  // Pi's built-in getSessionStats only sums the current state (post-compaction).
-  // To get the TRUE total cost and tokens, we must iterate over the entire session history.
   let totalInput = 0;
   let totalOutput = 0;
   let totalCacheRead = 0;
@@ -459,25 +444,16 @@ export function getSessionStats(): SessionStats | null {
   };
 }
 
-/**
- * Get context usage info (tokens used / context window).
- */
 export function getContextUsage() {
   if (!session) return null;
   return session.getContextUsage() ?? null;
 }
 
-/**
- * Trigger manual context compaction.
- */
 export async function compact(): Promise<any> {
   if (!session) return;
   return await session.compact();
 }
 
-/**
- * Enable or disable auto-compaction.
- */
 export function setAutoCompaction(enabled: boolean): void {
   if (!session) return;
   session.setAutoCompactionEnabled(enabled);
@@ -498,7 +474,6 @@ type ProviderCredentialType = 'oauth' | 'api_key';
 const BEDROCK_PROVIDER_ID = 'amazon-bedrock';
 const CLOUDFLARE_PROVIDER_ID = 'cloudflare-workers-ai';
 
-/** Built-in provider display names mirrored from Pi's interactive /login flow. */
 const API_KEY_PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   anthropic: 'Anthropic',
   [BEDROCK_PROVIDER_ID]: 'Amazon Bedrock',
@@ -561,12 +536,19 @@ export interface StoredCredentialProviderInfo {
   authType: ProviderCredentialType;
 }
 
-function getCurrentModelRegistry(): ModelRegistry | null {
-  return modelRegistry ?? session?.modelRegistry ?? null;
+function getCurrentModelRuntime(): ModelRuntime | null {
+  return modelRuntime ?? session?.modelRuntime ?? null;
 }
 
-function refreshModelRegistryAuthState(): void {
-  getCurrentModelRegistry()?.refresh();
+/**
+ * Refresh model registry auth state.
+ * Migrated 0.80.8+: refresh() is now async (was sync void).
+ */
+async function refreshModelRegistryAuthState(): Promise<void> {
+  const mr = getCurrentModelRuntime();
+  if (mr) {
+    await mr.refresh();
+  }
 }
 
 export interface AuthModelReconciliationResult {
@@ -577,18 +559,15 @@ export interface AuthModelReconciliationResult {
 
 /**
  * After auth changes, ensure the active model still points to an available model.
- * - If the current model is still available, keep it (refreshing the object reference if needed)
- * - Otherwise switch to the first available model
- * - If nothing is available anymore, clear the current model so the UI can show Login/Setup
  */
 export async function reconcileModelAfterAuthChange(): Promise<AuthModelReconciliationResult> {
   if (!session) {
     return { selectedModel: null, switchedModel: false, clearedModel: false };
   }
 
-  refreshModelRegistryAuthState();
+  await refreshModelRegistryAuthState();
 
-  const availableModels = session.modelRegistry.getAvailable();
+  const availableModels = [...session.modelRuntime.getAvailableSnapshot()] as Array<{ id: string; provider: string; contextWindow: number }>;
   const currentModel = session.model;
   const matchingModel = currentModel
     ? availableModels.find(
@@ -598,7 +577,7 @@ export async function reconcileModelAfterAuthChange(): Promise<AuthModelReconcil
 
   if (matchingModel) {
     if (currentModel !== matchingModel) {
-      session.state.model = matchingModel;
+      (session.state as any).model = matchingModel;
     }
     return {
       selectedModel: serializeModelInfo(matchingModel),
@@ -609,7 +588,7 @@ export async function reconcileModelAfterAuthChange(): Promise<AuthModelReconcil
 
   const fallbackModel = availableModels[0] ?? null;
   if (fallbackModel) {
-    await session.setModel(fallbackModel);
+    await session.setModel(fallbackModel as Model<Api>);
     return {
       selectedModel: serializeModelInfo(fallbackModel),
       switchedModel: true,
@@ -618,9 +597,6 @@ export async function reconcileModelAfterAuthChange(): Promise<AuthModelReconcil
   }
 
   if (currentModel) {
-    // Pi allows the live agent state to have no selected model; the getter docs
-    // note that `session.model` may be undefined even though the generated TS type
-    // does not currently include it.
     (session.state as any).model = undefined;
   }
 
@@ -632,14 +608,14 @@ export async function reconcileModelAfterAuthChange(): Promise<AuthModelReconcil
 }
 
 function getStoredCredentialType(providerId: string): ProviderCredentialType | null {
-  const credential = authStorage?.get(providerId);
+  const credential = credentialStore?.getSync(providerId);
   if (credential?.type === 'oauth') return 'oauth';
   if (credential?.type === 'api_key') return 'api_key';
   return null;
 }
 
 function getProviderAuthStatus(providerId: string): ProviderAuthStatusInfo {
-  const status = getCurrentModelRegistry()?.getProviderAuthStatus(providerId) ?? { configured: false };
+  const status = getCurrentModelRuntime()?.getProviderAuthStatus(providerId) ?? { configured: false };
   return {
     configured: !!status.configured,
     source: status.source as ProviderAuthSource | undefined,
@@ -671,30 +647,35 @@ function getProviderSetupHint(providerId: string): string | undefined {
 
 /**
  * Get list of available OAuth providers with login status.
+ * Migrated: uses ModelRuntime.getProviders() instead of AuthStorage.getOAuthProviders().
  */
 export function getOAuthProviders(): OAuthProviderInfo[] {
-  if (!authStorage) return [];
-  const providers = authStorage.getOAuthProviders();
-  return providers.map((provider) => ({
-    id: provider.id,
-    name: provider.name,
-    loggedIn: getStoredCredentialType(provider.id) === 'oauth',
-    authStatus: getProviderAuthStatus(provider.id),
-  }));
+  const mr = getCurrentModelRuntime();
+  if (!mr) return [];
+  const providers = mr.getProviders();
+  return providers
+    .filter((p: Provider) => p.auth?.oauth)
+    .map((p: Provider) => ({
+      id: p.id,
+      name: p.name,
+      loggedIn: getStoredCredentialType(p.id) === 'oauth',
+      authStatus: getProviderAuthStatus(p.id),
+    }));
 }
 
 /**
  * Get login-capable providers, mirroring Pi's interactive /login discovery.
- * OAuth providers come from AuthStorage. API-key providers are discovered from
- * the live model registry so built-ins and models.json custom providers stay in sync.
  */
 export function getLoginProviders(
   authType?: ProviderCredentialType
 ): LoginProviderInfo[] {
-  if (!authStorage || !session) return [];
+  const mr = getCurrentModelRuntime();
+  if (!mr || !session) return [];
 
-  const oauthProviders = authStorage.getOAuthProviders();
-  const oauthProviderIds = new Set(oauthProviders.map((provider) => provider.id));
+  const allProviders = mr.getProviders();
+  const oauthProviders = allProviders.filter((p: Provider) => p.auth?.oauth);
+  const oauthProviderIds = new Set(oauthProviders.map((p: Provider) => p.id));
+
   const providers: LoginProviderInfo[] = [];
 
   if (!authType || authType === 'oauth') {
@@ -712,7 +693,7 @@ export function getLoginProviders(
   }
 
   if (!authType || authType === 'api_key') {
-    const modelProviders = new Set(session.modelRegistry.getAll().map((model) => model.provider));
+    const modelProviders = new Set(session.modelRuntime.getModels().map((m: Model<Api>) => m.provider));
     for (const providerId of modelProviders) {
       if (!isApiKeyLoginProvider(providerId, oauthProviderIds)) continue;
       providers.push({
@@ -736,15 +717,14 @@ export function getLoginProviders(
 export function getStoredCredentialProviders(
   authType?: ProviderCredentialType
 ): StoredCredentialProviderInfo[] {
-  if (!authStorage) return [];
-
-  const oauthNameById = new Map(
-    authStorage.getOAuthProviders().map((provider) => [provider.id, provider.name])
+  const mr = getCurrentModelRuntime();
+  const nameById = new Map(
+    (mr?.getProviders() ?? []).map((p: Provider) => [p.id, p.name])
   );
 
   const providers: StoredCredentialProviderInfo[] = [];
-  for (const providerId of authStorage.list()) {
-    const credential = authStorage.get(providerId);
+  for (const providerId of credentialStore?.listIds() ?? []) {
+    const credential = credentialStore?.getSync(providerId);
     if (!credential) continue;
     const credentialType = credential.type === 'oauth' ? 'oauth' : 'api_key';
     if (authType && credentialType !== authType) continue;
@@ -752,7 +732,7 @@ export function getStoredCredentialProviders(
     providers.push({
       id: providerId,
       name: credentialType === 'oauth'
-        ? (oauthNameById.get(providerId) ?? providerId)
+        ? (nameById.get(providerId) ?? providerId)
         : getApiKeyProviderDisplayName(providerId),
       authType: credentialType,
     });
@@ -763,8 +743,7 @@ export function getStoredCredentialProviders(
 
 /**
  * Login to an OAuth provider.
- * Returns callbacks interface so the caller (commands.ts) can wire up
- * VS Code UI (open browser, show input boxes, progress notifications).
+ * Migrated 0.80.8+: Uses ModelRuntime.login() with AuthInteraction.
  */
 export async function login(
   providerId: string,
@@ -776,26 +755,38 @@ export async function login(
     signal?: AbortSignal;
   }
 ): Promise<void> {
-  if (!authStorage) throw new Error('[Phi] AgentManager not initialized');
-  await authStorage.login(providerId, callbacks);
-  refreshModelRegistryAuthState();
+  if (!modelRuntime) throw new Error('[Phi] AgentManager not initialized');
+
+  const adapter = new LegacyLoginAdapter(callbacks);
+  const interaction = adapter.toAuthInteraction();
+
+  const credential = await modelRuntime.login(providerId, 'oauth', interaction);
+
+  // Persist credential to our file-based store
+  await credentialStore!.modify(providerId, async () => credential as unknown as StoredCredential);
+  await refreshModelRegistryAuthState();
 }
 
 /**
  * Logout from a provider (clears stored OAuth credentials).
  */
-export function logout(providerId: string): void {
-  if (!authStorage) return;
-  authStorage.logout(providerId);
-  refreshModelRegistryAuthState();
+export async function logout(providerId: string): Promise<void> {
+  if (!credentialStore) return;
+  await credentialStore.delete(providerId);
+  try {
+    await modelRuntime?.logout(providerId);
+  } catch {
+    // ModelRuntime logout may fail if provider isn't registered — ignore
+  }
+  await refreshModelRegistryAuthState();
 }
 
 /**
  * Check if a provider has credentials (API key or OAuth).
  */
 export function hasAuth(providerId: string): boolean {
-  if (!authStorage) return false;
-  return authStorage.hasAuth(providerId);
+  if (!credentialStore) return false;
+  return credentialStore.has(providerId);
 }
 
 /**
@@ -814,19 +805,22 @@ export function getApiKeyProviders(): ApiKeyProviderInfo[] {
 /**
  * Set an API key for a provider. Saved directly to ~/.phi/auth.json.
  */
-export function setApiKey(providerId: string, key: string): void {
-  if (!authStorage) throw new Error('[Phi] AgentManager not initialized');
-  authStorage.set(providerId, { type: 'api_key', key });
-  refreshModelRegistryAuthState();
+export async function setApiKey(providerId: string, key: string): Promise<void> {
+  if (!credentialStore) throw new Error('[Phi] AgentManager not initialized');
+  await credentialStore.modify(providerId, async () => ({
+    type: 'api_key' as const,
+    key,
+  } as unknown as StoredCredential));
+  await refreshModelRegistryAuthState();
 }
 
 /**
  * Remove an API key for a provider.
  */
-export function removeApiKey(providerId: string): void {
-  if (!authStorage) return;
-  authStorage.remove(providerId);
-  refreshModelRegistryAuthState();
+export async function removeApiKey(providerId: string): Promise<void> {
+  if (!credentialStore) return;
+  await credentialStore.delete(providerId);
+  await refreshModelRegistryAuthState();
 }
 
 /**
@@ -851,48 +845,34 @@ export async function toggleExtension(id: string, enabled: boolean): Promise<voi
   }
 
   await config.update('disabledExtensions', disabledIds, vscode.ConfigurationTarget.Global);
-  
-  // Restart runtime to apply extension changes
+
   await dispose();
   await initialize(cwd);
 }
 
 // ─── Tree / branching ─────────────────────────────────────────────────────────
 
-/** Local mirror of SessionTreeNode (not re-exported from pi SDK package root) */
 interface SessionTreeNode {
-  entry: any; // SessionEntry
+  entry: any;
   children: SessionTreeNode[];
   label?: string;
 }
 
-/**
- * Serialized tree node for IPC — flat structure (no nested children).
- * The webview reconstructs the hierarchy using parentId + childIds.
- */
 export interface SerializedTreeNode {
   id: string;
   parentId: string | null;
   type: string;
   label?: string;
-  preview: string;        // short text preview for display
-  role?: string;          // 'user' | 'assistant' for message entries
-  childIds: string[];     // IDs of direct children (flat reference)
+  preview: string;
+  role?: string;
+  childIds: string[];
 }
 
-/**
- * Get all available skills.
- */
 export function getSkills() {
   if (!session) return [];
   return session.resourceLoader.getSkills().skills;
 }
 
-/**
- * Get the session tree structure + current leaf ID.
- * Returns a flat array of nodes (no nesting) to avoid structured clone
- * failures in postMessage for deeply nested trees.
- */
 export function getTree(): { nodes: SerializedTreeNode[]; leafId: string | null } {
   if (!session) return { nodes: [], leafId: null };
   const sm = session.sessionManager;
@@ -904,9 +884,6 @@ export function getTree(): { nodes: SerializedTreeNode[]; leafId: string | null 
   };
 }
 
-/**
- * Extract a short preview string from a tree node's entry.
- */
 function getEntryPreview(entry: any): { preview: string; role?: string } {
   let preview = '';
   let role: string | undefined;
@@ -918,7 +895,6 @@ function getEntryPreview(entry: any): { preview: string; role?: string } {
       if (typeof msg.content === 'string') {
         preview = msg.content.substring(0, 120);
       } else if (Array.isArray(msg.content)) {
-        // Collect text content
         const textParts: string[] = [];
         const toolNames: string[] = [];
         for (const block of msg.content as any[]) {
@@ -928,7 +904,7 @@ function getEntryPreview(entry: any): { preview: string; role?: string } {
             const argPreview = block.input?.path || block.input?.command?.substring(0, 50) || '';
             toolNames.push(argPreview ? `${block.name}(${argPreview})` : block.name);
           } else if (block.type === 'tool_result') {
-            // Skip tool results in preview
+            // Skip
           }
         }
         if (textParts.length > 0) {
@@ -937,7 +913,6 @@ function getEntryPreview(entry: any): { preview: string; role?: string } {
           preview = toolNames.join(', ').substring(0, 120);
         }
       }
-      // Fallback: if preview is still empty, show role
       if (!preview) {
         preview = role === 'user' ? '(empty)' : '(tool calls)';
       }
@@ -965,17 +940,10 @@ function getEntryPreview(entry: any): { preview: string; role?: string } {
   return { preview, role };
 }
 
-/**
- * Serialize the tree into a flat array of nodes.
- * Uses iterative DFS. Each node stores childIds instead of nested children,
- * keeping the payload flat so postMessage structured clone doesn't fail
- * on deeply nested sessions (~1,500+ depth crashes Chrome's cloner).
- */
 function serializeTreeFlat(roots: SessionTreeNode[]): SerializedTreeNode[] {
   const result: SerializedTreeNode[] = [];
   const stack: SessionTreeNode[] = [];
 
-  // Push roots in reverse so they appear in order
   for (let i = roots.length - 1; i >= 0; i--) {
     stack.push(roots[i]);
   }
@@ -992,7 +960,6 @@ function serializeTreeFlat(roots: SessionTreeNode[]): SerializedTreeNode[] {
       role,
       childIds: node.children.map(c => c.entry.id),
     });
-    // Push children in reverse so they're processed in order
     for (let i = node.children.length - 1; i >= 0; i--) {
       stack.push(node.children[i]);
     }
@@ -1001,9 +968,6 @@ function serializeTreeFlat(roots: SessionTreeNode[]): SerializedTreeNode[] {
   return result;
 }
 
-/**
- * Navigate to a different point in the tree.
- */
 export async function navigateTree(
   targetId: string,
   options: {

@@ -1,4 +1,4 @@
-import type { AgentSessionEvent } from '@mariozechner/pi-coding-agent';
+import type { AgentSessionEvent } from '@earendil-works/pi-coding-agent';
 import * as vscode from 'vscode';
 import * as AgentManager from './agent-manager.js';
 import * as PanelManager from './panel-manager.js';

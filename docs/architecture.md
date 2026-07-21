@@ -21,7 +21,7 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  legacy-google/  (providers +   │                             │
 │  │                  OAuth resolver) │                             │
 │  │                                 │                             │
-│  │  @mariozechner/pi-coding-agent      │                         │
+│  │  @earendil-works/pi-coding-agent      │                         │
 │  │  (createAgentSessionRuntime runs here) │                      │
 │  └──────────────┬──────────────────┘                             │
 │                 │ postMessage / onDidReceiveMessage               │
@@ -92,7 +92,7 @@ Responsibilities:
 - `subscribe(listener)` — forward all `AgentSessionEvent` to callers
 - `dispose()` — cleans up runtime on extension deactivate
 
-**Key rule:** This is the ONLY file that imports from `@mariozechner/pi-coding-agent`.
+**Key rule:** This is the ONLY file that imports from `@earendil-works/pi-coding-agent`.
 
 ### `src/panel-manager.ts`
 Manages the VS Code `WebviewPanel`.

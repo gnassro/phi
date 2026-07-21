@@ -4,7 +4,7 @@
  * Shared implementation for both google-gemini-cli and google-antigravity providers.
  * Uses the Cloud Code Assist API endpoint to access Gemini and Claude models.
  */
-import { calculateCost, AssistantMessageEventStream } from "@mariozechner/pi-ai";
+import { calculateCost, AssistantMessageEventStream } from "@earendil-works/pi-ai";
 import { convertMessages, convertTools, isThinkingPart, mapStopReasonString, mapToolChoice, retainThoughtSignature, } from "./google-shared.js";
 import { buildBaseOptions, clampReasoning } from "./simple-options.js";
 
