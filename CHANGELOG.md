@@ -18,6 +18,15 @@
 - migrate from @mariozechner/pi-coding-agent 0.73.0 to @earendil-works/pi-coding-agent 0.80.10
 
 
+## [0.7.3] - 2026-07-21
+
+### Fixed
+- add missing await to async auth calls in commands.ts
+
+### Changed
+- migrate from @mariozechner/pi-coding-agent 0.73.0 to @earendil-works/pi-coding-agent 0.80.10
+
+
 ## [0.7.2] - 2026-05-22
 
 ### Fixed
