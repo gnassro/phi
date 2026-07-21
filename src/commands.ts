@@ -250,7 +250,7 @@ async function runApiKeySetup(provider: AgentManager.LoginProviderInfo): Promise
   });
   if (!apiKey) return;
 
-  AgentManager.setApiKey(provider.id, apiKey);
+  await AgentManager.setApiKey(provider.id, apiKey);
   const envResult = await runProviderEnvSetup(provider);
   const authResult = await handleAuthChange();
 
@@ -500,7 +500,7 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
         if (!confirmed) return;
       }
 
-      AgentManager.logout(picked.id);
+      await AgentManager.logout(picked.id);
       const authResult = await handleAuthChange();
       const suffix = authResult.switchedModel && authResult.selectedModel
         ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`
@@ -547,7 +547,7 @@ export function registerCommands(ctx: vscode.ExtensionContext): void {
         if (!confirmed) return;
       }
 
-      AgentManager.removeApiKey(picked.id);
+      await AgentManager.removeApiKey(picked.id);
       const authResult = await handleAuthChange();
       const suffix = authResult.switchedModel && authResult.selectedModel
         ? ` Switched to ${authResult.selectedModel.provider}/${authResult.selectedModel.id}.`
