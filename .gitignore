@@ -36,3 +36,4 @@ npm-debug.log*
 .published-version
 src/version.ts
 public/version.js
+/package-lock.json

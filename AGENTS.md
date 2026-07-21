@@ -37,7 +37,7 @@ Do NOT leave documentation out of sync with the code. Future agents (and humans)
 
 ## What Is Phi?
 
-**Phi** (φ, the golden ratio) is a **VS Code extension** that brings the full power of the **Pi AI coding agent** (`@mariozechner/pi-coding-agent`) natively into VS Code.
+**Phi** (φ, the golden ratio) is a **VS Code extension** that brings the full power of the **Pi AI coding agent** (`@earendil-works/pi-coding-agent`) natively into VS Code.
 
 - **It is the agent itself**, running inside VS Code's Node.js extension host
 
@@ -70,6 +70,7 @@ phi/
 │   ├── ipc-bridge.ts             ← Routes messages: Webview ↔ Extension Host
 │   ├── editor-context.ts         ← Reads VS Code editor state (read-only)
 │   ├── env-manager.ts            ← Phi-local provider environment setup/storage
+│   ├── credential-store.ts       ← File-backed credential store (replaces old AuthStorage)
 │   ├── commands.ts               ← All vscode.commands.registerCommand() calls
 │   ├── utils.ts                  ← Shared helpers (getNonce for CSP)
 │   └── legacy-google/            ← Extracted Google Gemini CLI / Antigravity providers
@@ -129,7 +130,7 @@ phi/
 | Layer | Technology | Reason |
 |---|---|---|
 | Extension host language | TypeScript | Type-safe VS Code API access |
-| Pi agent engine | `@mariozechner/pi-coding-agent` | The Pi SDK — runs in extension host only |
+| Pi agent engine | `@earendil-works/pi-coding-agent` | The Pi SDK — runs in extension host only |
 | UI framework | Vanilla JS + CSS | No build complexity for webview |
 | Webview bundler | `esbuild` | Fast, zero-config, single-file output |
 | Syntax highlighting | `shiki` | Offline TextMate grammar highlighting in the webview |
@@ -153,6 +154,7 @@ phi/
 │  │  ipc-bridge.ts     ← message routing                     │   │
 │  │  editor-context.ts ← vscode.window, workspace, git       │   │
 │  │  env-manager.ts    ← Phi-local provider environment      │   │
+│  │  credential-store.ts← File-backed credential store      │   │
 │  │  commands.ts       ← vscode.commands                     │   │
 │  │                                                           │   │
 │  └───────────────┬───────────────────────────────────────────┘   │
@@ -267,7 +269,7 @@ Full specification: `docs/ipc-protocol.md`
 
 Full reference: `docs/pi-sdk.md`
 
-1. **Only `src/agent-manager.ts` imports from `@mariozechner/pi-coding-agent`.** No other file may import the Pi SDK directly.
+1. **Only `src/agent-manager.ts` imports from `@earendil-works/pi-coding-agent`.** No other file may import the Pi SDK directly.
 
 2. **Phi uses `AgentSessionRuntime` for session replacement.** `newSession()` / `switchSession()` must go through the runtime, not `AgentSession`.
 
@@ -283,7 +285,7 @@ Full reference: `docs/pi-sdk.md`
 
 8. **Call `await runtime.dispose()` in `deactivate()`.** Failing to do so leaks the agent process.
 
-9. **Mirror Pi's `/login` provider discovery from public SDK methods only.** Use `authStorage.getOAuthProviders()`, `session.modelRegistry.getAll()`, and `session.modelRegistry.getProviderAuthStatus()` instead of hardcoding API-key providers or importing Pi's internal interactive-mode code.
+9. **Mirror Pi's `/login` provider discovery from public SDK methods only.** Use `modelRuntime.getProviders()`, `modelRuntime.getAvailableSnapshot()`, and `modelRuntime.getProviderAuthStatus()` instead of hardcoding API-key providers or importing Pi's internal interactive-mode code. `AuthStorage` was removed in pi-coding-agent 0.80.8; use `ModelRuntime` + `FileCredentialStore` instead.
 
 10. **Initialize `EnvManager` before `AgentManager`.** Phi-local provider env vars must be applied to `process.env` before the Pi SDK runtime/model registry initializes.
 
@@ -297,7 +299,7 @@ Full reference: `docs/pi-sdk.md`
 
 2. **No React, no Vue, no framework.** The webview uses vanilla JS. This avoids a build pipeline for the frontend and keeps things simple. If a component pattern is needed, use plain ES6 classes.
 
-3. **Pi SDK stays in the extension host.** Never import `@mariozechner/pi-coding-agent` in any `public/` file. It is a Node.js library and will fail in Chromium.
+3. **Pi SDK stays in the extension host.** Never import `@earendil-works/pi-coding-agent` in any `public/` file. It is a Node.js library and will fail in Chromium.
 
 4. **Use `--vscode-*` CSS variables for everything.** Every color, border, and shadow must use VS Code's built-in CSS variables (e.g. `var(--vscode-editor-background)`, `var(--vscode-foreground)`). No hardcoded `#hex` or `rgb()` in component styles. No custom theme definitions — the extension follows the user's VS Code theme automatically.
 
@@ -331,7 +333,7 @@ Full reference: `docs/pi-sdk.md`
 
 17. **Send flat arrays, not deeply nested trees.** The VS Code webview `postMessage` uses structured cloning. If an object is too deeply nested (e.g., a tree with ~1,500 levels), structured clone fails silently with `Uncaught TypeError: Cannot read properties of null (reading 'channel')` inside VS Code's core. Always flatten recursive structures into arrays (e.g., using `parentId`/`childIds`) before sending via IPC.
 
-18. **Distinguish OAuth vs API-key credentials by stored credential type, not just `has()`.** Providers like `anthropic` support both flows under the same provider ID. Use `authStorage.get(providerId)?.type` when deciding whether something is "logged in" or has a stored API key, or the Accounts UI will place providers in the wrong section.
+18. **Distinguish OAuth vs API-key credentials by stored credential type, not just `has()`.** Providers like `anthropic` support both flows under the same provider ID. Use `credentialStore.getSync(providerId)?.type` when deciding whether something is "logged in" or has a stored API key, or the Accounts UI will place providers in the wrong section.
 
 19. **Header model state must clear on no-auth states.** If auth changes leave Phi with zero available models, the webview model control must reset to a Login/Setup affordance. Don’t leave stale model labels or stale context-window state visible after logout.
 
@@ -373,7 +375,8 @@ pnpm run watch            # or: npm run watch
 pnpm run package          # or: npm run package
 
 # Install locally (no marketplace needed)
-code --install-extension phi-agent-0.2.1.vsix
+code --install-extension phi-agent-[EXTENSION_VERSION].vsix
+#Example: code --install-extension phi-agent-0.2.1.vsix
 
 # Launch Extension Development Host (press F5 in VS Code)
 # Configured in .vscode/launch.json
@@ -439,8 +442,8 @@ dist/
 
 | Resource | Path | What It Provides |
 |---|---|---|
-| **Pi SDK docs** | `/Users/macbook/.nvm/versions/node/v24.14.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/sdk.md` | All Pi SDK patterns and event types |
-| **Pi extension API** | `/Users/macbook/.nvm/versions/node/v24.14.0/lib/node_modules/@mariozechner/pi-coding-agent/docs/extensions.md` | AgentSessionEvent shapes |
+| **Pi SDK docs** | `docs/sdk.md` (bundled with `@earendil-works/pi-coding-agent`) | All Pi SDK patterns and event types |
+| **Pi extension API** | `docs/extensions.md` (bundled with `@earendil-works/pi-coding-agent`) | AgentSessionEvent shapes |
 
 ---
 
