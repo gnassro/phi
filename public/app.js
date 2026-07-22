@@ -451,6 +451,13 @@ function handleSync(syncState) {
     messageRenderer.renderWelcome();
   }
 
+  // Keep the session sidebar in sync with the runtime's current session.
+  // The runtime auto-resumes the most recent session on project open
+  // (SessionManager.continueRecent), and `sync` is the canonical source of
+  // truth for that file path. Without this, opening the History panel
+  // before any user interaction shows no active row highlight.
+  sidebar.setActive(syncState.sessionFile || '');
+
   state.setStreaming(syncState.isStreaming);
   showTypingIndicator(syncState.isStreaming, 'Thinking');
   updateUI();

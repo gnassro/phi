@@ -1690,6 +1690,20 @@ body.hide-thinking .thinking-block { display: none; }
   opacity: 1;
 }
 
+/* Active session: the live runtime is bound to its file, so Pi's CLI
+   refuses to delete the active row. Mirror that by hiding the trash
+   button even on hover. */
+.session-item:hover .session-delete-btn--disabled,
+.session-delete-btn--disabled {
+  display: none;
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.session-item.active .session-delete-btn--disabled {
+  opacity: 0.4;
+}
+
 .session-meta {
   font-size: 10px;
   color: var(--vscode-descriptionForeground);

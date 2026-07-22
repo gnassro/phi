@@ -76,7 +76,8 @@ export class SessionSidebar {
     item.className = 'session-item';
     item.dataset.filePath = session.filePath || session.path || '';
 
-    if (item.dataset.filePath === this.activeSessionFile) {
+    const isActive = item.dataset.filePath === this.activeSessionFile;
+    if (isActive) {
       item.classList.add('active');
     }
 
@@ -84,11 +85,18 @@ export class SessionSidebar {
     const time = this.formatTime(session.mtime || session.modified || session.timestamp);
     const favIcon = this.isFavourite(item.dataset.filePath) ? '<span class="session-fav-icon">★</span>' : '';
 
+    // The currently-active session is bound to the live runtime; deleting it
+    // would tear down the user's conversation. Mirrors Pi's CLI: hide the
+    // delete affordance on the active row and explain why via tooltip.
+    const deleteBtnAttrs = isActive
+      ? 'class="session-delete-btn session-delete-btn--disabled" disabled aria-label="Cannot delete active session" data-tooltip="Cannot delete the active session"'
+      : 'class="session-delete-btn" aria-label="Delete Session" data-tooltip="Delete Session"';
+
     item.innerHTML = `
       <div class="session-title-row">
         ${favIcon}
         <div class="session-title" title="${this.escapeHtml(title)}">${this.escapeHtml(title)}</div>
-        <button class="session-delete-btn" aria-label="Delete Session" data-tooltip="Delete Session">🗑️</button>
+        <button ${deleteBtnAttrs}>🗑️</button>
       </div>
       <div class="session-meta">${time}</div>
     `;
@@ -103,7 +111,7 @@ export class SessionSidebar {
 
     // Delete button
     const deleteBtn = item.querySelector('.session-delete-btn');
-    if (deleteBtn) {
+    if (deleteBtn && !deleteBtn.disabled) {
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation(); // prevent selecting the session
         VscodeIPC.send({ type: 'delete_session', sessionPath: item.dataset.filePath });

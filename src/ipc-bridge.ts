@@ -24,6 +24,7 @@ type WebviewMessage =
   | { type: 'get_sessions' }
   | { type: 'switch_session'; sessionPath: string }
   | { type: 'new_session' }
+  | { type: 'delete_session'; sessionPath: string }
   // Model & Thinking
   | { type: 'get_state' }
   | { type: 'get_available_models' }
@@ -111,6 +112,14 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
     case 'new_session':
       await AgentManager.newSession();
       sendSync();
+      break;
+
+    case 'delete_session':
+      // Routed through the phi.deleteSession command so we share the
+      // existing trash-aware deletion + active-session handling logic.
+      if (message.sessionPath) {
+        await vscode.commands.executeCommand('phi.deleteSession', message.sessionPath);
+      }
       break;
 
     // ── Model & Thinking ──
