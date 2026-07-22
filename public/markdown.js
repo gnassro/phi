@@ -214,38 +214,58 @@ export function renderMarkdown(text, options = {}) {
 }
 
 /**
- * Lightweight user-message renderer — inline formatting + blockquotes only.
- * Preserves whitespace/newlines for everything else.
+ * User message renderer — preserves inline code/file tags but disables markdown formatting.
+ * Shows text as typed by the user, with only inline code blocks (especially file paths) rendered.
  */
 export function renderUserMarkdown(text) {
   if (!text) return '';
   text = text.replace(/\r\n/g, '\n');
 
+  // Extract inline code spans to protect them and detect file paths
+  const codeSpans = [];
+  text = text.replace(/`([^`]+)`/g, (_, code) => {
+    const idx = codeSpans.length;
+    // Detect file path references: contains / and looks like a path (optionally with :line-line)
+    const pathMatch = code.match(/^([a-zA-Z0-9_.\-~][a-zA-Z0-9_.\-~/]+)(?::(\d+)-(\d+))?$/);
+    const fullPath = pathMatch ? pathMatch[1] : '';
+    const fileName = fullPath ? fullPath.split('/').filter(Boolean).pop() : '';
+
+    // Must have at least one slash, not end in slash, not be a skill command, and not have spaces
+    const isFilePath = pathMatch && 
+                       fullPath.includes('/') && 
+                       !code.endsWith('/') && 
+                       !code.includes('skill:') &&
+                       fileName && 
+                       fileName.length > 0 && 
+                       !fullPath.includes(' ') && 
+                       fullPath.length < 150;
+
+    if (isFilePath) {
+      // It's a file path reference — show only filename with icon
+      const lineRange = pathMatch[2] && pathMatch[3] ? `:${pathMatch[2]}-${pathMatch[3]}` : '';
+      const label = escapeHtml(fileName + lineRange);
+      codeSpans.push(
+        `<code class="context-ref-inline" title="${escapeHtml(code)}">` +
+        `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px;opacity:0.6">` +
+        `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>` +
+        `<polyline points="14 2 14 8 20 8"/>` +
+        `</svg>${label}</code>`
+      );
+    } else {
+      codeSpans.push(`<code>${escapeHtml(code)}</code>`);
+    }
+    return `%%ICODE${idx}%%`;
+  });
+
+  // Escape HTML in the remaining text
+  text = escapeHtml(text);
+
+  // Restore inline code spans
+  text = text.replace(/%%ICODE(\d+)%%/g, (_, idx) => codeSpans[parseInt(idx)]);
+
+  // Convert newlines to <br> for display
   const lines = text.split('\n');
-  let html = '';
-  let inBlockquote = false;
-  let bqLines = [];
-
-  function flushBq() {
-    if (inBlockquote) {
-      html += '<blockquote>' + bqLines.map(l => renderInline(l)).join('<br>') + '</blockquote>';
-      inBlockquote = false;
-      bqLines = [];
-    }
-  }
-
-  for (const line of lines) {
-    if (/^>\s?/.test(line)) {
-      if (!inBlockquote) { inBlockquote = true; bqLines = []; }
-      bqLines.push(line.replace(/^>\s?/, ''));
-      continue;
-    }
-    flushBq();
-    html += renderInline(line) + '\n';
-  }
-  flushBq();
-
-  return html.replace(/\n$/, '');
+  return lines.join('<br>');
 }
 
 function renderInline(text) {
