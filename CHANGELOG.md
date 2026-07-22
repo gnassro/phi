@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.5] - 2026-07-22
+
+### Fixed
+- display user messages as plain text without markdown formatting
+- clear chat input on session sync to prevent residual whitespace
+
+
 ## [0.7.4] - 2026-07-22
 
 ### Fixed
