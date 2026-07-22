@@ -301,6 +301,7 @@ This file tracks all tasks for the Phi project.
 - [ ] Verify session history panel lists sessions and switching works
 - [ ] Verify session history trash button deletes a non-active session (moved to trash, sessions list refreshes)
 - [ ] Verify session history trash button is hidden on the currently-active session
+- [ ] Verify History panel highlights the auto-resumed session on project open (no user click required)
 - [ ] Verify compaction via command palette works
 - [ ] Verify restored compacted sessions show pre-compaction messages and a compaction marker with expandable summary
 - [ ] Verify assistant code blocks are syntax-highlighted for tagged languages across several grammars, and copy buttons still work
