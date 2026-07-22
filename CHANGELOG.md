@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.4] - 2026-07-22
+
+### Fixed
+- highlight auto-resumed session in History panel on project open
+- wire up session history delete button to phi.deleteSession command
+
+
 ## [0.7.3] - 2026-07-21
 
 ### Fixed
