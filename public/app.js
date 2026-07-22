@@ -422,6 +422,7 @@ function handleSync(syncState) {
   state.reset();
   messageRenderer.clear();
   toolCardRenderer.clear();
+  chatInput.clear();
 
   costMonitor.reset();
   costMonitor.setCost(syncState.sessionStats?.cost ?? 0);
