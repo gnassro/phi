@@ -205,6 +205,7 @@ Full specification: `docs/ipc-protocol.md`
 | `get_sessions` | Fetch session list for current project |
 | `switch_session` | Switch to a different session file |
 | `new_session` | Create a new Pi session |
+| `delete_session` | Delete a session file (routed to `phi.deleteSession`; trash-aware with modal confirm) |
 | `get_state` | Request model, thinking level, auto-compaction state |
 | `get_available_models` | Fetch list of all available models |
 | `set_model` | Switch to a different model (provider + modelId) |

@@ -24,6 +24,7 @@ type WebviewMessage =
   | { type: "get_sessions" }
   | { type: "switch_session"; sessionPath: string }
   | { type: "new_session" }
+  | { type: "delete_session"; sessionPath: string }
 
   // Model & Thinking
   | { type: "get_state" }
@@ -101,6 +102,13 @@ VscodeIPC.send({ type: "switch_session", sessionPath: "/path/to/session.jsonl" }
 Create a new Pi session.
 ```javascript
 VscodeIPC.send({ type: "new_session" });
+```
+
+#### `delete_session`
+Delete a session file by its absolute path. Routed to the `phi.deleteSession` VS Code command, which moves the file to the system trash (when supported) after a modal confirmation. The webview's session sidebar disables the trash button on the currently-active session to mirror Pi's CLI behavior; if the command is invoked with the active session's path anyway, a new session is started automatically.
+
+```javascript
+VscodeIPC.send({ type: "delete_session", sessionPath: "/path/to/session.jsonl" });
 ```
 
 ### Model & Thinking Messages
