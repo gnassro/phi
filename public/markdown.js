@@ -64,8 +64,9 @@ export function renderMarkdown(text, options = {}) {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
 
-    // Code block placeholder
-    const codeMatch = line.match(/^%%CODEBLOCK_(\d+)%%$/);
+    // Code block placeholder (allow leading/trailing whitespace — the original
+    // ``` fence may have been indented, so the placeholder can be too)
+    const codeMatch = line.match(/^\s*%%CODEBLOCK_(\d+)%%\s*$/);
     if (codeMatch) {
       flushList();
       flushBlockquote();
@@ -76,6 +77,36 @@ export function renderMarkdown(text, options = {}) {
       html += `<div class="code-block-wrapper"${highlightAttrs}>`;
       html += `<div class="code-block-header"><span>${escapeHtml(langLabel)}</span><button class="copy-btn" type="button">Copy</button></div>`;
       html += `<pre><code>${escapeHtml(block.code)}</code></pre></div>`;
+      continue;
+    }
+
+    // Inline code block placeholder — the line contains a %%CODEBLOCK_N%%
+    // marker alongside other text. This can happen when the LLM's delta
+    // stream concatenates the previous text and the code fence without a
+    // separating newline, or when the previous text has trailing whitespace
+    // that gets joined with the fence. Split the line and render the parts.
+    if (/%%CODEBLOCK_(\d+)%%/.test(line)) {
+      flushList();
+      flushBlockquote();
+      const parts = line.split(/(%%CODEBLOCK_\d+%%)/);
+      let openParagraph = false;
+      for (const part of parts) {
+        const partMatch = part.match(/^%%CODEBLOCK_(\d+)%%$/);
+        if (partMatch) {
+          if (openParagraph) { html += '</p>'; openParagraph = false; }
+          const block = codeBlocks[parseInt(partMatch[1])];
+          const shouldHighlight = options.highlightCodeBlocks !== false;
+          const langLabel = getLanguageLabel(block.languageInfo);
+          const highlightAttrs = shouldHighlight ? ` data-language="${escapeHtml(block.languageInfo || '')}"` : '';
+          html += `<div class="code-block-wrapper"${highlightAttrs}>`;
+          html += `<div class="code-block-header"><span>${escapeHtml(langLabel)}</span><button class="copy-btn" type="button">Copy</button></div>`;
+          html += `<pre><code>${escapeHtml(block.code)}</code></pre></div>`;
+        } else if (part) {
+          if (!openParagraph) { html += '<p>'; openParagraph = true; }
+          html += renderInline(part);
+        }
+      }
+      if (openParagraph) html += '</p>';
       continue;
     }
 
