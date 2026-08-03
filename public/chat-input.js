@@ -30,6 +30,14 @@ export class ChatInput {
     this._isUndoRedo = false;
     this._undoDebounceMs = 450;
     this._maxUndoSize = 100;
+    // Tracks a pending rAF that will (re)apply the selection after an
+    // undo/redo restore. We need this because assigning to `innerHTML`
+    // on a contenteditable triggers a browser DOM-normalization pass
+    // (e.g. injecting a trailing <br>) that can clobber a selection we
+    // set synchronously — the caret visibly snaps back to position 0.
+    // Deferring the selection restore to the next animation frame
+    // gives that normalization a chance to settle first.
+    this._restoreRAF = null;
 
     this.bindEvents();
     this._lastSnapshot = this._captureSnapshot();
@@ -195,6 +203,13 @@ export class ChatInput {
    *   a burst of edits is grouped into one undo step.
    */
   _trackInput(e) {
+    // If the user starts typing while a restore-RAF is still queued,
+    // cancel it — otherwise it would later try to (re)apply a stale
+    // selection from the snapshot on top of the user's new typing.
+    if (this._restoreRAF) {
+      cancelAnimationFrame(this._restoreRAF);
+      this._restoreRAF = null;
+    }
     if (this._inputDebounce) {
       clearTimeout(this._inputDebounce);
       this._inputDebounce = null;
@@ -277,18 +292,32 @@ export class ChatInput {
    * Restore a captured snapshot by replacing innerHTML and re-placing the
    * selection by text offset. Runs under the `_isUndoRedo` flag so the
    * resulting `input` event isn't re-tracked.
+   *
+   * The selection restore is deferred to the next animation frame. On
+   * a contenteditable, `innerHTML = ...` triggers a browser pass that
+   * can reset the selection (notably to position 0) right after we set
+   * it. Deferring lets those mutations settle first so the caret ends
+   * up where the snapshot says it should be.
    */
   _restoreSnapshot(snapshot) {
+    // If a previous restore is still queued, cancel it so we don't end
+    // up applying a stale selection on top of a newer restore.
+    if (this._restoreRAF) {
+      cancelAnimationFrame(this._restoreRAF);
+      this._restoreRAF = null;
+    }
     this._isUndoRedo = true;
     try {
       this.element.innerHTML = snapshot.html;
-      this._setSelectionByTextOffset(snapshot.selStart, snapshot.selEnd);
     } catch {
       this.element.innerHTML = snapshot.html;
-    } finally {
-      this._isUndoRedo = false;
     }
-    this._resizeAndRevealCaret();
+    this._restoreRAF = requestAnimationFrame(() => {
+      this._restoreRAF = null;
+      this._setSelectionByTextOffset(snapshot.selStart, snapshot.selEnd);
+      this._isUndoRedo = false;
+      this._resizeAndRevealCaret();
+    });
   }
 
   _setSelectionByTextOffset(start, end) {
