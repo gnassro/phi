@@ -297,9 +297,9 @@ The Pi SDK runs in the same Node.js process as the extension host — no externa
 | [**Pi**](https://github.com/badlogic/pi-mono) | The CLI AI coding agent (`pi` command) |
 | **Phi** | A VS Code extension that brings Pi into the editor |
 
-Phi uses the [Pi SDK](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) (`@earendil-works/pi-coding-agent@0.80.10`) to run the agent directly inside VS Code's extension host.
+Phi uses the [Pi SDK](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) (`@earendil-works/pi-coding-agent@0.83.0`) to run the agent directly inside VS Code's extension host.
 
-> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.73.0`. Newer versions may work but are not guaranteed until tested.
+> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.83.0`. Newer versions may work but are not guaranteed until tested.
 
 ---
 
