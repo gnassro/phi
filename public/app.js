@@ -714,7 +714,7 @@ VscodeIPC.on('editor_context', () => { /* future: editor context badge */ });
 VscodeIPC.on('set_theme', () => { /* no-op: VS Code handles theming */ });
 VscodeIPC.on('prefill_input', (msg) => {
   if (msg.text) {
-    chatInput.element.textContent = msg.text;
+    chatInput.setContent({ text: msg.text });
     chatInput.element.focus();
     const range = document.createRange();
     range.selectNodeContents(chatInput.element);
