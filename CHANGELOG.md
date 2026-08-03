@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.6] - 2026-08-03
+
+### Fixed
+- render code blocks in agent responses when fence is adjacent to prior text
+- defer selection restore to next frame so contenteditable normalization doesn't clobber it
+- replace native contenteditable undo with custom undo/redo for chat input
+
+### Changed
+- bump pi sdk to 0.83.0 (0.81.0 → 0.83.0)
+
+
 ## [0.7.5] - 2026-07-22
 
 ### Fixed
