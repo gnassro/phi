@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.7] - 2026-08-06
+
+### Fixed
+- bundle built-in OAuth flows for subscription login
+
+
 ## [0.7.6] - 2026-08-03
 
 ### Fixed
