@@ -344,6 +344,12 @@ Full reference: `docs/pi-sdk.md`
 
 22. **Direct imports need direct dependencies.** If Phi source imports a package directly (for example legacy provider code importing `@google/genai`), list it in `package.json` dependencies even if it also exists transitively. pnpm's strict node_modules layout can make transitive-only imports fail during esbuild bundling.
 
+23. **Register built-in OAuth flows in the single-file bundle.** `@earendil-works/pi-ai` uses bundler-opaque dynamic imports for Node-only OAuth modules. Phi must call `registerBunOAuthFlows()` from `@earendil-works/pi-ai/bun-oauth` before creating `ModelRuntime`; otherwise installed builds try to import missing `dist/<provider>.js` files during subscription login.
+
+24. **Forward OAuth device-code notifications to the browser opener.** Providers such as GitHub Copilot, Kimi Code, and xAI emit `AuthEvent` entries with `type: "device_code"`, not `auth_url`. The `LegacyLoginAdapter` must map their `verificationUri` and `userCode` to Phi's host auth callback so the login page opens and the user knows which code to enter.
+
+25. **Do not double-refresh after auth mutations.** `ModelRuntime.login()` and Phi's logout/API-key mutation paths already refresh provider availability. After a command auth change, reconcile the selected model with `{ refresh: false }`; repeating the provider refresh can cause unnecessary network work and leave slower OAuth flows such as GitHub Copilot appearing stuck.
+
 ---
 
 ## Styling Rules

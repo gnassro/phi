@@ -204,8 +204,8 @@ This file tracks all tasks for the Phi project.
 - [x] `getOAuthProviders()` — returns OAuth provider list with typed login status
 - [x] `getLoginProviders(authType)` — mirrors Pi's `/login` provider discovery using OAuth providers + model registry providers
 - [x] `getStoredCredentialProviders(authType)` — lists stored OAuth/API-key credentials for removal flows
-- [x] `login(providerId, callbacks)` — OAuth login via AuthStorage
-- [x] `logout(providerId)` — OAuth logout via AuthStorage
+- [x] `login(providerId, callbacks)` — OAuth login via `ModelRuntime.login()`
+- [x] `logout(providerId)` — OAuth logout via `ModelRuntime.logout()` + `FileCredentialStore`
 - [x] `getApiKeyProviders()` — returns dynamically discovered API-key providers with stored-key status
 - [x] `setApiKey(providerId, key)` — saves API key to `~/.phi/auth.json`
 - [x] `removeApiKey(providerId)` — removes API key from `~/.phi/auth.json`
@@ -216,6 +216,9 @@ This file tracks all tasks for the Phi project.
 - [x] Thinking block collapse broken: same CSP issue — `renderThinkingBlock` now returns DOM elements with proper event listeners
 - [x] `IpcBridge.initialize()` only called in command handler, not on activation → moved to `activate()` with idempotence guard
 - [x] OAuth manual code input box lingering after success → cancelled via `CancellationTokenSource`
+- [x] Packaged subscription login tried to import missing `dist/<provider>.js` → statically registered Pi OAuth loaders in the single-file bundle
+- [x] GitHub Copilot, Kimi Code, and xAI device-code login stayed waiting → forwarded `device_code` verification URLs to the browser opener
+- [x] OAuth completion triggered redundant model refreshes → rely on `ModelRuntime.login()` refresh and reconcile without another network refresh
 - [x] Shared provider IDs (e.g. Anthropic) now distinguish stored OAuth vs stored API key so accounts don’t appear in the wrong section
 - [x] After auth changes, current model is reconciled to another available provider or cleared so the header can fall back to Login / Setup
 - [x] Accounts panel row actions now target the clicked provider directly and ask for confirmation instead of reopening the full provider picker
@@ -327,13 +330,14 @@ This file tracks all tasks for the Phi project.
 - [x] Create a 128×128 `assets/phi-icon.png` icon
 - [x] Run `pnpm run build` (or `npm run build`) with no errors
 - [x] Extension host bundled with esbuild (Pi SDK included, no `node_modules` needed)
+- [x] Built-in Pi OAuth flows statically registered for the single-file bundle (subscription login works without adjacent provider modules)
 - [x] Run `pnpm run package` → produces a valid `.vsix` (1.5 MB, 11 files)
 - [x] `CHANGELOG.md` created (required by Open VSX)
 - [x] `LICENSE` file (MIT) created
 - [x] Publisher set to `gnassro`
 - [x] Pi SDK updated to `^0.73.0`
 - [x] Pi SDK updated to `0.80.10` (ModelRuntime + FileCredentialStore migration, AuthStorage removed in 0.80.8)
-- [x] Pi SDK updated to `0.83.0` (covers 0.81.0 → 0.83.0; no code changes required, public API surface stable)
+- [x] Pi SDK updated to `0.83.0` (covers 0.81.0 → 0.83.0; public API surface stable; bundled OAuth loaders registered for single-file installs)
 - [x] AgentManager migrated from direct `AgentSession` replacement APIs to `AgentSessionRuntime`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window

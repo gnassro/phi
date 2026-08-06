@@ -21,10 +21,11 @@ paste fixed in chat input (Range API fallback for VS Code webview), webview asse
 to prevent stale JS/CSS after rebuilds.
 
 SDK upgrade: Bumped Pi SDK from `0.80.10` → `0.83.0` (covers `0.81.0`, `0.81.1`,
-`0.82.0`, `0.82.1`, `0.83.0`). **No code changes were required** — the public API
-surface Phi uses (`ModelRuntime`, `ModelRegistry`, `AgentSessionRuntime`,
-`AgentSession`, `SessionManager`, `pi-ai` `CredentialStore` / `AuthInteraction`)
-is stable across this range. The bump is recorded in `src/version.ts` /
+`0.82.0`, `0.82.1`, `0.83.0`). The public API surface Phi uses (`ModelRuntime`,
+`ModelRegistry`, `AgentSessionRuntime`, `AgentSession`, `SessionManager`,
+`pi-ai` `CredentialStore` / `AuthInteraction`) is stable across this range. Phi
+also registers Pi's built-in OAuth loaders explicitly because the extension host
+is shipped as one esbuild bundle. The bump is recorded in `src/version.ts` /
 `public/version.js` and shown in the About panel. See `docs/pi-sdk.md`
 "Migration notes" for the full change list.
 

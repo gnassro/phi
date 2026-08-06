@@ -222,12 +222,19 @@ export class LegacyLoginAdapter {
       notify: (event) => {
         if (event.type === 'auth_url') {
           this.callbacks.onAuth({ url: event.url, instructions: event.instructions });
+        } else if (event.type === 'device_code') {
+          // Device-code providers (GitHub Copilot, Kimi Code, xAI) expose
+          // their browser URL through this event rather than auth_url.
+          // Reuse the host callback so VS Code opens the verification page.
+          this.callbacks.onAuth({
+            url: event.verificationUri,
+            instructions: `Enter code ${event.userCode} in the browser to complete sign-in.`,
+          });
         } else if (event.type === 'progress') {
           this.callbacks.onProgress?.(event.message);
         } else if (event.type === 'info') {
           if (event.message) this.callbacks.onProgress?.(event.message);
         }
-        // device_code events are handled by built-in providers only
       },
     };
   }
