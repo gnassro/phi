@@ -7,7 +7,7 @@ Official full SDK docs:
 
 > **Current SDK version: `0.83.0`** (migrated from `0.80.10`).
 > The 0.80.8 release removed `AuthStorage` and the synchronous `ModelRegistry` projection.
-> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and validated against `0.83.0` with **no further code changes** — the public SDK surface used by Phi is stable across `0.80.8 → 0.83.0`.
+> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and the public SDK surface remained stable through `0.83.0`. Phi's single-file bundle additionally registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
 
 ---
 
@@ -47,6 +47,7 @@ import {
   type AgentSessionRuntime,
   type CreateAgentSessionRuntimeFactory,
 } from '@earendil-works/pi-coding-agent';
+import { registerBunOAuthFlows } from '@earendil-works/pi-ai/bun-oauth';
 import { FileCredentialStore } from './credential-store.js';
 import * as os from 'os';
 import * as path from 'path';
@@ -67,6 +68,10 @@ function bindSession(nextSession: AgentSession) {
 
 export async function initialize(workspaceCwd: string) {
   cwd = workspaceCwd;
+
+  // Phi ships as one esbuild bundle, so make Pi's built-in OAuth flows
+  // available without runtime-relative dist/<provider>.js files.
+  registerBunOAuthFlows();
 
   const agentDir = getAgentDir();
   const authPath = path.join(os.homedir(), '.phi', 'auth.json');
@@ -116,6 +121,13 @@ export async function initialize(workspaceCwd: string) {
 `PhiCredentialStore` is a thin adapter that wraps `FileCredentialStore` and
 implements the `pi-ai` `CredentialStore` interface (read/list/modify/delete).
 See `src/credential-store.ts` for the full implementation.
+
+`@earendil-works/pi-ai` keeps its Node-only OAuth implementations behind
+bundler-opaque dynamic imports. That is useful for other runtimes, but Phi's
+single-file `dist/extension.js` has no neighboring `dist/anthropic.js`,
+`dist/openai-codex.js`, or equivalent provider files. Registering the bundled
+loaders before `ModelRuntime.create()` embeds those flows and keeps subscription
+login working in packaged installs.
 
 ---
 
@@ -243,9 +255,13 @@ Important details:
   custom providers from `~/.pi/agent/models.json`.
 - **Use `modelRuntime.getProviderAuthStatus(providerId)` for auth-source labels** (`environment`, `models_json_key`, `stored`, etc.).
 - **Check `credentialStore.getSync(providerId)?.type` before labeling a provider as logged in or having an API key.** Some providers share the same ID across OAuth and API-key flows (for example `anthropic`), so a plain `has(providerId)` check is not enough. See `AGENTS.md` rule #18.
-- **Call `await modelRuntime.refresh()` after login/logout/API-key changes** so provider availability and custom `refreshModels()` hooks stay in sync.
+- **Call `await modelRuntime.refresh()` after direct credential/API-key mutations** so provider availability and custom `refreshModels()` hooks stay in sync. `ModelRuntime.login()` and `ModelRuntime.logout()` already refresh internally; Phi's command layer only reconciles the selected model afterward.
 - **After auth changes, reconcile the active model against `modelRuntime.getAvailableSnapshot()`.** If the current model disappeared, switch to another available model; if none remain, clear the current model so the UI can fall back to Login/Setup instead of showing a stale provider. See `AGENTS.md` rule #19.
 - **Do not deep-import Pi internals from `dist/modes/interactive/*`.** Recreate the behavior from public SDK methods only.
+- **Handle both `auth_url` and `device_code` notifications.** Device-code providers
+  such as GitHub Copilot, Kimi Code, and xAI provide a `verificationUri` and
+  `userCode` through `AuthInteraction.notify()`. Phi forwards those to VS Code's
+  browser opener and displays the code while polling continues.
 
 ---
 
@@ -270,15 +286,17 @@ const interaction: AuthInteraction = {
   notify: (event) => {
     if (event.type === 'auth_url') {
       vscodeEnv.openExternal(vscode.Uri.parse(event.url));
+    } else if (event.type === 'device_code') {
+      vscodeEnv.openExternal(vscode.Uri.parse(event.verificationUri));
+      outputChannel.appendLine(`Enter code ${event.userCode} in the browser.`);
     } else if (event.type === 'progress') {
       outputChannel.appendLine(event.message);
     }
   },
 };
 
-const credential = await modelRuntime.login(providerId, 'oauth', interaction);
-await credentialStore.modify(providerId, async () => credential as StoredCredential);
-await modelRuntime.refresh();
+// ModelRuntime.login() persists the credential and refreshes availability.
+await modelRuntime.login(providerId, 'oauth', interaction);
 ```
 
 ---
@@ -408,8 +426,11 @@ Call this from `deactivate()` in `extension.ts` and await it.
 
 ### `0.80.10` → `0.83.0` (2026-07-29)
 
-**No code changes were required.** Bumping the three Pi packages in `package.json`
-was sufficient. The public API surface Phi uses is stable:
+**No API migration changes were required.** Bumping the three Pi packages in
+`package.json` preserved the public API surface Phi uses. Because Phi packages the
+extension host as one esbuild file, it separately registers the SDK's built-in
+OAuth loaders before `ModelRuntime.create()` (see the Session Initialization
+section above).
 
 - `ModelRuntime.create({ credentials, authPath })` — unchanged
 - `ModelRegistry` sync facade — unchanged

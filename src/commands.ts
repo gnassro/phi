@@ -21,7 +21,10 @@ function refreshAuthDependentUi(): void {
 }
 
 async function handleAuthChange(): Promise<AgentManager.AuthModelReconciliationResult> {
-  const result = await AgentManager.reconcileModelAfterAuthChange();
+  // AgentManager login/logout/API-key mutations already refresh ModelRuntime.
+  // Only reconcile the selected model here so subscription flows do not run a
+  // second network refresh after OAuth completion.
+  const result = await AgentManager.reconcileModelAfterAuthChange({ refresh: false });
   refreshAccountsList();
   refreshAuthDependentUi();
   return result;

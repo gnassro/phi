@@ -25,6 +25,7 @@ import type {
   Model,
   Api,
 } from '@earendil-works/pi-ai';
+import { registerBunOAuthFlows } from '@earendil-works/pi-ai/bun-oauth';
 import { FileCredentialStore, type StoredCredential, LegacyLoginAdapter } from './credential-store.js';
 import { legacyGoogleProvidersExtension } from './legacy-google/index.js';
 import * as vscode from 'vscode';
@@ -145,6 +146,12 @@ class PhiCredentialStore implements CredentialStore {
  */
 export async function initialize(workspaceCwd: string): Promise<void> {
   cwd = workspaceCwd;
+
+  // The Pi OAuth loaders normally use runtime-relative dynamic imports. Since
+  // Phi ships the extension host as one esbuild bundle, register the built-in
+  // flows statically so login does not look for dist/anthropic.js (or the
+  // equivalent module for another provider) beside dist/extension.js.
+  registerBunOAuthFlows();
 
   const agentDir = getAgentDir();
   credentialStore = new FileCredentialStore(PHI_AUTH_FILE);
@@ -560,12 +567,16 @@ export interface AuthModelReconciliationResult {
 /**
  * After auth changes, ensure the active model still points to an available model.
  */
-export async function reconcileModelAfterAuthChange(): Promise<AuthModelReconciliationResult> {
+export async function reconcileModelAfterAuthChange(
+  options: { refresh?: boolean } = {}
+): Promise<AuthModelReconciliationResult> {
   if (!session) {
     return { selectedModel: null, switchedModel: false, clearedModel: false };
   }
 
-  await refreshModelRegistryAuthState();
+  if (options.refresh !== false) {
+    await refreshModelRegistryAuthState();
+  }
 
   const availableModels = [...session.modelRuntime.getAvailableSnapshot()] as Array<{ id: string; provider: string; contextWindow: number }>;
   const currentModel = session.model;
@@ -760,11 +771,10 @@ export async function login(
   const adapter = new LegacyLoginAdapter(callbacks);
   const interaction = adapter.toAuthInteraction();
 
-  const credential = await modelRuntime.login(providerId, 'oauth', interaction);
-
-  // Persist credential to our file-based store
-  await credentialStore!.modify(providerId, async () => credential as unknown as StoredCredential);
-  await refreshModelRegistryAuthState();
+  // ModelRuntime.login() persists the credential and refreshes model
+  // availability itself. Avoid doing a second refresh here; GitHub Copilot's
+  // device-code login performs additional network work after authorization.
+  await modelRuntime.login(providerId, 'oauth', interaction);
 }
 
 /**
