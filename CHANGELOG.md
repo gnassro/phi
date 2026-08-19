@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.8] - 2026-08-19
+
+### Changed
+- bump pi sdk to 0.84.2
+
+
 ## [Unreleased]
 
 ### Changed
