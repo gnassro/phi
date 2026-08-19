@@ -5,9 +5,9 @@ The Pi SDK (`@earendil-works/pi-coding-agent`) is the core engine of Phi. It run
 Official full SDK docs:
 `node_modules/@earendil-works/pi-coding-agent/docs/sdk.md`
 
-> **Current SDK version: `0.83.0`** (migrated from `0.80.10`).
+> **Current SDK version: `0.84.2`** (migrated from `0.80.10`).
 > The 0.80.8 release removed `AuthStorage` and the synchronous `ModelRegistry` projection.
-> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and the public SDK surface remained stable through `0.83.0`. Phi's single-file bundle additionally registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
+> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and the public SDK surface remained stable through `0.84.2`. Phi's single-file bundle additionally registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
 
 ---
 
@@ -22,9 +22,9 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 The three Pi packages are pinned to the same version and must be bumped together:
 
 ```json
-"@earendil-works/pi-agent-core": "0.83.0",
-"@earendil-works/pi-ai": "0.83.0",
-"@earendil-works/pi-coding-agent": "0.83.0"
+"@earendil-works/pi-agent-core": "0.84.2",
+"@earendil-works/pi-ai": "0.84.2",
+"@earendil-works/pi-coding-agent": "0.84.2"
 ```
 
 ---
@@ -423,6 +423,45 @@ Call this from `deactivate()` in `extension.ts` and await it.
 ---
 
 ## Migration notes
+
+### `0.83.0` → `0.84.2` (2026-08-14)
+
+**No API migration changes were required.** Bumping the three Pi packages in
+`package.json` preserved the public API surface Phi uses. The 0.84.0 release
+introduced breaking changes targeted at the JSON/RPC wire protocols and a few
+`ModelRuntime`/`ModelRegistry` methods that Phi does not call (see the list
+below). Phi's in-process extension runner still emits the full `message` field
+on `message_update` events, so the streaming path is untouched.
+
+All of Phi's Pi imports are byte-identical between `0.83.0` and `0.84.2`:
+
+- `createAgentSessionFromServices` / `createAgentSessionRuntime` / `createAgentSessionServices` — unchanged
+- `getAgentDir`, `SessionManager` (`.continueRecent()`, `.list()`) — unchanged
+- `ModelRuntime` (`.create()`, `.refresh()`, `.login()`, `.logout()`, `.getProviders()`, `.getProviderAuthStatus()`, `.getAvailableSnapshot()`, `.getModels()`) — unchanged
+- `ModelRegistry` sync facade — unchanged
+- `AgentSessionRuntime` / `AgentSessionRuntimeDiagnostic` / `CreateAgentSessionRuntimeFactory` — unchanged
+- `AgentSession` public methods (`subscribe`, `prompt`, `steer`, `followUp`, `abort`, `setModel`, `cycleThinkingLevel`, `compact`, `setAutoCompactionEnabled`, `navigateTree`, `getSessionStats`, `getContextUsage`, `model`, `modelRuntime`, `state`, `messages`, `sessionManager`, `sessionFile`, `sessionName`, `thinkingLevel`, `autoCompactionEnabled`, `isStreaming`, `resourceLoader.getSkills()`) — unchanged
+- `SessionInfo` / `SessionEntry` / `SessionStats` — unchanged
+- `@earendil-works/pi-ai` `CredentialStore` / `Credential` / `CredentialInfo` / `AuthInteraction` / `AuthPrompt` / `AuthEvent` / `Provider` / `Model` / `Api` — unchanged
+- `registerBunOAuthFlows` from `@earendil-works/pi-ai/bun-oauth` — unchanged
+- `ExtensionAPI` (used by `src/legacy-google/index.ts`) — unchanged
+
+Notable upstream changes since 0.83.0 that are inert for Phi:
+
+- **0.84.0**: JSON and RPC `message_update` events now emit only `assistantMessageEvent` deltas (no cumulative `message` field, no `assistantMessageEvent.partial`). Phi forwards events from the in-process extension runner (`AgentSession._emitExtensionEvent`), which still emits the full `message` and `assistantMessageEvent` pair in both 0.83.0 and 0.84.2. Phi only reads `event.assistantMessageEvent` deltas in `public/app.js`, so it stays compatible regardless.
+- **0.84.0**: `ModelRegistry.refresh()` signature change (`ModelsRefreshOptions`/`ModelsRefreshResult`). Phi uses `ModelRuntime.refresh()` (signature identical) instead, so this is inert.
+- **0.84.0**: `ModelRuntime.setRuntimeApiKey()` / `removeRuntimeApiKey()` / `checkAuth()` / `getAvailable()` / `listCredentials()` now take an `AuthOperationOptions` parameter instead of `ModelsRefreshOptions`. Phi does not call any of these methods directly.
+- **0.84.0**: `ModelRegistry.getApiKeyAndHeaders()` return type changed (`string | null` headers). Phi does not call this method.
+- **0.84.0**: Config-form extension OAuth `refreshToken()` callbacks must accept an `AbortSignal`. Phi uses Pi's built-in OAuth flows via `registerBunOAuthFlows()` and does not register OAuth providers through the config-form `pi.registerProvider(name, { oauth })` API, so this is inert.
+- **0.84.0**: `ModelsStreamTransforms` renamed to `ModelsRequestTransforms` (its header transformation now applies to all authenticated provider requests). Phi does not use these types.
+- **0.84.0**: `pi-agent-core`'s inherited `AgentHarness` v2/v3 session APIs were replaced with the v4 lane-based `Session` / `SessionStorage` / `SessionRepo` APIs. Phi imports its types from `@earendil-works/pi-coding-agent`, not `pi-agent-core` directly, and only uses `SessionManager` / `SessionEntry` / `SessionInfo`, which are still exported unchanged.
+- **0.84.0**: New built-in Baseten provider and `pi auth check` preflight. Phi's `getLoginProviders()` already discovers providers via `modelRuntime.getProviders()` / `getModels()`, so they appear automatically without code changes.
+- **0.84.0**: New `CredentialSynchronizationError` and `ModelRuntimeAuthOverrides extends AuthOperationOptions`. Phi does not catch this error class specifically and does not construct `ModelRuntimeAuthOverrides`, so no migration is required.
+- **0.84.0**: New transitive dependencies `@earendil-works/pi-client` and `@earendil-works/pi-protocol` (used by the Pi CLI binary). Phi does not import these and does not need to add them to `package.json`.
+- **0.84.1**: New built-in Qwen Token Plan Individual provider (`qwen-token-plan-individual`). Phi's dynamic provider discovery surfaces it without code changes.
+- **0.84.1**: `terminate` flag on blocked extension `tool_call` event results. Phi does not use the extension-event API.
+- **0.84.2**: New `defaultTools` setting for configuring built-in tool selection globally or per project. Phi always uses the SDK default (read/bash/edit/write) and does not override this, so no change is required. The setting is respected automatically by `createAgentSessionServices()`.
+- **0.84.2**: Fullscreen TUI mode, Mermaid/LaTeX rendering, per-directory `AGENTS.override.md`, `expandPromptTemplates` on `pi.sendUserMessage()`, `samplingParams` for custom OpenAI-compatible models, experimental strict JSON-schema constrained sampling under `PI_EXPERIMENTAL=1`. None of these are wired through Phi's webview; they are inert until/unless Phi chooses to expose them.
 
 ### `0.80.10` → `0.83.0` (2026-07-29)
 
