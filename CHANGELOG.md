@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- bump pi sdk to 0.84.2 (0.84.0 → 0.84.2; no API migration required for Phi)
+
+
 ## [0.7.7] - 2026-08-06
 
 ### Fixed
