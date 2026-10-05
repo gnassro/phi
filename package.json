@@ -144,14 +144,6 @@
           "type": "boolean",
           "default": true,
           "description": "Automatically send editor context (active file, selection) to Pi when opening the chat panel."
-        },
-        "phi.disabledExtensions": {
-          "type": "array",
-          "default": [],
-          "items": {
-            "type": "string"
-          },
-          "description": "Pi extension IDs disabled in Phi. Managed by the Extensions section in Phi Settings."
         }
       }
     }
@@ -179,10 +171,9 @@
     "typescript": "^5.3.0"
   },
   "dependencies": {
-    "@google/genai": "1.46.0",
-    "@earendil-works/pi-agent-core": "0.84.2",
-    "@earendil-works/pi-ai": "0.84.2",
-    "@earendil-works/pi-coding-agent": "0.84.2",
+    "@earendil-works/pi-agent-core": "0.99.2",
+    "@earendil-works/pi-ai": "0.99.2",
+    "@earendil-works/pi-coding-agent": "0.99.2",
     "shiki": "^4.0.2"
   }
 }

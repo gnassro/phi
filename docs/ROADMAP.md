@@ -20,31 +20,14 @@ webviews), accounts icon changed to person-in-circle SVG, error message tooltips
 paste fixed in chat input (Range API fallback for VS Code webview), webview asset cache-busting
 to prevent stale JS/CSS after rebuilds.
 
-SDK upgrade: Bumped Pi SDK from `0.80.10` → `0.84.2` (covers `0.81.0`, `0.81.1`,
-`0.82.0`, `0.82.1`, `0.83.0`, `0.84.0`, `0.84.1`, `0.84.2`). The public API surface
-Phi uses (`ModelRuntime`, `ModelRegistry`, `AgentSessionRuntime`, `AgentSession`,
-`SessionManager`, `pi-ai` `CredentialStore` / `AuthInteraction`) is stable across
-this entire range. The 0.84.x breaking changes target JSON/RPC wire events and a
-few `ModelRuntime`/`ModelRegistry` methods Phi does not call, so no code changes
-were required. Phi also registers Pi's built-in OAuth loaders explicitly because
-the extension host is shipped as one esbuild bundle. The bump is recorded in
-`src/version.ts` / `public/version.js` and shown in the About panel. See
-`docs/pi-sdk.md` "Migration notes" for the full change list.
+SDK upgrade: Upgraded Pi SDK to `0.99.2` (covering releases through `0.99.2`). Removed legacy Google providers and custom Pi Extensions management UI to streamline the extension and run Pi SDK's native providers, built-in extensions (`mcp`, `codemode`, `tool_search`), and user skills without interference. The bump is recorded in `src/version.ts` / `public/version.js` and shown in the About panel. See `docs/pi-sdk.md` "Migration notes" for the full change list.
 
-Auth system: unified login/setup flow via VS Code QuickPick. Phi now mirrors Pi's `/login`
-provider discovery by combining OAuth providers with model-registry-discovered API-key/setup
-providers. Provider setup can also guide users through required environment variables, offering
-existing global VS Code process env values or Phi-local values stored in VS Code SecretStorage.
-Phi-managed credentials still live in `~/.phi/auth.json`; sessions remain shared with pi CLI at
-`~/.pi/agent/sessions/`.
+Auth system: unified login/setup flow via VS Code QuickPick. Phi mirrors Pi's `/login` provider discovery by combining OAuth providers with model-registry-discovered API-key/setup providers. Provider setup can also guide users through required environment variables, offering existing global VS Code process env values or Phi-local values stored in VS Code SecretStorage. Obsolete legacy credentials (`google-gemini-cli`, `google-antigravity`) are automatically purged from `~/.phi/auth.json` on startup.
 
-Build: Extension host bundled with esbuild (Pi SDK `0.73.0` included). Self-contained `.vsix`
-at 1.5 MB — no `node_modules` required (though the webview bundle is slightly larger due to full Shiki language support). Published as `gnassro` on Open VSX.
+Build: Extension host bundled with esbuild (Pi SDK `0.99.2` included). Self-contained `.vsix` — no `node_modules` required (though the webview bundle is slightly larger due to full Shiki language support). Published as `gnassro` on Open VSX.
 Auto-incrementing build numbers are injected into generated version modules and shown in the About panel only while running the VS Code Extension Development Host.
 
 Added Skills integration: Phi now fully supports Pi SDK skills. A dedicated "Skills" panel has been added to the header overlay, and typing `/` in the chat input instantly triggers an interactive slash-command autocomplete to quickly inject `/skill:name` templates.
-
-Current focus: Upgraded Pi SDK to `0.73.0` with live incremental bash streaming, extracted legacy Google providers into a custom extension to preserve login flows, and implemented full offline syntax highlighting for code blocks using Shiki TextMate grammars.
 
 ---
 
