@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/VS%20Code-^1.85.0-007ACC?logo=visual-studio-code" alt="VS Code">
-  <img src="https://img.shields.io/badge/Pi%20SDK-0.70.6-purple" alt="Pi SDK">
+  <img src="https://img.shields.io/badge/Pi%20SDK-0.99.2-purple" alt="Pi SDK">
   <img src="https://img.shields.io/badge/TypeScript-ESM-3178C6?logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/vibe-coded%20🤙-ff69b4" alt="Vibe Coded">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen" alt="PRs Welcome">

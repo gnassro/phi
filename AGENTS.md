@@ -13,6 +13,7 @@ As an AI agent working on this project, you have an ACTIVE DUTY to keep all docu
 | Added/removed/renamed a source file | `AGENTS.md` (file list), `docs/architecture.md` (file responsibilities), `docs/TASKS.md` |
 | Changed the IPC message protocol | `docs/ipc-protocol.md`, `AGENTS.md` (protocol section) |
 | Changed how Pi SDK is used | `docs/pi-sdk.md` |
+| Upgraded or migrated Pi SDK version | `package.json`, `README.md` (top Pi SDK badge and body text), `docs/pi-sdk.md`, `docs/TASKS.md`, `docs/ROADMAP.md` |
 | Added/removed a VS Code command | `AGENTS.md` (commands list), `README.md` (usage table), `package.json` |
 | Changed the webview ↔ extension host communication pattern | `docs/ipc-protocol.md`, `docs/architecture.md` |
 | Added a new public/ UI file | `AGENTS.md` (file list), `docs/architecture.md`, `docs/TASKS.md` |
@@ -334,6 +335,14 @@ Full reference: `docs/pi-sdk.md`
 24. **Forward OAuth device-code notifications to the browser opener.** Providers such as GitHub Copilot, Kimi Code, and xAI emit `AuthEvent` entries with `type: "device_code"`, not `auth_url`. The `LegacyLoginAdapter` must map their `verificationUri` and `userCode` to Phi's host auth callback so the login page opens and the user knows which code to enter.
 
 25. **Do not double-refresh after auth mutations.** `ModelRuntime.login()` and Phi's logout/API-key mutation paths already refresh provider availability. After a command auth change, reconcile the selected model with `{ refresh: false }`; repeating the provider refresh can cause unnecessary network work and leave slower OAuth flows such as GitHub Copilot appearing stuck.
+
+26. **Update Pi SDK version across all documentation on every Pi migration.** Whenever migrating or upgrading `@earendil-works/pi-coding-agent` (and companion packages), you must update the version across all locations:
+    - `package.json` (`@earendil-works/pi-*` dependencies)
+    - `README.md` (top badges: `Pi SDK-<version>-purple`, and body text under `Relation to Pi`)
+    - `docs/pi-sdk.md` (header version notice, package versions snippet, and add a new Migration notes entry)
+    - `docs/TASKS.md` (add/check off task under Packaging & Local Install)
+    - `docs/ROADMAP.md` (update SDK upgrade summary)
+    - Build output: Run `pnpm run build` so `scripts/build-num.mjs` updates `src/version.ts` and `public/version.js` with the new Pi SDK version.
 
 ---
 
