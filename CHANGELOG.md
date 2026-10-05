@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0] - 2026-10-05
+
+### Added
+- upgrade Pi SDK to 0.99.2 and remove legacy Google and Extensions feature
+
+### Docs
+- update Pi SDK badge in README and enforce migration doc rule in AGENTS.md
+
+
 ## [0.7.8] - 2026-08-19
 
 ### Changed
