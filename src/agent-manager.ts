@@ -27,7 +27,6 @@ import type {
 } from '@earendil-works/pi-ai';
 import { registerBunOAuthFlows } from '@earendil-works/pi-ai/bun-oauth';
 import { FileCredentialStore, type StoredCredential, LegacyLoginAdapter } from './credential-store.js';
-import { legacyGoogleProvidersExtension } from './legacy-google/index.js';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as os from 'os';
@@ -156,6 +155,14 @@ export async function initialize(workspaceCwd: string): Promise<void> {
   const agentDir = getAgentDir();
   credentialStore = new FileCredentialStore(PHI_AUTH_FILE);
 
+  // Clean up obsolete legacy Google credentials if present
+  if (credentialStore.has('google-gemini-cli')) {
+    await credentialStore.delete('google-gemini-cli');
+  }
+  if (credentialStore.has('google-antigravity')) {
+    await credentialStore.delete('google-antigravity');
+  }
+
   // Create ModelRuntime with our credential store (replaces old AuthStorage).
   const phiCredStore = new PhiCredentialStore(credentialStore);
   modelRuntime = await ModelRuntime.create({
@@ -171,44 +178,10 @@ export async function initialize(workspaceCwd: string): Promise<void> {
     sessionManager,
     sessionStartEvent,
   }) => {
-    const disabledIds = vscode.workspace.getConfiguration('phi').get<string[]>('disabledExtensions') || [];
-    const disabledSet = new Set(disabledIds.filter((id) => !id.startsWith('<inline:')));
-
-    const activeFactories = [];
-    if (!disabledSet.has('phi.legacy-google-providers')) {
-      activeFactories.push(legacyGoogleProvidersExtension);
-    }
-
     const services = await createAgentSessionServices({
       cwd: runtimeCwd,
       agentDir,
       modelRuntime: modelRuntime ?? undefined,
-      resourceLoaderOptions: {
-        extensionFactories: activeFactories,
-        extensionsOverride: (base) => {
-          const userExtensions = base.extensions.filter((ext) => !ext.path.startsWith('<inline:'));
-
-          loadedExtensions = [
-            {
-              id: 'phi.legacy-google-providers',
-              name: 'Google Cloud Code Assist & Antigravity (Legacy)',
-              enabled: !disabledSet.has('phi.legacy-google-providers'),
-              isBuiltIn: true,
-            },
-            ...userExtensions.map((ext) => ({
-              id: ext.path,
-              name: path.basename(ext.path),
-              enabled: !disabledSet.has(ext.path),
-              isBuiltIn: false,
-            })),
-          ];
-
-          return {
-            ...base,
-            extensions: base.extensions.filter((ext) => !disabledSet.has(ext.path)),
-          };
-        },
-      },
     });
 
     return {
@@ -272,15 +245,6 @@ export interface ImagePayload {
   data: string;
   mimeType: string;
 }
-
-export interface ExtensionInfo {
-  id: string;
-  name: string;
-  enabled: boolean;
-  isBuiltIn: boolean;
-}
-
-let loadedExtensions: ExtensionInfo[] = [];
 
 export async function prompt(
   text: string,
@@ -494,6 +458,7 @@ const API_KEY_PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   groq: 'Groq',
   huggingface: 'Hugging Face',
   'kimi-coding': 'Kimi For Coding',
+  meta: 'Meta (Muse)',
   mistral: 'Mistral',
   minimax: 'MiniMax',
   'minimax-cn': 'MiniMax (China)',
@@ -833,33 +798,6 @@ export async function removeApiKey(providerId: string): Promise<void> {
   await refreshModelRegistryAuthState();
 }
 
-/**
- * Get all loaded extensions
- */
-export function getExtensionsList(): ExtensionInfo[] {
-  return loadedExtensions;
-}
-
-/**
- * Toggle an extension's enabled state and restart the runtime to apply changes.
- */
-export async function toggleExtension(id: string, enabled: boolean): Promise<void> {
-  const config = vscode.workspace.getConfiguration('phi');
-  let disabledIds = [...(config.get<string[]>('disabledExtensions') || [])]
-    .filter((x) => !x.startsWith('<inline:'));
-
-  if (enabled) {
-    disabledIds = disabledIds.filter((x) => x !== id);
-  } else if (!disabledIds.includes(id)) {
-    disabledIds.push(id);
-  }
-
-  await config.update('disabledExtensions', disabledIds, vscode.ConfigurationTarget.Global);
-
-  await dispose();
-  await initialize(cwd);
-}
-
 // ─── Tree / branching ─────────────────────────────────────────────────────────
 
 interface SessionTreeNode {
@@ -942,6 +880,12 @@ function getEntryPreview(entry: any): { preview: string; role?: string } {
       break;
     case 'custom_message':
       preview = (entry as any).content?.substring(0, 80) || 'Custom message';
+      break;
+    case 'context_edit':
+      preview = 'Context edited';
+      break;
+    case 'usage':
+      preview = 'Usage recorded';
       break;
     default:
       preview = entry.type;

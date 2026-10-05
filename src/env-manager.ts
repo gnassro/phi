@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { hasEmbeddedLegacyGoogleOAuthCredentials } from './legacy-google/oauth-credentials.js';
 
 type EnvPreference = 'global' | 'local';
 
@@ -215,58 +214,6 @@ const PROVIDER_ENV_SETUPS: Record<string, ProviderEnvSetupDefinition> = {
       },
     ],
   },
-
-  'google-gemini-cli': {
-    providerId: 'google-gemini-cli',
-    name: 'Google Cloud Code Assist (Gemini CLI)',
-    intro: 'Phi does not bundle Google OAuth client credentials. Configure your own OAuth client ID and secret to use the legacy Google Cloud Code Assist provider.',
-    requiredEnv: [
-      {
-        name: 'PHI_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_ID',
-        label: 'OAuth client ID',
-        description: 'OAuth client ID for the Google Cloud Code Assist / Gemini CLI flow.',
-        placeholder: 'OAuth client ID',
-        sensitive: true,
-      },
-      {
-        name: 'PHI_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_SECRET',
-        label: 'OAuth client secret',
-        description: 'OAuth client secret for the Google Cloud Code Assist / Gemini CLI flow.',
-        placeholder: 'OAuth client secret',
-        sensitive: true,
-      },
-    ],
-    optionalEnv: [
-      {
-        name: 'GOOGLE_CLOUD_PROJECT',
-        label: 'Google Cloud project',
-        description: 'Optional Google Cloud project for paid Cloud Code Assist.',
-        placeholder: 'your-project-id',
-      },
-    ],
-  },
-
-  'google-antigravity': {
-    providerId: 'google-antigravity',
-    name: 'Google Antigravity',
-    intro: 'Phi does not bundle Google OAuth client credentials. Configure your own OAuth client ID and secret to use the legacy Google Antigravity provider.',
-    requiredEnv: [
-      {
-        name: 'PHI_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_ID',
-        label: 'OAuth client ID',
-        description: 'OAuth client ID for the Google Antigravity flow.',
-        placeholder: 'OAuth client ID',
-        sensitive: true,
-      },
-      {
-        name: 'PHI_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_SECRET',
-        label: 'OAuth client secret',
-        description: 'OAuth client secret for the Google Antigravity flow.',
-        placeholder: 'OAuth client secret',
-        sensitive: true,
-      },
-    ],
-  },
 };
 
 let context: vscode.ExtensionContext | null = null;
@@ -300,22 +247,6 @@ function getSecretKey(providerId: string, envName: string): string {
 }
 
 function getEffectiveSetup(baseSetup: ProviderEnvSetupDefinition): ProviderEnvSetupDefinition {
-  if (baseSetup.providerId === 'google-gemini-cli' && hasEmbeddedLegacyGoogleOAuthCredentials('google-gemini-cli')) {
-    return {
-      ...baseSetup,
-      intro: 'Paid Cloud Code Assist can use GOOGLE_CLOUD_PROJECT.',
-      requiredEnv: [],
-    };
-  }
-
-  if (baseSetup.providerId === 'google-antigravity' && hasEmbeddedLegacyGoogleOAuthCredentials('google-antigravity')) {
-    return {
-      ...baseSetup,
-      intro: undefined,
-      requiredEnv: [],
-    };
-  }
-
   return baseSetup;
 }
 

@@ -339,6 +339,7 @@ This file tracks all tasks for the Phi project.
 - [x] Pi SDK updated to `0.80.10` (ModelRuntime + FileCredentialStore migration, AuthStorage removed in 0.80.8)
 - [x] Pi SDK updated to `0.83.0` (covers 0.81.0 → 0.83.0; public API surface stable; bundled OAuth loaders registered for single-file installs)
 - [x] Pi SDK updated to `0.84.2` (covers 0.84.0 → 0.84.2; no API migration required — see `docs/pi-sdk.md` Migration notes for upstream change summary)
+- [x] Pi SDK updated to `0.99.2` (covers 0.84.3 → 0.99.2; removed legacy Google providers, purged obsolete credentials, removed custom Extensions UI; streamlined native Pi SDK runtime)
 - [x] AgentManager migrated from direct `AgentSession` replacement APIs to `AgentSessionRuntime`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window
@@ -351,7 +352,7 @@ This file tracks all tasks for the Phi project.
 - [x] `.env` / `.env.*` excluded from VSIX packaging for local build secrets
 - [x] Workflow auto-generates changelog from conventional commits
 - [x] Workflow creates GitHub Release with changelog + `.vsix` attached
-- [x] `scripts/build-ext.mjs` — extension host bundler with optional build-time Google OAuth credential injection and local `.env` loading
+- [x] `scripts/build-ext.mjs` — extension host bundler with local `.env` loading
 - [x] `scripts/release.mjs` — one-command release: bump → changelog → commit → tag → push
 - [x] `pnpm run release` / `release:status` / `release:publish` npm scripts added
 - [ ] Add `OVSX_PAT` secret to GitHub repo settings (manual, one-time)

@@ -18,8 +18,6 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  editor-context.ts (VS Code)    │                             │
 │  │  env-manager.ts  (provider env) │                             │
 │  │  commands.ts     (commands)     │                             │
-│  │  legacy-google/  (providers +   │                             │
-│  │                  OAuth resolver) │                             │
 │  │                                 │                             │
 │  │  @earendil-works/pi-coding-agent      │                         │
 │  │  (createAgentSessionRuntime runs here) │                      │
@@ -125,9 +123,6 @@ Responsibilities:
 - `watchSelection(callback)` — fires callback when user changes selection
 - `watchDiagnostics(callback)` — fires callback when errors change
 
-### `src/legacy-google/`
-Contains the Phi-maintained compatibility extension for Google Cloud Code Assist / Gemini CLI and Google Antigravity providers removed from newer Pi SDK versions. `oauth-credentials.ts` resolves Google OAuth credentials from build-time embedded values first, then runtime env/SecretStorage values. No OAuth client ID/secret is committed to source.
-
 ### `src/env-manager.ts`
 Manages Phi-local provider environment setup.
 
@@ -136,7 +131,6 @@ Responsibilities:
 - Store Phi-local env values in VS Code `SecretStorage`
 - Apply Phi-local env values to `process.env` before the Pi SDK initializes
 - Guide provider setup flows for required env vars such as `CLOUDFLARE_ACCOUNT_ID`
-- Prompt for Phi-local legacy Google OAuth client credentials when a build does not include embedded Google credentials
 - Prefer existing global VS Code process env vars when the user chooses them
 
 ### `src/commands.ts`
@@ -185,7 +179,7 @@ Renders assistant/user markdown into webview HTML. Fenced code blocks are routed
 Wraps the bundled `shiki` full language build. It uses TextMate grammars for broad language coverage, lazily loads explicitly tagged fenced-code languages, converts Shiki's Dark+ token palette to VS Code theme variables, and falls back to escaped plain text if a grammar is unavailable.
 
 ### `public/panels.js`
-Manages Settings, About, Accounts, History, and Skills panels. The Settings panel includes a Manage Pi Extensions row that opens a dedicated extensions box, requests `get_extensions`, renders enabled/disabled toggles, and sends `toggle_extension` so the extension host can persist the setting and restart the Pi runtime.
+Manages Settings, About, Accounts, History, and Skills panels.
 
 ### `public/vscode-ipc.js`
 Thin wrapper around VS Code's message API:
@@ -271,7 +265,7 @@ pnpm run typecheck        # or: npx tsc --noEmit
 pnpm run watch            # or: npm run watch
 ```
 
-VS Code launches the extension from `dist/extension.js` (defined in package.json `"main"` field). The Pi SDK and all dependencies are bundled into this single file — no `node_modules` needed at runtime. Phi registers Pi's built-in OAuth loaders before creating `ModelRuntime`, because Pi keeps Node-only subscription flows behind bundler-opaque dynamic imports; without that registration, a packaged build would look for missing `dist/<provider>.js` files. `scripts/build-ext.mjs` loads local `.env` values before bundling. If the optional `PHI_EMBEDDED_GOOGLE_*` variables are present during `build:ext`, the resulting bundle includes legacy Google OAuth defaults so users get Pi-like Google login behavior; the values must come from CI/local secrets and must never be committed to source. `.env` / `.env.*` are ignored by git and excluded from VSIX packaging. `panel-manager.ts` marks the webview with `data-extension-mode="development"` only for VS Code Extension Development Host, so the About panel shows build metadata in dev mode but only the marketplace version in installed builds.
+VS Code launches the extension from `dist/extension.js` (defined in package.json `"main"` field). The Pi SDK and all dependencies are bundled into this single file — no `node_modules` needed at runtime. Phi registers Pi's built-in OAuth loaders before creating `ModelRuntime`, because Pi keeps Node-only subscription flows behind bundler-opaque dynamic imports; without that registration, a packaged build would look for missing `dist/<provider>.js` files. `panel-manager.ts` marks the webview with `data-extension-mode="development"` only for VS Code Extension Development Host, so the About panel shows build metadata in dev mode but only the marketplace version in installed builds.
 
 ---
 

@@ -307,6 +307,7 @@ export class ToolCardRenderer {
 
     if (args.path) return args.path;
     if (args.command) return args.command.substring(0, 80);
+    if (args.code) return args.code.substring(0, 80);
     if (args.query) return args.query.substring(0, 60);
     if (args.url) return args.url;
 

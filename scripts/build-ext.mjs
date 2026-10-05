@@ -26,29 +26,6 @@ function loadDotEnv(path = '.env') {
 
 loadDotEnv();
 
-function defineString(name, envName) {
-  return [name, JSON.stringify(process.env[envName] || '')];
-}
-
-const define = Object.fromEntries([
-  defineString(
-    '__PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_ID__',
-    'PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_ID'
-  ),
-  defineString(
-    '__PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_SECRET__',
-    'PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_SECRET'
-  ),
-  defineString(
-    '__PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_ID__',
-    'PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_ID'
-  ),
-  defineString(
-    '__PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_SECRET__',
-    'PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_SECRET'
-  ),
-]);
-
 const options = {
   entryPoints: ['src/extension.ts'],
   bundle: true,
@@ -61,7 +38,6 @@ const options = {
   banner: {
     js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
   },
-  define,
 };
 
 if (process.argv.includes('--watch')) {

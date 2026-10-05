@@ -5,9 +5,9 @@ The Pi SDK (`@earendil-works/pi-coding-agent`) is the core engine of Phi. It run
 Official full SDK docs:
 `node_modules/@earendil-works/pi-coding-agent/docs/sdk.md`
 
-> **Current SDK version: `0.84.2`** (migrated from `0.80.10`).
+> **Current SDK version: `0.99.2`** (migrated from `0.84.2`).
 > The 0.80.8 release removed `AuthStorage` and the synchronous `ModelRegistry` projection.
-> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and the public SDK surface remained stable through `0.84.2`. Phi's single-file bundle additionally registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
+> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and upgraded through `0.99.2`. Phi's single-file bundle registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
 
 ---
 
@@ -22,9 +22,9 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 The three Pi packages are pinned to the same version and must be bumped together:
 
 ```json
-"@earendil-works/pi-agent-core": "0.84.2",
-"@earendil-works/pi-ai": "0.84.2",
-"@earendil-works/pi-coding-agent": "0.84.2"
+"@earendil-works/pi-agent-core": "0.99.2",
+"@earendil-works/pi-ai": "0.99.2",
+"@earendil-works/pi-coding-agent": "0.99.2"
 ```
 
 ---
@@ -423,6 +423,18 @@ Call this from `deactivate()` in `extension.ts` and await it.
 ---
 
 ## Migration notes
+
+### `0.84.2` → `0.99.2` (2026-10-05)
+
+**Major upgrade and feature streamlining.** Pi SDK was upgraded to `0.99.2` across `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-coding-agent`.
+
+Key highlights:
+- **Removal of Legacy Google Providers**: The custom compatibility package `src/legacy-google/` and the direct dependency on `@google/genai` were completely removed. This fully decoupled Phi from upstream internal changes (such as the `Context` → `TranscriptContext` change in 0.86.0) and uses Pi SDK's native provider runtime exclusively.
+- **Credential Storage Migration**: Added an automatic startup migration in `agent-manager.ts` to purge obsolete `google-gemini-cli` and `google-antigravity` entries from `~/.phi/auth.json`.
+- **Streamlined Extensions**: The custom Phi UI extension manager ("Manage Pi Extensions" modal, `phi.disabledExtensions` setting, and IPC toggle commands) was removed. Pi's native built-in extensions (`mcp`, `codemode`, `tool_search`) and user skills run natively without Phi interference.
+- **Expanded Provider Ecosystem**: Pi 0.99.2 incorporates built-in support for Meta Muse (`meta`) and ChatGPT Subscription OAuth (`openaiChatGPT`) via `@earendil-works/pi-ai/bun-oauth`. Added `'meta': 'Meta (Muse)'` to friendly API key provider names.
+- **Session Tree Entries**: Updated tree node serialization in `agent-manager.ts` to handle new session entry types (`context_edit` and `usage`).
+- **Tool Card Rendering**: Enhanced `public/tool-card.js` with preview support for tools with a `code` argument (e.g. `codemode`).
 
 ### `0.83.0` → `0.84.2` (2026-08-14)
 

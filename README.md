@@ -67,7 +67,6 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - **Auto-compaction** — toggle automatic context compaction
 - **Manual compaction** — via command palette with progress indicator
 - **Experimental task alert sounds** — optional sounds for successful completion and failed runs (still under development/testing)
-- **Manage Pi Extensions** — Settings opens a dedicated extension manager where loaded Pi extensions, including the built-in legacy Google providers, can be enabled or disabled
 - **Session cost & token usage** — live display in the footer with context window visualizer
 
 ### 🔑 Accounts & Auth
@@ -78,23 +77,10 @@ Navigate conversation branches, set labels on entries, and branch with optional 
 - Stored credentials live in `~/.phi/auth.json` — separate from Pi CLI auth; environment and `models.json` auth still work too
 - **Cloudflare Workers AI & AI Gateway** — guided setup for required `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_GATEWAY_ID`
 - **Amazon Bedrock** — guided setup for AWS profile, IAM keys, or bearer-token env vars
-- **Built-in legacy Google providers extension** — Phi keeps Google Cloud Code Assist (Gemini CLI) and Google Antigravity available via a built-in Pi extension, even though newer Pi SDK versions removed these providers after Google started restricting some external OAuth usage. Release builds can embed Google OAuth credentials at build time for Pi-like out-of-the-box login; if none are embedded, configure your own client ID/secret during **Login / Setup**. Use responsibly and follow Google's account terms; the extension can be disabled from **Settings → Manage Pi Extensions**.
 - **No model available?** — the header model control turns into a **Login** button that opens the Accounts panel
 
 ### 🖥️ Custom Providers (Ollama, vLLM, LM Studio…)
 Phi inherits full custom provider support from the Pi SDK. Add any OpenAI-compatible local or remote model by editing `~/.pi/agent/models.json` — no extension restart needed, changes are picked up next time you open the model picker.
-
-### Maintainer note: legacy Google OAuth defaults
-To make published builds behave like Pi 0.70.6, set these as CI/local build environment secrets before packaging. For local testing, `scripts/build-ext.mjs` also loads them from `.env`. They are embedded into the generated `.vsix`, but never committed to source:
-
-```text
-PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_ID
-PHI_EMBEDDED_GOOGLE_GEMINI_CLI_OAUTH_CLIENT_SECRET
-PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_ID
-PHI_EMBEDDED_GOOGLE_ANTIGRAVITY_OAUTH_CLIENT_SECRET
-```
-
-See [Custom Providers](#-custom-providers) for setup instructions.
 
 ### ⌨️ Keyboard Shortcuts
 
@@ -297,9 +283,9 @@ The Pi SDK runs in the same Node.js process as the extension host — no externa
 | [**Pi**](https://github.com/badlogic/pi-mono) | The CLI AI coding agent (`pi` command) |
 | **Phi** | A VS Code extension that brings Pi into the editor |
 
-Phi uses the [Pi SDK](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) (`@earendil-works/pi-coding-agent@0.84.2`) to run the agent directly inside VS Code's extension host.
+Phi uses the [Pi SDK](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) (`@earendil-works/pi-coding-agent@0.99.2`) to run the agent directly inside VS Code's extension host.
 
-> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.84.2`. Newer versions may work but are not guaranteed until tested.
+> **Pi SDK compatibility:** Phi is built and tested against Pi SDK `0.99.2`. Newer versions may work but are not guaranteed until tested.
 
 ---
 
