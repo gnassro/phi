@@ -74,6 +74,55 @@ const PROVIDER_ENV_SETUPS: Record<string, ProviderEnvSetupDefinition> = {
     ],
   },
 
+  azure: {
+    providerId: 'azure',
+    name: 'Azure (OpenAI / Foundry)',
+    intro: 'Azure OpenAI and Foundry endpoints need either a base URL or a resource name in addition to the API key.',
+    requiredChoiceGroup: {
+      prompt: 'Choose how to configure the Azure endpoint.',
+      choices: [
+        {
+          label: 'Use Azure OpenAI base URL',
+          description: 'Set AZURE_OPENAI_BASE_URL, e.g. https://my-resource.openai.azure.com',
+          env: [
+            {
+              name: 'AZURE_OPENAI_BASE_URL',
+              label: 'Azure OpenAI base URL',
+              description: 'Azure OpenAI or Cognitive Services endpoint URL.',
+              placeholder: 'https://your-resource.openai.azure.com',
+            },
+          ],
+        },
+        {
+          label: 'Use Azure resource name',
+          description: 'Set AZURE_OPENAI_RESOURCE_NAME instead of a full base URL',
+          env: [
+            {
+              name: 'AZURE_OPENAI_RESOURCE_NAME',
+              label: 'Azure OpenAI resource name',
+              description: 'Azure OpenAI resource name used to derive the endpoint.',
+              placeholder: 'your-resource-name',
+            },
+          ],
+        },
+      ],
+    },
+    optionalEnv: [
+      {
+        name: 'AZURE_OPENAI_API_VERSION',
+        label: 'Azure OpenAI API version',
+        description: 'Optional API version override.',
+        placeholder: '2024-02-01',
+      },
+      {
+        name: 'AZURE_OPENAI_DEPLOYMENT_NAME_MAP',
+        label: 'Azure deployment mapping',
+        description: 'Optional model=deployment map, comma-separated.',
+        placeholder: 'gpt-4=my-gpt4,gpt-4o=my-gpt4o',
+      },
+    ],
+  },
+
   'azure-openai-responses': {
     providerId: 'azure-openai-responses',
     name: 'Azure OpenAI Responses',

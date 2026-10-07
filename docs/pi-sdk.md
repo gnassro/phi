@@ -5,9 +5,9 @@ The Pi SDK (`@earendil-works/pi-coding-agent`) is the core engine of Phi. It run
 Official full SDK docs:
 `node_modules/@earendil-works/pi-coding-agent/docs/sdk.md`
 
-> **Current SDK version: `0.99.2`** (migrated from `0.84.2`).
+> **Current SDK version: `1.0.4`** (migrated from `0.99.2`).
 > The 0.80.8 release removed `AuthStorage` and the synchronous `ModelRegistry` projection.
-> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and upgraded through `0.99.2`. Phi's single-file bundle registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
+> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and upgraded through `1.0.4`. Phi's single-file bundle registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
 
 ---
 
@@ -22,9 +22,9 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 The three Pi packages are pinned to the same version and must be bumped together:
 
 ```json
-"@earendil-works/pi-agent-core": "0.99.2",
-"@earendil-works/pi-ai": "0.99.2",
-"@earendil-works/pi-coding-agent": "0.99.2"
+"@earendil-works/pi-agent-core": "1.0.4",
+"@earendil-works/pi-ai": "1.0.4",
+"@earendil-works/pi-coding-agent": "1.0.4"
 ```
 
 ---
@@ -423,6 +423,17 @@ Call this from `deactivate()` in `extension.ts` and await it.
 ---
 
 ## Migration notes
+
+### `0.99.2` → `1.0.4` (2026-10-07)
+
+**Pi 1.0 release upgrade.** Pi SDK was upgraded to `1.0.4` across `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-coding-agent`.
+
+Key changes & integrations:
+- **Azure Provider Renamed (`azure-openai-responses` → `azure`)**: Pi 1.0.3 renamed the Azure provider to `azure` and added Azure Foundry Chat Completions support (e.g. `azure/deepseek-v4-pro`). Phi updated `src/env-manager.ts` and `src/agent-manager.ts` to map `azure` while keeping `azure-openai-responses` as a fallback alias. Added automatic stored credential migration in `agent-manager.ts` (`initialize()`).
+- **Codemode Images**: Codemode now supports image generation (`models.generateImages()`, Pi 1.0.0), file saving for generated images (`image()`, Pi 1.0.3), and returns image blocks when `tools.read()` reads image files (Pi 1.0.4). Updated `public/tool-card.js` (`formatResult()`) to render cleaner summaries for image blocks instead of raw JSON.
+- **Thinking Level Sampling Overrides**: Pi 1.0.2 introduced `samplingParamsByThinkingLevel` for fine-grained sampling parameter control across OpenAI-compatible endpoints.
+- **Tool Patterns & Resource Loader Options**: Pi 1.0.4 added wildcard `*` matching for `--tools` and `--exclude-tools`, along with `disabledBuiltinExtensions` support in `ResourceLoader`.
+- **Runtime Stability**: Incorporates upstream fixes for cancelled OAuth token refreshes, MCP session shutdown cleanup, and frozen JavaScript globals in codemode.
 
 ### `0.84.2` → `0.99.2` (2026-10-05)
 
