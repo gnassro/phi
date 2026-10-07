@@ -360,6 +360,10 @@ export class ToolCardRenderer {
       return result.content
         .map(block => {
           if (block.type === 'text') return block.text;
+          if (block.type === 'image') {
+            const mime = block.mimeType || 'image';
+            return `[Image: ${mime}]`;
+          }
           return JSON.stringify(block);
         })
         .join('\n');

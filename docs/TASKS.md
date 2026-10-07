@@ -340,6 +340,7 @@ This file tracks all tasks for the Phi project.
 - [x] Pi SDK updated to `0.83.0` (covers 0.81.0 → 0.83.0; public API surface stable; bundled OAuth loaders registered for single-file installs)
 - [x] Pi SDK updated to `0.84.2` (covers 0.84.0 → 0.84.2; no API migration required — see `docs/pi-sdk.md` Migration notes for upstream change summary)
 - [x] Pi SDK updated to `0.99.2` (covers 0.84.3 → 0.99.2; removed legacy Google providers, purged obsolete credentials, removed custom Extensions UI; streamlined native Pi SDK runtime)
+- [x] Pi SDK updated to `1.0.4` (covers 1.0.0 → 1.0.4; Azure provider renamed to `azure`, added credential migration, updated env setup, enhanced codemode image rendering in tool cards)
 - [x] AgentManager migrated from direct `AgentSession` replacement APIs to `AgentSessionRuntime`
 - [ ] Install `.vsix` locally via `code --install-extension phi-agent-0.1.0.vsix`
 - [ ] Verify the installed extension works on a clean VS Code window

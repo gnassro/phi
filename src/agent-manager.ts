@@ -163,6 +163,15 @@ export async function initialize(workspaceCwd: string): Promise<void> {
     await credentialStore.delete('google-antigravity');
   }
 
+  // Migrate legacy azure-openai-responses provider key to azure if present (Pi 1.0.3+)
+  if (credentialStore.has('azure-openai-responses') && !credentialStore.has('azure')) {
+    const azureCred = credentialStore.getSync('azure-openai-responses');
+    if (azureCred) {
+      await credentialStore.modify('azure', async () => azureCred);
+      await credentialStore.delete('azure-openai-responses');
+    }
+  }
+
   // Create ModelRuntime with our credential store (replaces old AuthStorage).
   const phiCredStore = new PhiCredentialStore(credentialStore);
   modelRuntime = await ModelRuntime.create({
@@ -448,6 +457,7 @@ const CLOUDFLARE_PROVIDER_ID = 'cloudflare-workers-ai';
 const API_KEY_PROVIDER_DISPLAY_NAMES: Record<string, string> = {
   anthropic: 'Anthropic',
   [BEDROCK_PROVIDER_ID]: 'Amazon Bedrock',
+  azure: 'Azure (OpenAI / Foundry)',
   'azure-openai-responses': 'Azure OpenAI Responses',
   cerebras: 'Cerebras',
   [CLOUDFLARE_PROVIDER_ID]: 'Cloudflare Workers AI',
