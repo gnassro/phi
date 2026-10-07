@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.0] - 2026-10-07
+
+### Added
+- upgrade Pi SDK to 1.0.4 and update Azure provider
+
+
 ## [0.8.0] - 2026-10-05
 
 ### Added
