@@ -66,6 +66,8 @@ export class MessageRenderer {
       <button class="message-copy-btn" aria-label="Copy message"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
       <div class="message-content">${imagesHtml}${renderUserMarkdown(message.content)}</div>
     `;
+    // Preserve the raw markdown so copy never falls back to rendered textContent
+    div._rawMarkdown = typeof message.content === 'string' ? message.content : '';
     this._setupCopyBtn(div);
     this.container.appendChild(div);
     if (!isHistory) this.scrollToBottom();
@@ -85,8 +87,14 @@ export class MessageRenderer {
     const thinkingBlocks = []; // DOM elements from renderThinkingBlock
 
     if (typeof message.content === 'string') {
+      div._rawMarkdown = message.content;
       contentHtml = isStreaming ? this.escapeHtml(message.content) : renderMarkdown(message.content);
     } else if (Array.isArray(message.content)) {
+      // Raw text only — thinking blocks are deliberately excluded from copy
+      div._rawMarkdown = message.content
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+        .join('\n\n');
       for (const block of message.content) {
         if (block.type === 'text') {
           contentHtml += isStreaming ? this.escapeHtml(block.text) : renderMarkdown(block.text);
@@ -263,6 +271,7 @@ export class MessageRenderer {
   finalizeStreamingMessage(messageElement, usage = null, thinking = '', errorMessage = null) {
     const contentDiv = messageElement.querySelector('.message-content');
     const rawText = messageElement.dataset.rawText || '';
+    messageElement._rawMarkdown = rawText;
     delete messageElement.dataset.rawText;
     const isErrorOnly = errorMessage && !rawText.trim() && !thinking;
     const copyBtnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
@@ -362,9 +371,24 @@ export class MessageRenderer {
     const btn = messageEl.querySelector('.message-copy-btn');
     if (!btn) return;
     btn.addEventListener('click', () => {
-      const content = messageEl.querySelector('.message-content');
-      const errorEl = messageEl.querySelector('.assistant-error');
-      const text = content ? content.textContent : errorEl ? errorEl.dataset.error || errorEl.textContent : '';
+      // Prefer the raw markdown so markdown/KaTeX survive the copy.
+      let text = messageEl._rawMarkdown || messageEl.dataset.rawText || '';
+
+      if (!text) {
+        // Fallback: rendered textContent, but strip thinking traces first
+        const content = messageEl.querySelector('.message-content');
+        if (content) {
+          const clone = content.cloneNode(true);
+          clone.querySelectorAll('.thinking-block, .streaming-thinking').forEach((el) => el.remove());
+          text = clone.textContent.trim();
+        }
+      }
+
+      if (!text) {
+        const errorEl = messageEl.querySelector('.assistant-error');
+        text = errorEl ? errorEl.dataset.error || errorEl.textContent : '';
+      }
+
       if (!text) return;
       // Fallback for non-HTTPS (LAN access)
       const copyText = (t) => {
