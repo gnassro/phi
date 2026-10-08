@@ -26,6 +26,9 @@
 ### Changed
 - bump pi sdk to 0.84.2 (0.84.0 → 0.84.2; no API migration required for Phi)
 
+### Fixed
+- copy message button now copies clean raw markdown instead of rendered text (preserves KaTeX, lists and formatting) and excludes thinking traces
+
 
 ## [0.7.7] - 2026-08-06
 
