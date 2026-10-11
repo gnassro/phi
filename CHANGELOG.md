@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.1] - 2026-10-11
+
+### Fixed
+- copy raw markdown (and exclude thinking) in message copy button
+
+
 ## [0.9.0] - 2026-10-07
 
 ### Added
