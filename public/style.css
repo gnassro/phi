@@ -697,6 +697,14 @@ body.hide-thinking .thinking-block { display: none; }
 
 .tool-spinner.hidden { display: none; }
 
+.tool-duration {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.75;
+  font-family: var(--vscode-editor-font-family, monospace);
+  user-select: none;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

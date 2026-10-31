@@ -20,11 +20,11 @@ webviews), accounts icon changed to person-in-circle SVG, error message tooltips
 paste fixed in chat input (Range API fallback for VS Code webview), webview asset cache-busting
 to prevent stale JS/CSS after rebuilds.
 
-SDK upgrade: Upgraded Pi SDK to `1.0.4` (covering releases through `1.0.4`). Renamed Azure provider to `azure` with automatic credential migration and Foundry support, improved codemode image card representation, and streamlined native Pi SDK runtime. The bump is recorded in `src/version.ts` / `public/version.js` and shown in the About panel. See `docs/pi-sdk.md` "Migration notes" for the full change list.
+SDK upgrade: Upgraded Pi SDK to `1.4.0` (covering releases through `1.4.0`). Integrated tool execution duration timing (`durationMs`) in tool cards, un-capped context compaction and branch summaries using model output limits, tool loadout persistence across session resumes, expanded provider catalog (Together AI, TypeSafe, Xiaomi, NVIDIA), and updated default models (Copilot `gpt-6.1-sol`, NVIDIA `nemotron-3.5-super-vl-120b-a12b`). The bump is recorded in `src/version.ts` / `public/version.js` and shown in the About panel. See `docs/pi-sdk.md` "Migration notes" for the full change list.
 
 Auth system: unified login/setup flow via VS Code QuickPick. Phi mirrors Pi's `/login` provider discovery by combining OAuth providers with model-registry-discovered API-key/setup providers. Provider setup can also guide users through required environment variables, offering existing global VS Code process env values or Phi-local values stored in VS Code SecretStorage. Obsolete legacy credentials (`google-gemini-cli`, `google-antigravity`) are automatically purged from `~/.phi/auth.json` on startup, and `azure-openai-responses` credentials migrate to `azure`.
 
-Build: Extension host bundled with esbuild (Pi SDK `1.0.4` included). Self-contained `.vsix` — no `node_modules` required (though the webview bundle is slightly larger due to full Shiki language support). Published as `gnassro` on Open VSX.
+Build: Extension host bundled with esbuild (Pi SDK `1.4.0` included). Self-contained `.vsix` — no `node_modules` required (though the webview bundle is slightly larger due to full Shiki language support). Published as `gnassro` on Open VSX.
 Auto-incrementing build numbers are injected into generated version modules and shown in the About panel only while running the VS Code Extension Development Host.
 
 Added Skills integration: Phi now fully supports Pi SDK skills. A dedicated "Skills" panel has been added to the header overlay, and typing `/` in the chat input instantly triggers an interactive slash-command autocomplete to quickly inject `/skill:name` templates.
