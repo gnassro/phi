@@ -5,9 +5,9 @@ The Pi SDK (`@earendil-works/pi-coding-agent`) is the core engine of Phi. It run
 Official full SDK docs:
 `node_modules/@earendil-works/pi-coding-agent/docs/sdk.md`
 
-> **Current SDK version: `1.0.4`** (migrated from `0.99.2`).
+> **Current SDK version: `1.4.0`** (migrated from `1.0.4`).
 > The 0.80.8 release removed `AuthStorage` and the synchronous `ModelRegistry` projection.
-> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and upgraded through `1.0.4`. Phi's single-file bundle registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
+> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and upgraded through `1.4.0`. Phi's single-file bundle registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
 
 ---
 
@@ -22,9 +22,9 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 The three Pi packages are pinned to the same version and must be bumped together:
 
 ```json
-"@earendil-works/pi-agent-core": "1.0.4",
-"@earendil-works/pi-ai": "1.0.4",
-"@earendil-works/pi-coding-agent": "1.0.4"
+"@earendil-works/pi-agent-core": "1.4.0",
+"@earendil-works/pi-ai": "1.4.0",
+"@earendil-works/pi-coding-agent": "1.4.0"
 ```
 
 ---
@@ -423,6 +423,19 @@ Call this from `deactivate()` in `extension.ts` and await it.
 ---
 
 ## Migration notes
+
+### `1.0.4` → `1.4.0` (2026-10-31)
+
+**Pi 1.4.0 release upgrade.** Pi SDK was upgraded to `1.4.0` across `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-coding-agent`.
+
+Key changes & integrations:
+- **Tool Execution Timing (`durationMs`)**: Pi 1.1.0 added `durationMs` to `tool_execution_end` events, `AgentToolResult`, and persisted results across sessions. Phi updated `public/tool-card.js` (`finalizeToolCard`, `createHistoryCard`, `addHistoryResult`) and `public/style.css` (`.tool-duration`) to show execution time badges on completed tool cards.
+- **Run Abort Tracking**: Added `aborted: boolean` to `agent_settled` session, extension, and JSON events so integrations can distinguish cancelled runs from completed runs.
+- **Un-Capped Summaries**: Pi 1.4.0 compaction and branch summaries now use the model's actual output limit rather than a fixed token cap, eliminating generation limit errors when reasoning models output long thoughts.
+- **Clean Model Switching**: Pi 1.3.0 drops prior thinking blocks from different models so new models don't mimic prior reasoning as plain text.
+- **Tool Selection Modifiers & Resume**: Pi 1.1.0 added `+name` / `-name` tool modifiers and Pi 1.3.0 preserves active tool loadouts automatically across session reloads and switches.
+- **Expanded Provider Ecosystem & Model Defaults**: Added friendly names in `src/agent-manager.ts` for `Together AI`, `TypeSafe`, `Xiaomi`, `NVIDIA`, and `Baseten`. Updated default Copilot model to `gpt-6.1-sol` and default NVIDIA model to `nemotron-3.5-super-vl-120b-a12b`.
+- **Runtime Stability & Upstream Fixes**: Upstream fixes for transient gateway disconnect retries, `\u` unicode escapes in tool argument parsing, Windows `auth.json` lock retries, and unpaired tool results recovery after context limits.
 
 ### `0.99.2` → `1.0.4` (2026-10-07)
 

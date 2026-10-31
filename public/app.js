@@ -356,10 +356,10 @@ function handlePiEvent(event) {
     }
 
     case 'tool_execution_end': {
-      const { toolCallId, result, isError } = event;
+      const { toolCallId, result, isError, durationMs } = event;
       const output = formatToolOutput(result);
-      state.updateToolExecution(toolCallId, { status: isError ? 'error' : 'complete', output, isError });
-      toolCardRenderer.finalizeToolCard(toolCallId, result, isError);
+      state.updateToolExecution(toolCallId, { status: isError ? 'error' : 'complete', output, isError, durationMs });
+      toolCardRenderer.finalizeToolCard(toolCallId, result, isError, durationMs);
       showTypingIndicator(true, 'Thinking');
       break;
     }
@@ -521,7 +521,7 @@ function renderHistory(entries) {
         toolCardRenderer.createHistoryCard({ toolCallId: tc.id, toolName: tc.name, args: tc.arguments || {} });
       }
     } else if (msg.role === 'toolResult') {
-      toolCardRenderer.addHistoryResult(msg.toolCallId, { content: msg.content || [] }, msg.isError);
+      toolCardRenderer.addHistoryResult(msg.toolCallId, { content: msg.content || [] }, msg.isError, msg.durationMs);
     }
   }
 

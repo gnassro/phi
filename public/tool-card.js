@@ -89,6 +89,10 @@ export class ToolCardRenderer {
 
     card.appendChild(header);
 
+    if (toolExecution.durationMs !== undefined) {
+      this.setCardDuration(card, toolExecution.durationMs);
+    }
+
     // ── Body ──
     const body = document.createElement('div');
     body.className = 'tool-card-body' + (isExpanded ? ' expanded' : '');
@@ -157,13 +161,17 @@ export class ToolCardRenderer {
     }
   }
 
-  finalizeToolCard(toolCallId, result, isError) {
+  finalizeToolCard(toolCallId, result, isError, durationMs) {
     const card = this.toolCards.get(toolCallId);
     if (!card) return;
 
     // Hide spinner
     const spinner = card.querySelector('.tool-spinner');
     if (spinner) spinner.classList.add('hidden');
+
+    if (durationMs !== undefined) {
+      this.setCardDuration(card, durationMs);
+    }
 
     // Update output with final result
     const outputElement = card.querySelector('.tool-output');
@@ -177,6 +185,32 @@ export class ToolCardRenderer {
     const chevron = card.querySelector('.tool-card-chevron');
     if (body) body.classList.remove('expanded');
     if (chevron) chevron.classList.remove('expanded');
+  }
+
+  formatDuration(durationMs) {
+    if (typeof durationMs !== 'number' || durationMs < 0) return '';
+    if (durationMs < 1000) {
+      return `${Math.round(durationMs)}ms`;
+    }
+    return `${(durationMs / 1000).toFixed(1)}s`;
+  }
+
+  setCardDuration(card, durationMs) {
+    if (typeof durationMs !== 'number' || durationMs < 0) return;
+    const headerRight = card.querySelector('.tool-header-right');
+    if (!headerRight) return;
+    let durationEl = headerRight.querySelector('.tool-duration');
+    if (!durationEl) {
+      durationEl = document.createElement('span');
+      durationEl.className = 'tool-duration';
+      const copyBtn = headerRight.querySelector('.copy-output-btn');
+      if (copyBtn) {
+        headerRight.insertBefore(durationEl, copyBtn);
+      } else {
+        headerRight.appendChild(durationEl);
+      }
+    }
+    durationEl.textContent = this.formatDuration(durationMs);
   }
 
   /**
@@ -249,6 +283,10 @@ export class ToolCardRenderer {
 
     card.appendChild(header);
 
+    if (toolExecution.durationMs !== undefined) {
+      this.setCardDuration(card, toolExecution.durationMs);
+    }
+
     // Body (collapsed by default)
     const body = document.createElement('div');
     body.className = 'tool-card-body';
@@ -291,9 +329,13 @@ export class ToolCardRenderer {
   /**
    * Add result to a history card (stays collapsed)
    */
-  addHistoryResult(toolCallId, result, isError) {
+  addHistoryResult(toolCallId, result, isError, durationMs) {
     const card = this.toolCards.get(toolCallId);
     if (!card) return;
+
+    if (durationMs !== undefined) {
+      this.setCardDuration(card, durationMs);
+    }
 
     const outputElement = card.querySelector('.tool-output');
     if (outputElement && result) {
