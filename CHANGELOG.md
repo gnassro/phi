@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0] - 2026-10-31
+
+### Added
+- upgrade Pi SDK to 1.4.0 with tool execution timing
+- upgrade Pi SDK to 1.4.0 with tool execution timing
+
+
 ## [0.9.1] - 2026-10-11
 
 ### Fixed
