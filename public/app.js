@@ -15,6 +15,7 @@ import { EXTENSION_VERSION, EXTENSION_VERSION_WITH_BUILD, PI_SDK_VERSION } from 
 // Modules extracted from app.js
 import { AttachmentManager } from './attachment-manager.js';
 import { ModelPicker } from './model-picker.js';
+import { ThinkingLevelPicker } from './thinking-level-picker.js';
 import { CostMonitor } from './cost-monitor.js';
 import { CommandPalette } from './command-palette.js';
 import { TreePanel } from './tree-panel.js';
@@ -36,6 +37,7 @@ const chatInput = new ChatInput('message-input', 'chat-form', (text) => {
 
 const attachmentManager = new AttachmentManager(chatInput);
 const modelPicker = new ModelPicker();
+const thinkingLevelPicker = new ThinkingLevelPicker('thinking-dropdown');
 const costMonitor = new CostMonitor();
 const treePanel = new TreePanel();
 
@@ -393,6 +395,10 @@ function handlePiEvent(event) {
       }
       break;
 
+    case 'thinking_level_changed':
+      applyThinkingState(undefined, event.level);
+      break;
+
     default:
       break;
   }
@@ -418,6 +424,16 @@ function formatToolOutput(result) {
 // Sync handler
 // ═══════════════════════════════════════
 
+/**
+ * Apply thinking-level state to both pickers (header + Settings).
+ * Either argument may be missing: the pickers ignore unknown values.
+ */
+function applyThinkingState(availableLevels, level) {
+  thinkingLevelPicker.setAvailableLevels(availableLevels);
+  thinkingLevelPicker.setLevel(level);
+  panels.setThinkingState(availableLevels, level);
+}
+
 function handleSync(syncState) {
   state.reset();
   messageRenderer.clear();
@@ -438,9 +454,7 @@ function handleSync(syncState) {
 
   modelPicker.setModel(syncState.model ?? null);
   costMonitor.setContextWindowSize(syncState.model?.contextWindow ?? 0);
-  if (syncState.thinkingLevel) {
-    modelPicker.setThinkingLevel(syncState.thinkingLevel);
-  }
+  applyThinkingState(syncState.availableThinkingLevels, syncState.thinkingLevel);
 
   if (syncState.skills) {
     commandPalette.updateSkills(syncState.skills);
@@ -735,7 +749,8 @@ VscodeIPC.on('rpc_response', (msg) => {
   switch (command) {
     case 'get_state':
       if (data) {
-        modelPicker.handleStateResponse(data);
+        modelPicker.setModel(data.model ?? null);
+        applyThinkingState(data.availableThinkingLevels, data.thinkingLevel);
         panels.handleStateResponse(data);
         costMonitor.setContextWindowSize(data.model?.contextWindow ?? 0);
       }
@@ -745,9 +760,16 @@ VscodeIPC.on('rpc_response', (msg) => {
       modelPicker.handleModelsResponse(data);
       break;
 
-    case 'cycle_thinking_level':
-      modelPicker.handleThinkingResponse(data);
-      panels.handleThinkingResponse(data);
+    case 'set_model':
+      if (data) {
+        modelPicker.setModel(data.model ?? null);
+        applyThinkingState(data.availableThinkingLevels, data.thinkingLevel);
+        panels.handleStateResponse(data);
+      }
+      break;
+
+    case 'set_thinking_level':
+      applyThinkingState(undefined, data?.level);
       break;
 
     case 'get_session_stats':

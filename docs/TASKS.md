@@ -77,7 +77,8 @@ This file tracks all tasks for the Phi project.
 #### Header Bar ✅
 - [x] Add header bar to webview HTML (in `panel-manager.ts` `buildWebviewHtml()`)
 - [x] Model dropdown (label + chevron, dropdown with search)
-- [x] Thinking level button (cycles off/low/medium/high)
+- [x] ~~Thinking level button (cycles off/low/medium/high)~~ — REMOVED: replaced by the thinking level dropdown
+- [x] Thinking level dropdown (explicit level, options from the current model)
 - [x] New Chat button
 - [x] History button (opens session history panel)
 - [x] Settings button (opens settings panel)
@@ -96,7 +97,8 @@ This file tracks all tasks for the Phi project.
 #### Settings Panel ✅
 - [x] Create settings overlay panel in webview HTML
 - [x] Show thinking toggle (local pref, hide/show `.thinking-block`)
-- [x] Thinking level cycle button
+- [x] ~~Thinking level cycle button~~ — REMOVED: replaced by the thinking level dropdown
+- [x] Thinking level dropdown (same control as the header)
 - [x] Auto-compaction toggle
 - [x] Experimental task alert sounds toggle (local pref for success/failure sounds, still under development/testing)
 - [x] Manage Pi Extensions button opens a dedicated extension manager with enabled/disabled toggles, including the built-in legacy Google providers extension
@@ -169,9 +171,11 @@ This file tracks all tasks for the Phi project.
 
 #### Webview → Extension Host (all implemented)
 - [x] `get_state` — returns model info, thinking level, auto-compaction state, session name
+- [x] `get_state` — also returns `availableThinkingLevels`
 - [x] `get_available_models` — returns list of all models with provider, contextWindow
 - [x] `set_model` — switch to a different model (provider + modelId)
-- [x] `cycle_thinking_level` — cycle thinking level, returns new level
+- [x] ~~`cycle_thinking_level` — cycle thinking level, returns new level~~ — REMOVED: replaced by `set_thinking_level`
+- [x] `set_thinking_level` — set an explicit thinking level, returns effective level
 - [x] `compact` — trigger context compaction
 - [x] `set_auto_compaction` — enable/disable auto-compaction
 - [x] `get_session_stats` — returns SessionStats (message counts, token usage, cost)
@@ -194,9 +198,11 @@ This file tracks all tasks for the Phi project.
 
 ### Agent Manager Additions (`src/agent-manager.ts`) ✅
 - [x] `getState()` — returns `{ model, thinkingLevel, autoCompactionEnabled, sessionName }`
+- [x] `getState()` — also returns `availableThinkingLevels`
 - [x] `getAvailableModels()` — returns `session.modelRegistry.getAvailable()`
 - [x] `setModel(provider, modelId)` — finds model and calls `session.setModel()`
-- [x] `cycleThinkingLevel()` — calls `session.cycleThinkingLevel()`, returns new level
+- [x] ~~`cycleThinkingLevel()` — calls `session.cycleThinkingLevel()`, returns new level~~ — REMOVED: replaced by `setThinkingLevel()`
+- [x] `setThinkingLevel(level)` — calls `session.setThinkingLevel()`, returns effective level
 - [x] `compact()` — calls `session.compact()`
 - [x] `setAutoCompaction(enabled)` — calls `session.setAutoCompactionEnabled()`
 - [x] `getSessionStats()` — calls `session.getSessionStats()`
@@ -287,6 +293,7 @@ This file tracks all tasks for the Phi project.
 - [x] Refactored `public/app.js` from ~1,732 lines to ~430 lines
   - [x] `public/attachment-manager.js` — File attachments: image paste, native file picker, previews
   - [x] `public/model-picker.js` — Model dropdown, search, thinking level
+  - [x] `public/thinking-level-picker.js` — Thinking-level dropdown, shared by header and settings
   - [x] `public/cost-monitor.js` — Cost/token display, context visualization
   - [x] `public/command-palette.js` — Command palette overlay
   - [x] `public/tree-panel.js` — Conversation tree panel (navigation, labeling)

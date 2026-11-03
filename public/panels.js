@@ -4,6 +4,7 @@
  * Manages Settings, About, Accounts, History, and Skills panels.
  */
 import { VscodeIPC } from './vscode-ipc.js';
+import { ThinkingLevelPicker } from './thinking-level-picker.js';
 
 export class PanelsManager {
   constructor({ sidebar, chatInput, onSessionSelect, onNewSession, onToggleCompletionSound }) {
@@ -20,7 +21,7 @@ export class PanelsManager {
     this.settingsOverlay = document.getElementById('settings-overlay');
     this.settingsClose = document.getElementById('settings-close');
     this.toggleAutoCompact = document.getElementById('toggle-auto-compact');
-    this.btnThinkingLevel = document.getElementById('btn-thinking-level');
+    this.thinkingLevelPicker = new ThinkingLevelPicker('settings-thinking-dropdown');
     this.toggleShowThinking = document.getElementById('toggle-show-thinking');
     this.toggleCompletionSound = document.getElementById('toggle-completion-sound');
 
@@ -68,10 +69,6 @@ export class PanelsManager {
       const isOn = this.toggleAutoCompact.classList.contains('on');
       this.toggleAutoCompact.className = `settings-toggle${isOn ? '' : ' on'}`;
       VscodeIPC.send({ type: 'set_auto_compaction', enabled: !isOn });
-    });
-
-    this.btnThinkingLevel.addEventListener('click', () => {
-      VscodeIPC.send({ type: 'cycle_thinking_level' });
     });
 
     // Show thinking toggle
@@ -154,19 +151,15 @@ export class PanelsManager {
 
   /** Update settings panel from RPC state response */
   handleStateResponse(data) {
-    if (data.thinkingLevel) {
-      this.btnThinkingLevel.textContent = data.thinkingLevel;
-    }
     if (typeof data.autoCompactionEnabled !== 'undefined') {
       this.toggleAutoCompact.className = `settings-toggle${data.autoCompactionEnabled ? ' on' : ''}`;
     }
   }
 
-  /** Update thinking level display in settings */
-  handleThinkingResponse(data) {
-    if (data?.level) {
-      this.btnThinkingLevel.textContent = data.level;
-    }
+  /** Apply thinking-level state to the Settings picker. */
+  setThinkingState(availableLevels, level) {
+    this.thinkingLevelPicker.setAvailableLevels(availableLevels);
+    this.thinkingLevelPicker.setLevel(level);
   }
 
   // ── About ──

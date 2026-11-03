@@ -29,7 +29,7 @@ type WebviewMessage =
   | { type: 'get_state' }
   | { type: 'get_available_models' }
   | { type: 'set_model'; provider: string; modelId: string }
-  | { type: 'cycle_thinking_level' }
+  | { type: 'set_thinking_level'; level: string }
   // Agent controls
   | { type: 'compact' }
   | { type: 'set_auto_compaction'; enabled: boolean }
@@ -135,16 +135,18 @@ async function handleWebviewMessage(message: WebviewMessage): Promise<void> {
     case 'set_model': {
       const success = await AgentManager.setModel(message.provider, message.modelId);
       if (success) {
-        sendRpcResponse('set_model', true);
+        // The new model can support a different set of thinking levels, so
+        // return the refreshed state with the response.
+        sendRpcResponse('set_model', true, AgentManager.getState());
       } else {
         sendRpcResponse('set_model', false, undefined, 'Model not found');
       }
       break;
     }
 
-    case 'cycle_thinking_level': {
-      const level = AgentManager.cycleThinkingLevel();
-      sendRpcResponse('cycle_thinking_level', true, { level });
+    case 'set_thinking_level': {
+      const level = AgentManager.setThinkingLevel(message.level);
+      sendRpcResponse('set_thinking_level', level !== undefined, { level });
       break;
     }
 
@@ -330,6 +332,7 @@ export function sendSync(): void {
       sessionFile: AgentManager.getSessionFile(),
       model: state?.model ?? null,
       thinkingLevel: state?.thinkingLevel ?? 'off',
+      availableThinkingLevels: state?.availableThinkingLevels ?? [],
       sessionStats: sessionStats ?? null,
       skills,
     },

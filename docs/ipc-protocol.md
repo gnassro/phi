@@ -30,7 +30,7 @@ type WebviewMessage =
   | { type: "get_state" }
   | { type: "get_available_models" }
   | { type: "set_model"; provider: string; modelId: string }
-  | { type: "cycle_thinking_level" }
+  | { type: "set_thinking_level"; level: string }
 
   // Agent controls
   | { type: "compact" }
@@ -118,6 +118,7 @@ VscodeIPC.send({ type: "get_state" });
 // Response: { type: "rpc_response", command: "get_state", success: true, data: {
 //   model: { id: "claude-sonnet-4-20250514", provider: "anthropic", contextWindow: 200000 },
 //   thinkingLevel: "off",
+//   availableThinkingLevels: ["off", "minimal", "low", "medium", "high"],
 //   autoCompactionEnabled: true,
 //   sessionName: "Fix auth bug"
 // }}
@@ -133,16 +134,23 @@ VscodeIPC.send({ type: "get_available_models" });
 ```
 
 #### `set_model`
-Switch to a different model.
+Switch to a different model. The response carries the refreshed state (the new model may support a different set of thinking levels).
 ```javascript
 VscodeIPC.send({ type: "set_model", provider: "anthropic", modelId: "claude-sonnet-4-20250514" });
+// Response: { type: "rpc_response", command: "set_model", success: true, data: {
+//   model: { id: "...", provider: "...", contextWindow: 200000 },
+//   thinkingLevel: "medium",
+//   availableThinkingLevels: ["off", "low", "medium", "high"],
+//   autoCompactionEnabled: true,
+//   sessionName: "..."
+// }}
 ```
 
-#### `cycle_thinking_level`
-Cycle to the next thinking level. Returns the new level.
+#### `set_thinking_level`
+Set an explicit thinking level. The Pi SDK clamps to the levels the current model supports. Returns the effective level.
 ```javascript
-VscodeIPC.send({ type: "cycle_thinking_level" });
-// Response: { type: "rpc_response", command: "cycle_thinking_level", success: true, data: {
+VscodeIPC.send({ type: "set_thinking_level", level: "medium" });
+// Response: { type: "rpc_response", command: "set_thinking_level", success: true, data: {
 //   level: "medium"
 // }}
 ```
@@ -263,6 +271,8 @@ interface SyncState {
   cwd: string;
   sessionFile: string;
   model: string;
+  thinkingLevel: string;
+  availableThinkingLevels: string[];  // levels supported by the current model
 }
 ```
 
@@ -343,7 +353,7 @@ Prefills the chat input with text. Used by "Phi: Ask About Selection".
 ```
 
 ### `rpc_response`
-Generic response to RPC-style commands (`get_state`, `get_available_models`, `cycle_thinking_level`, `get_session_stats`).
+Generic response to RPC-style commands (`get_state`, `get_available_models`, `set_thinking_level`, `get_session_stats`).
 
 ```typescript
 interface RpcResponse {
