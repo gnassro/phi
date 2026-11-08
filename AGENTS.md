@@ -83,7 +83,8 @@ phi/
 │   ├── state.js                  ← StateManager for tool execution tracking
 │   ├── session-sidebar.js        ← Session history panel
 │   ├── attachment-manager.js      ← File attachments: image paste, file picker, previews
-│   ├── model-picker.js           ← Model dropdown, search, thinking level
+│   ├── model-picker.js            ← Model dropdown, search, selection
+│   ├── thinking-level-picker.js   ← Thinking level dropdown, selection
 │   ├── cost-monitor.js           ← Cost/token display, context visualization
 │   ├── command-palette.js        ← Command palette overlay
 │   ├── tree-panel.js             ← Conversation tree panel (navigation, labeling)
@@ -162,7 +163,8 @@ phi/
 │  │  state.js             ← Tool execution state tracking    │   │
 │  │  session-sidebar.js   ← Session history panel            │   │
 │  │  attachment-manager.js ← File attachments (images + files)  │   │
-│  │  model-picker.js      ← Model dropdown + thinking        │   │
+│  │  model-picker.js ← Model dropdown + selection            │   │
+│  │  thinking-level-picker.js ← Thinking level dropdown      │   │
 │  │  cost-monitor.js      ← Cost/token/context viz           │   │
 │  │  command-palette.js   ← Command palette                  │   │
 │  │  tree-panel.js        ← Conversation tree                │   │
@@ -198,7 +200,7 @@ Full specification: `docs/ipc-protocol.md`
 | `get_state` | Request model, thinking level, auto-compaction state |
 | `get_available_models` | Fetch list of all available models |
 | `set_model` | Switch to a different model (provider + modelId) |
-| `cycle_thinking_level` | Cycle thinking level, returns new level |
+| `set_thinking_level` | Set an explicit thinking level, returns effective level |
 | `compact` | Trigger context compaction |
 | `set_auto_compaction` | Enable/disable auto-compaction |
 | `get_session_stats` | Fetch session statistics (messages, tokens, cost) |

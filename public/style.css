@@ -244,23 +244,43 @@ body {
   opacity: 0.5;
 }
 
-/* Thinking tag */
-.thinking-tag {
-  padding: 1px 6px;
-  height: 22px;
-  border: 1px solid var(--vscode-widget-border, var(--vscode-dropdown-border, transparent));
-  border-radius: 3px;
+/* Thinking level dropdown — reuses the model-dropdown widget, differentiated by color */
+.thinking-dropdown .model-dropdown-btn {
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
-  font-size: 10px;
-  font-family: inherit;
-  cursor: pointer;
-  transition: opacity 0.1s;
+  border-color: var(--vscode-widget-border, var(--vscode-dropdown-border, transparent));
+}
+
+.thinking-dropdown .model-dropdown-btn:hover {
+  border-color: var(--vscode-focusBorder);
+}
+
+.thinking-dropdown .model-dropdown-label {
   text-transform: lowercase;
 }
 
-.thinking-tag:hover { opacity: 0.8; }
-.thinking-tag.off { opacity: 0.5; }
+.thinking-dropdown.off .model-dropdown-btn {
+  opacity: 0.6;
+}
+
+/* Model has no thinking level to pick (only "off"): not selectable */
+.thinking-dropdown .model-dropdown-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.thinking-dropdown .model-dropdown-btn:disabled:hover {
+  border-color: var(--vscode-widget-border, var(--vscode-dropdown-border, transparent));
+}
+
+.thinking-dropdown .model-dropdown-menu {
+  min-width: 120px;
+}
+
+.settings-row .model-dropdown-menu {
+  left: auto;
+  right: 0;
+}
 
 /* ═══════════════════════════════════════════════════════
    Messages Area
@@ -1515,20 +1535,6 @@ body.hide-thinking .thinking-block { display: none; }
   transform: translateX(18px);
   background: var(--vscode-button-foreground);
 }
-
-.settings-value-btn {
-  padding: 2px 8px;
-  border: 1px solid var(--vscode-widget-border, var(--vscode-dropdown-border, transparent));
-  border-radius: 3px;
-  background: var(--vscode-dropdown-background);
-  color: var(--vscode-dropdown-foreground);
-  font-size: 11px;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.1s;
-}
-
-.settings-value-btn:hover { border-color: var(--vscode-focusBorder); }
 
 .settings-nav-row {
   width: 100%;

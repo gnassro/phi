@@ -1,7 +1,7 @@
 /**
  * model-picker.js — Model Picker Dropdown
  *
- * Manages the model dropdown, search, selection, and thinking level button.
+ * Manages the model dropdown, search, and selection.
  */
 import { VscodeIPC } from './vscode-ipc.js';
 
@@ -9,7 +9,6 @@ export class ModelPicker {
   constructor() {
     this.currentModelId = '';
     this.availableModels = [];
-    this.currentThinkingLevel = 'off';
     this.contextWindowSize = 0;
     this.requiresLogin = false;
 
@@ -23,7 +22,6 @@ export class ModelPicker {
     this.dropdownBtn = document.getElementById('model-dropdown-btn');
     this.dropdownLabel = document.getElementById('model-dropdown-label');
     this.dropdownMenu = document.getElementById('model-dropdown-menu');
-    this.thinkingBtn = document.getElementById('thinking-btn');
 
     this._init();
   }
@@ -43,10 +41,6 @@ export class ModelPicker {
     document.addEventListener('click', (e) => {
       if (!this.dropdown.contains(e.target)) this.close();
     });
-
-    this.thinkingBtn.addEventListener('click', () => {
-      VscodeIPC.send({ type: 'cycle_thinking_level' });
-    });
   }
 
   setModel(model) {
@@ -64,11 +58,6 @@ export class ModelPicker {
     this._updateButtonState();
   }
 
-  setThinkingLevel(level) {
-    this.currentThinkingLevel = level;
-    this._updateThinkingBtn();
-  }
-
   getCurrentModelId() { return this.currentModelId; }
   getContextWindowSize() { return this.contextWindowSize; }
 
@@ -79,15 +68,6 @@ export class ModelPicker {
     this.dropdown.classList.remove('open');
   }
 
-  /** Handle RPC response for get_state */
-  handleStateResponse(data) {
-    this.setModel(data?.model || null);
-    if (data?.thinkingLevel) {
-      this.currentThinkingLevel = data.thinkingLevel;
-      this._updateThinkingBtn();
-    }
-  }
-
   /** Handle RPC response for get_available_models */
   handleModelsResponse(data) {
     if (data?.models) {
@@ -96,14 +76,6 @@ export class ModelPicker {
         this.dropdown._pendingOpen = false;
         this._openDropdown();
       }
-    }
-  }
-
-  /** Handle RPC response for cycle_thinking_level */
-  handleThinkingResponse(data) {
-    if (data?.level) {
-      this.currentThinkingLevel = data.level;
-      this._updateThinkingBtn();
     }
   }
 
@@ -120,11 +92,6 @@ export class ModelPicker {
     this.dropdown.classList.toggle('login-required', this.requiresLogin);
     this.dropdownBtn.setAttribute('aria-label', this.requiresLogin ? 'Open Accounts' : 'Switch model');
     this.dropdownBtn.setAttribute('title', this.requiresLogin ? 'Open Accounts' : 'Switch model');
-  }
-
-  _updateThinkingBtn() {
-    this.thinkingBtn.textContent = this.currentThinkingLevel;
-    this.thinkingBtn.classList.toggle('off', this.currentThinkingLevel === 'off');
   }
 
   _openDropdown() {

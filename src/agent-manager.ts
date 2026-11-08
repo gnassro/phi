@@ -28,6 +28,9 @@ import type {
 import { registerBunOAuthFlows } from '@earendil-works/pi-ai/bun-oauth';
 import { FileCredentialStore, type StoredCredential, LegacyLoginAdapter } from './credential-store.js';
 import * as vscode from 'vscode';
+
+/** Pi's thinking-level union, derived from the session API to avoid a direct import. */
+type ThinkingLevel = Parameters<AgentSession['setThinkingLevel']>[0];
 import * as path from 'path';
 import * as os from 'os';
 
@@ -358,6 +361,7 @@ export function getState() {
   return {
     model: serializeModelInfo(model),
     thinkingLevel: session.thinkingLevel,
+    availableThinkingLevels: session.getAvailableThinkingLevels(),
     autoCompactionEnabled: session.autoCompactionEnabled,
     sessionName: session.sessionName ?? null,
   };
@@ -381,9 +385,10 @@ export async function setModel(provider: string, modelId: string): Promise<boole
   return true;
 }
 
-export function cycleThinkingLevel(): string | undefined {
+export function setThinkingLevel(level: string): string | undefined {
   if (!session) return undefined;
-  return session.cycleThinkingLevel();
+  session.setThinkingLevel(level as ThinkingLevel);
+  return session.thinkingLevel;
 }
 
 export function getSessionStats(): SessionStats | null {

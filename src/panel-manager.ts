@@ -118,6 +118,20 @@ export function onMessage(handler: MessageHandler): void {
 
 // ─── HTML builder ─────────────────────────────────────────────────────────────
 
+/** Thinking-level picker markup. Reused by the header and the Settings panel. */
+function thinkingPickerHtml(id: string): string {
+  return `
+        <div class="model-dropdown thinking-dropdown" id="${id}">
+          <button class="model-dropdown-btn" title="Thinking level">
+            <span class="model-dropdown-label">off</span>
+            <svg class="model-dropdown-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="model-dropdown-menu hidden"></div>
+        </div>`;
+}
+
 function buildWebviewHtml(
   webview: vscode.Webview,
   extensionUri: vscode.Uri,
@@ -166,7 +180,7 @@ function buildWebviewHtml(
           </button>
           <div class="model-dropdown-menu hidden" id="model-dropdown-menu"></div>
         </div>
-        <button class="thinking-tag" id="thinking-btn" title="Cycle thinking level">off</button>
+        ${thinkingPickerHtml('thinking-dropdown')}
       </div>
 
       <div class="header-right">
@@ -314,7 +328,7 @@ function buildWebviewHtml(
         </div>
         <div class="settings-row">
           <span class="settings-label">Thinking level</span>
-          <button class="settings-value-btn" id="btn-thinking-level"></button>
+          ${thinkingPickerHtml('settings-thinking-dropdown')}
         </div>
       </div>
       <div class="settings-section">
