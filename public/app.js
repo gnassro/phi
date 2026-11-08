@@ -765,6 +765,7 @@ VscodeIPC.on('rpc_response', (msg) => {
         modelPicker.setModel(data.model ?? null);
         applyThinkingState(data.availableThinkingLevels, data.thinkingLevel);
         panels.handleStateResponse(data);
+        costMonitor.setContextWindowSize(data.model?.contextWindow ?? 0);
       }
       break;
 
