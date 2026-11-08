@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.11.0] - 2026-11-08
+
+### Added
+- replace thinking level cycle button with a level picker (#32)
+
+
 ## [0.10.0] - 2026-10-31
 
 ### Added
