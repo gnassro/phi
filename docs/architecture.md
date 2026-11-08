@@ -35,6 +35,7 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  public/tool-card.js            │                             │
 │  │  public/state.js                │                             │
 │  │  public/session-sidebar.js      │                             │
+│  │  public/thinking-level-picker.js│                             │
 │  │  public/markdown.js             │                             │
 │  │  public/syntax-highlighter.js   │                             │
 │  │  public/themes.js  (no-op)      │                             │
@@ -170,7 +171,10 @@ Slim orchestrator (~430 lines):
 - `VscodeIPC.on('type', handler)` receives messages from extension host
 - On load: sends `request_sync` to get current state
 - Handles `pi_event` messages from extension host
-- Delegates to extracted modules: `AttachmentManager`, `ModelPicker`, `CostMonitor`, `CommandPalette`, `TreePanel`, `PromptAutocomplete`, `Panels`
+- Delegates to extracted modules: `AttachmentManager`, `ModelPicker`, `ThinkingLevelPicker`, `CostMonitor`, `CommandPalette`, `TreePanel`, `PromptAutocomplete`, `Panels`
+
+### `public/thinking-level-picker.js`
+Manages the thinking-level dropdown used in the header and the Settings panel. Lists the levels supported by the active model, handles direct selection, and automatically disables itself when the model only supports `off`.
 
 ### `public/markdown.js`
 Renders assistant/user markdown into webview HTML. Fenced code blocks are routed through `syntax-highlighter.js`, then rendered with local copy buttons that use delegated `addEventListener` handlers instead of inline event attributes.
