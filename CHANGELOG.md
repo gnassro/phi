@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1] - 2026-11-14
+
+### Changed
+- upgrade Pi SDK to 1.5.2 and sync documentation
+- upgrade Pi SDK to 1.5.2 and sync documentation
+
+
 ## [0.11.0] - 2026-11-08
 
 ### Added
