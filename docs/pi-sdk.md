@@ -5,9 +5,9 @@ The Pi SDK (`@earendil-works/pi-coding-agent`) is the core engine of Phi. It run
 Official full SDK docs:
 `node_modules/@earendil-works/pi-coding-agent/docs/sdk.md`
 
-> **Current SDK version: `1.4.0`** (migrated from `1.0.4`).
+> **Current SDK version: `1.5.2`** (migrated from `1.4.0`).
 > The 0.80.8 release removed `AuthStorage` and the synchronous `ModelRegistry` projection.
-> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and upgraded through `1.4.0`. Phi's single-file bundle registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
+> Phi was migrated to `ModelRuntime` + `FileCredentialStore` in `0.80.10` and upgraded through `1.5.2`. Phi's single-file bundle registers the SDK's built-in OAuth loaders so subscription flows are available after packaging.
 
 ---
 
@@ -22,9 +22,9 @@ The SDK is the same package used by the Pi CLI tool. No separate installation.
 The three Pi packages are pinned to the same version and must be bumped together:
 
 ```json
-"@earendil-works/pi-agent-core": "1.4.0",
-"@earendil-works/pi-ai": "1.4.0",
-"@earendil-works/pi-coding-agent": "1.4.0"
+"@earendil-works/pi-agent-core": "1.5.2",
+"@earendil-works/pi-ai": "1.5.2",
+"@earendil-works/pi-coding-agent": "1.5.2"
 ```
 
 ---
@@ -423,6 +423,26 @@ Call this from `deactivate()` in `extension.ts` and await it.
 ---
 
 ## Migration notes
+
+### `1.4.0` → `1.5.2` (2026-11-14)
+
+**Pi 1.5.2 release upgrade.** Pi SDK was upgraded to `1.5.2` (covering releases 1.5.0, 1.5.1, and 1.5.2) across `@earendil-works/pi-agent-core`, `@earendil-works/pi-ai`, and `@earendil-works/pi-coding-agent`.
+
+Key changes & integrations:
+- **Faster Streaming & Highlighting Caching (1.5.0)**: Large tool calls are parsed incrementally, and code-heavy answers and tool rows reuse highlighting and rendered Markdown instead of re-evaluating on every delta.
+- **Anthropic Message Threads (1.5.1)**: Anthropic sessions send only new messages with server-side continuation, automatically falling back to full-context requests when the conversation history changes.
+- **Idle Prompt Cache Warming (1.5.1)**: `cacheWarming` now defaults to `"idle"`, keeping eligible prompt caches warm for up to 30 minutes between runs when cost-effective.
+- **Graceful Shutdown & OAuth Token Preservation (1.5.2)**: `runtime.dispose()` and `modelRuntime.settleCredentialWrites()` now explicitly wait for credential writes/rotations in progress before resolving, protecting OAuth refresh tokens from being lost if the extension is deactivated during a token refresh.
+- **Session Recovery & Forking (1.5.2)**: Sessions whose working folder was moved or deleted can now be forked into the current working directory.
+- **Tool Schema Validation via `@earendil-works/pi-schema` (1.5.0)**: Parameter validation moved to `@earendil-works/pi-schema`, providing unified coercion for plain JSON Schema and MCP tools.
+- **Updated Default Models & Providers**:
+  - `anthropic`: Claude Opus 5.5 (`claude-opus-5-5`)
+  - `openai`: `gpt-6.1-sol`
+  - `azure`: `gpt-6.1-sol`
+  - `amazon-bedrock`: Claude Opus 5.5
+  - `google` / `google-vertex`: Gemini 4 Argon
+  - Added support and display names for Qwen Token Plan providers (`qwen-token-plan-individual-cn`, etc.).
+- **Upstream Fixes**: Fixed race conditions during concurrent prompts and session-tree navigation, fixed thinking level being ignored in branch summaries, fixed HTML comments rendering as visible text, and fixed repeated image resize crashes on macOS.
 
 ### `1.0.4` → `1.4.0` (2026-10-31)
 
