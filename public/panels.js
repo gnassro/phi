@@ -339,17 +339,7 @@ export class PanelsManager {
     this.skillsList.querySelectorAll('.skill-command-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const skillName = e.target.getAttribute('data-skill');
-        const inputEl = document.getElementById('message-input');
-        inputEl.textContent = `/skill:${skillName} `;
-        inputEl.focus();
-
-        const range = document.createRange();
-        const sel = window.getSelection();
-        range.selectNodeContents(inputEl);
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
-
+        this.chatInput.setText(`/skill:${skillName} `);
         this.closeSkills();
       });
     });

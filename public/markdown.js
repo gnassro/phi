@@ -6,6 +6,7 @@
  */
 
 import { getLanguageLabel, highlightRenderedCodeBlocks } from './syntax-highlighter.js';
+import { icons } from './icons.js';
 
 export function renderMarkdown(text, options = {}) {
   if (!text) return '';
@@ -277,10 +278,7 @@ export function renderUserMarkdown(text) {
       const label = escapeHtml(fileName + lineRange);
       codeSpans.push(
         `<code class="context-ref-inline" title="${escapeHtml(code)}">` +
-        `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px;opacity:0.6">` +
-        `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>` +
-        `<polyline points="14 2 14 8 20 8"/>` +
-        `</svg>${label}</code>`
+        `${icons.document()}${label}</code>`
       );
     } else {
       codeSpans.push(`<code>${escapeHtml(code)}</code>`);
@@ -325,10 +323,7 @@ function renderInline(text) {
       const label = escapeHtml(fileName + lineRange);
       codeSpans.push(
         `<code class="context-ref-inline" title="${escapeHtml(code)}">` +
-        `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:2px;opacity:0.6">` +
-        `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>` +
-        `<polyline points="14 2 14 8 20 8"/>` +
-        `</svg>${label}</code>`
+        `${icons.document()}${label}</code>`
       );
     } else {
       codeSpans.push(`<code>${escapeHtml(code)}</code>`);

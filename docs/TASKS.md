@@ -98,7 +98,7 @@ This file tracks all tasks for the Phi project.
 - [x] Create settings overlay panel in webview HTML
 - [x] Show thinking toggle (local pref, hide/show `.thinking-block`)
 - [x] ~~Thinking level cycle button~~ — REMOVED: replaced by the thinking level dropdown
-- [x] Thinking level dropdown (same control as the header)
+- [x] Thinking level dropdown (same control as the composer footer)
 - [x] Auto-compaction toggle
 - [x] Experimental task alert sounds toggle (local pref for success/failure sounds, still under development/testing)
 - [x] Manage Pi Extensions button opens a dedicated extension manager with enabled/disabled toggles, including the built-in legacy Google providers extension
@@ -142,16 +142,20 @@ This file tracks all tasks for the Phi project.
 - [x] Fix oversized Input legend dot in the context window visualizer
 
 #### Context Window Visualizer ✅
-- [x] Clickable token usage → expand context breakdown
+- [x] Clickable token usage → expand context visualizer
 - [x] Stacked bar: Cached | Input | Available
 - [x] Legend with token counts
 - [x] Footer: "X% used — Xk / Xk tokens"
 
 #### Command Palette ✅
-- [x] Add command palette overlay in webview HTML
+- [x] Command palette reuses the settings/skills modal shell (overlay, header, close button)
+- [x] Typing `/` filters that same modal (no second popup), with arrow/Enter/Escape navigation
+- [x] Modal open/close keeps the `/` filter state and the Enter guard in sync (`onOpen`/`onClose`)
+- [x] Single row renderer for the button and `/` flows (escaped labels, no index drift)
 - [x] Command button in input area
 - [x] Commands: Compact, Session Stats, Expand All Tools, Collapse All Tools
-- [x] Add CSS for command palette
+- [x] Only the alignment differs: full width, docked above the message box
+- [x] Closes with the ✕, `Escape`, or a click outside the modal; the overlay shows in both modes (in `/` mode it is click-through, so the composer stays usable)
 
 #### Keyboard Shortcuts ✅
 - [x] `Escape` — abort streaming, or close open panels (settings, history, command palette, model dropdown)
@@ -251,6 +255,35 @@ This file tracks all tasks for the Phi project.
 - [x] Arrow navigation and Enter to autocomplete skill names
 
 ### UI Polish ✅
+- [x] Chat composer follows native VS Code Chat layout: full-width message box
+- [x] Composer spacing symmetric: uniform `8px` input-area padding, no phantom gap under the input text
+- [x] Composer placeholder is `What should we build?` (no keyboard hints — standard editor behaviour)
+- [x] Placeholder returns when the composer is emptied: stray `<br>` is normalized so the caret is at the start (`.is-empty` state, not CSS `:empty`)
+- [x] Context usage shown as a donut icon; percentage appears on hover
+- [x] Context visualizer popup clamped to the sidebar width (colours unchanged)
+- [x] Opening the context visualizer closes the model/thinking menus (no overlap)
+- [x] Tooltips: 0.5s hover delay before showing (instant hide), composer buttons included, edge tooltips stay inside the sidebar
+- [x] Tooltip placement lives in its own module (`public/tooltip-utils.js`, `initializeTooltipPlacement()`, like `dropdown-utils.js`)
+- [x] Context percentage is joined to the donut, centred on the row, and shown on hover only
+- [x] On ctx hover the thinking label only collapses when the percentage would cover it (`.ctx-pct-tight`, measured in `cost-monitor.js`)
+- [x] Model picker + thinking level moved from the header into the composer footer
+- [x] Model + thinking joined into one compact segmented control (no border between them)
+- [x] Command / attach / send buttons moved to the toolbar below the input
+- [x] Composer dropdown menus open upwards and are clamped to the sidebar width
+- [x] Header icon buttons wrap onto a new line when the sidebar is too narrow
+- [x] Model/thinking selectors live in the input footer, left-aligned (context usage stays right)
+- [x] Model selector is as wide as the model name, ellipsizes when the row is full and never stretches (context % never wraps)
+- [x] Selector buttons follow their parent width (`width: 100%`), so a narrow sidebar can no longer push them over each other or outside the viewport
+- [x] Dead CSS removed from the footer (default `flex-shrink`/`margin-left` declarations)
+- [x] Settings thinking picker matches the composer visual (borderless, compact, same colors)
+- [x] Thinking picker uses the model picker colors (badge background removed)
+- [x] Selector menus open upwards aligned with their own trigger (`dropdown-utils.js` clamps them to the viewport)
+- [x] Header icon buttons aligned to the left
+- [x] Command palette uses the shared settings/skills shell, aligned above the message box
+- [x] Soft divider under the model search field (low-contrast `color-mix`)
+- [x] Dropdown menus use `--vscode-menu-*` colors with a softened (55%) low-contrast border
+- [x] Fix: composer buttons defaulted to `type="submit"` and sent the draft when opening a selector
+- [x] Message input auto-focuses when the Phi view becomes visible (`focus_input` IPC + window focus fallback)
 - [x] Header buttons: CSS tooltips via `data-tooltip` + `.has-tooltip::after` (native `title` unreliable in webviews)
 - [x] Accounts button: person-in-circle SVG icon (replaces key icon)
 - [x] Webview asset cache-busting: `?v=${Date.now()}` on script and style URIs in `panel-manager.ts`
@@ -293,11 +326,11 @@ This file tracks all tasks for the Phi project.
 - [x] Refactored `public/app.js` from ~1,732 lines to ~430 lines
   - [x] `public/attachment-manager.js` — File attachments: image paste, native file picker, previews
   - [x] `public/model-picker.js` — Model dropdown, search, thinking level
-  - [x] `public/thinking-level-picker.js` — Thinking-level dropdown, shared by header and settings
+  - [x] `public/thinking-level-picker.js` — Thinking-level dropdown, shared by the composer footer and settings
   - [x] `public/cost-monitor.js` — Cost/token display, context visualization
-  - [x] `public/command-palette.js` — Command palette overlay
+  - [x] `public/command-palette.js` — Command palette sheet (above the message box)
   - [x] `public/tree-panel.js` — Conversation tree panel (navigation, labeling)
-  - [x] `public/prompt-autocomplete.js` — Slash-command autocomplete popup
+  - [x] `public/prompt-autocomplete.js` — Slash-command filtering + keyboard for the command palette
   - [x] `public/panels.js` — Settings, About, Accounts, History, Skills panels
   - [x] Updated `AGENTS.md` file list and architecture diagram
   - [x] Updated `docs/TASKS.md`

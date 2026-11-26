@@ -1,9 +1,12 @@
+import { icons } from './icons.js';
 export class ChatInput {
   constructor(elementId, formId, onSubmit) {
     this.element = document.getElementById(elementId);
     this.form = document.getElementById(formId);
     this.onSubmit = onSubmit;
     this.lastSavedRange = null;
+    /** Optional callback, fired whenever the message input's content changes */
+    this.onChange = null;
 
     // ── Custom undo/redo ────────────────────────────────────────────────
     //
@@ -41,6 +44,7 @@ export class ChatInput {
 
     this.bindEvents();
     this._lastSnapshot = this._captureSnapshot();
+    this._notifyChange();
   }
 
   bindEvents() {
@@ -48,6 +52,10 @@ export class ChatInput {
     if (this.form) {
       this.form.addEventListener('submit', (e) => {
         e.preventDefault();
+        // Only the send button may send. Any other button/input inside #chat-form
+        // could reach this handler (implicit submission, missing type="button"),
+        // and sending the draft by accident is worse than ignoring the event.
+        if (e.submitter && e.submitter.id !== 'send-btn') return;
         this.submit();
       });
     }
@@ -84,7 +92,7 @@ export class ChatInput {
         return;
       }
 
-      if (e.key === 'Enter' && !e.shiftKey && !this._autocompleteActive) {
+      if (e.key === 'Enter' && !e.shiftKey && !this._commandsListActive) {
         e.preventDefault();
         this.submit();
       } else if (e.key === 'Enter' && e.shiftKey) {
@@ -189,6 +197,7 @@ export class ChatInput {
     // custom undo/redo stack.
     this.element.addEventListener('input', (e) => {
       this._resizeAndRevealCaret();
+      this._notifyChange(e);
       if (this._isUndoRedo) return;
       this._trackInput(e);
     });
@@ -317,6 +326,7 @@ export class ChatInput {
       this._setSelectionByTextOffset(snapshot.selStart, snapshot.selEnd);
       this._isUndoRedo = false;
       this._resizeAndRevealCaret();
+      this._notifyChange();
     });
   }
 
@@ -413,8 +423,9 @@ export class ChatInput {
     this._lastSnapshot = this._captureSnapshot();
   }
 
-  setAutocompleteActive(isActive) {
-    this._autocompleteActive = isActive;
+  /** While the "/" commands list is open, Enter belongs to it, not to submit. */
+  setCommandsListActive(isActive) {
+    this._commandsListActive = isActive;
   }
 
   _resizeAndRevealCaret() {
@@ -491,14 +502,68 @@ export class ChatInput {
 
     const html =
       `<span class="context-ref" contenteditable="false" ${dataAttrs}>` +
-        `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;opacity:0.6">` +
-          `<path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>` +
-          `<polyline points="14 2 14 8 20 8"/>` +
-        `</svg>` +
+        `${icons.document()}` +
         `${this._escHtml(label)}` +
       `</span>\u00A0`; // trailing nbsp so cursor can sit after it
 
     this.insertHtmlAtCursor(html);
+  }
+
+  /**
+   * Tell the outside world the input content changed: normalizes a "visually empty"
+   * input, toggles the empty-state class (which drives the placeholder) and calls
+   * `onChange` (used by the send button).
+   */
+  _notifyChange(event) {
+    const visuallyEmpty = this.element.textContent === '' &&
+      !this.element.querySelector('.context-ref');
+
+    // Deleting everything leaves a stray <br>: the input looks empty but is not, and
+    // the caret then sits *after* the placeholder. Normalize it back to a real empty box.
+    if (visuallyEmpty && this.element.innerHTML !== '' && !event?.isComposing) {
+      this.element.innerHTML = '';
+      if (document.activeElement === this.element) this._caretToEnd();
+      this._resizeAndRevealCaret();
+    }
+
+    this.element.classList.toggle('is-empty', visuallyEmpty);
+    this.onChange?.();
+  }
+
+  /** Put the caret at the end of the current content. */
+  _caretToEnd() {
+    const range = document.createRange();
+    range.selectNodeContents(this.element);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    this.lastSavedRange = range.cloneRange();
+  }
+
+  /**
+   * Focus the editable area, placing the caret at the end of the content.
+   * No-op if the input already has focus.
+   */
+  focus() {
+    if (document.activeElement === this.element) return;
+    this.element.focus();
+    this._caretToEnd();
+  }
+
+  /**
+   * Replace the content with `text`, leave the caret at the end and reset the undo
+   * history (so Ctrl+Z cannot walk back into the previous draft).
+   * Fires `input`, so dependent UI (send button, `/` filter) stays in sync.
+   * Used for prefills and for the /skill commands.
+   */
+  setText(text) {
+    this.element.textContent = typeof text === 'string' ? text : '';
+    this.resetUndoHistory();
+    this._resizeAndRevealCaret();
+    this.element.focus();
+    this._caretToEnd();
+    this.element.dispatchEvent(new Event('input'));
   }
 
   /**
@@ -595,28 +660,7 @@ export class ChatInput {
     this.element.style.height = 'auto';
     this.lastSavedRange = null;
     this.resetUndoHistory();
-  }
-
-  /**
-   * Replace the input content with `text` (or `html` if provided) and
-   * reset undo history so the user can't Ctrl+Z back into whatever was
-   * here before (used by prefill / session restore).
-   */
-  setContent({ text, html } = {}) {
-    this._isUndoRedo = true;
-    try {
-      if (typeof html === 'string') {
-        this.element.innerHTML = html;
-      } else if (typeof text === 'string') {
-        this.element.textContent = text;
-      } else {
-        this.element.innerHTML = '';
-      }
-    } finally {
-      this._isUndoRedo = false;
-    }
-    this.resetUndoHistory();
-    this._resizeAndRevealCaret();
+    this._notifyChange();
   }
 
   submit() {

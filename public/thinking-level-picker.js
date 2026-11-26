@@ -1,11 +1,12 @@
 /**
  * thinking-level-picker.js — Thinking Level Picker
  *
- * Manages the thinking-level dropdown used in the header and the Settings panel.
- * Reuses the model-dropdown markup and styles (`.thinking-dropdown` only
- * changes the color) and sends `set_thinking_level` on selection.
+ * Manages the thinking-level dropdown used in the composer footer and the Settings panel.
+ * Reuses the model-dropdown markup and styles (same colors; only the label is lowercase)
+ * and sends `set_thinking_level` on selection.
  */
 import { VscodeIPC } from './vscode-ipc.js';
+import { clampMenuToViewport } from './dropdown-utils.js';
 
 export class ThinkingLevelPicker {
   constructor(rootId) {
@@ -15,6 +16,7 @@ export class ThinkingLevelPicker {
     this.menu = this.root.querySelector('.model-dropdown-menu');
     this.currentLevel = 'off';
     this.availableLevels = [];
+    this.btn.dataset.tooltip = 'Thinking: off';
 
     this.btn.addEventListener('click', () => {
       if (!this.menu.classList.contains('hidden')) { this.close(); return; }
@@ -32,6 +34,7 @@ export class ThinkingLevelPicker {
     if (!level) return;
     this.currentLevel = level;
     this.label.textContent = level;
+    this.btn.dataset.tooltip = `Thinking: ${level}`;
     this.root.classList.toggle('off', level === 'off');
     if (!this.menu.classList.contains('hidden')) this._open();
   }
@@ -72,5 +75,6 @@ export class ThinkingLevelPicker {
     });
     this.menu.classList.remove('hidden');
     this.root.classList.add('open');
+    clampMenuToViewport(this.menu);
   }
 }
