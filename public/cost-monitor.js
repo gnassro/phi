@@ -4,6 +4,8 @@
  * Tracks session cost, token usage, and renders the context window visualization.
  */
 
+import { icons } from './icons.js';
+
 export class CostMonitor {
   constructor() {
     this.sessionTotalCost = 0;
@@ -24,8 +26,9 @@ export class CostMonitor {
   }
 
   _init() {
-    this.tokenUsageEl.addEventListener('click', (e) => {
-      e.stopPropagation();
+    // No stopPropagation here: the model/thinking menus close on outside clicks, and
+    // this click must reach them. The document handler below keeps the popup open.
+    this.tokenUsageEl.addEventListener('click', () => {
       if (this.contextViz.classList.contains('hidden')) {
         this._updateContextViz();
         this.contextViz.classList.remove('hidden');
@@ -35,10 +38,38 @@ export class CostMonitor {
     });
 
     document.addEventListener('click', (e) => {
-      if (!this.contextViz.contains(e.target) && e.target !== this.tokenUsageEl) {
-        this.contextViz.classList.add('hidden');
-      }
+      if (this.contextViz.classList.contains('hidden')) return;
+      if (this.contextViz.contains(e.target) || this.tokenUsageEl.contains(e.target)) return;
+      this.contextViz.classList.add('hidden');
     });
+
+    // The percentage only squeezes the selectors when it has nowhere else to sit
+    this.tokenUsageEl.addEventListener('mouseenter', () => this._fitPercentLabel());
+    this.tokenUsageEl.addEventListener('mouseleave', () => this._footer()?.classList.remove('ctx-pct-tight'));
+  }
+
+  _footer() {
+    return this.tokenUsageEl.closest('.input-footer');
+  }
+
+  /**
+   * On hover the percentage floats to the left of the donut, over the footer row. If the
+   * gap up to the thinking selector is wide enough, nothing else is touched. Otherwise the
+   * footer gets `.ctx-pct-tight`, which hides the thinking label and reserves the pill's
+   * width (see style.css), so the percentage never covers the selector.
+   */
+  _fitPercentLabel() {
+    const footer = this._footer();
+    const label = this.tokenUsageEl.querySelector('.ctx-pct');
+    if (!footer || !label) return;
+
+    footer.classList.remove('ctx-pct-tight');
+    const group = footer.querySelector('.model-selector-group');
+    const gap = this.tokenUsageEl.getBoundingClientRect().left -
+      (group ? group.getBoundingClientRect().right : 0);
+    const needed = label.getBoundingClientRect().width + 4;
+
+    if (needed > gap) footer.classList.add('ctx-pct-tight');
   }
 
   addCost(amount) {
@@ -89,14 +120,15 @@ export class CostMonitor {
   _updateTokenUsage() {
     if (this.lastInputTokens > 0 && this.contextWindowSize > 0) {
       const pct = Math.round((this.lastInputTokens / this.contextWindowSize) * 100);
-      this.tokenUsageEl.innerHTML = `<span>${pct}% context</span>`;
+      // Label only shows on hover (see .ctx-pct in style.css)
+      this.tokenUsageEl.innerHTML = `<span class="ctx-pct">${pct}%</span>${icons.donut(pct)}`;
       this.tokenUsageEl.classList.add('visible');
       this.tokenUsageEl.classList.remove('warning', 'critical');
       if (pct >= 80) this.tokenUsageEl.classList.add('critical');
       else if (pct >= 60) this.tokenUsageEl.classList.add('warning');
-      this.tokenUsageEl.title = `Context: ${(this.lastInputTokens / 1000).toFixed(1)}k / ${(this.contextWindowSize / 1000).toFixed(0)}k tokens`;
+      this.tokenUsageEl.setAttribute('aria-label', `Context ${pct}% used`);
     } else if (this.lastInputTokens > 0) {
-      this.tokenUsageEl.innerHTML = `<span>${(this.lastInputTokens / 1000).toFixed(1)}k tokens</span>`;
+      this.tokenUsageEl.innerHTML = `<span class="ctx-pct">${(this.lastInputTokens / 1000).toFixed(1)}k</span>${icons.donut(0)}`;
       this.tokenUsageEl.classList.add('visible');
       this.tokenUsageEl.classList.remove('warning', 'critical');
     } else {

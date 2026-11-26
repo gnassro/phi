@@ -77,6 +77,9 @@ phi/
 ├── public/                       ← Webview UI (Vanilla JS + CSS, no React)
 │   ├── app.js                    ← Main UI coordinator (slim orchestrator)
 │   ├── vscode-ipc.js             ← VS Code IPC wrapper
+│   ├── icons.js                  ← All webview SVG markup (single source)
+│   ├── dropdown-utils.js         ← Keeps open dropdown menus inside the viewport
+│   ├── tooltip-utils.js          ← Keeps CSS tooltips inside the viewport
 │   ├── chat-input.js             ← ContentEditable rich-text input
 │   ├── message-renderer.js       ← Renders user/assistant messages
 │   ├── tool-card.js              ← Tool execution cards: bash, edit, read, write
@@ -86,9 +89,9 @@ phi/
 │   ├── model-picker.js            ← Model dropdown, search, selection
 │   ├── thinking-level-picker.js   ← Thinking level dropdown, selection
 │   ├── cost-monitor.js           ← Cost/token display, context visualization
-│   ├── command-palette.js        ← Command palette overlay
+│   ├── command-palette.js        ← Command palette (button + autocomplete)
 │   ├── tree-panel.js             ← Conversation tree panel (navigation, labeling)
-│   ├── prompt-autocomplete.js    ← Slash-command autocomplete popup
+│   ├── prompt-autocomplete.js    ← Slash-command filtering for the command palette
 │   ├── panels.js                 ← Settings, About, Accounts, History, Skills panels
 │   ├── themes.js                 ← No-op stub (VS Code handles theming natively)
 │   ├── markdown.js               ← Markdown → HTML renderer
@@ -157,6 +160,9 @@ phi/
 │  │  index.html           ← HTML shell with CSP nonce        │   │
 │  │  app.js               ← UI coordinator (slim)            │   │
 │  │  vscode-ipc.js        ← acquireVsCodeApi() wrapper       │   │
+│  │  icons.js             ← All webview SVG markup           │   │
+│  │  dropdown-utils.js    ← Dropdown viewport clamping       │   │
+│  │  tooltip-utils.js     ← Tooltip viewport clamping        │   │
 │  │  chat-input.js        ← ContentEditable input            │   │
 │  │  message-renderer.js  ← Chat message DOM rendering       │   │
 │  │  tool-card.js         ← Tool execution cards             │   │
@@ -166,9 +172,9 @@ phi/
 │  │  model-picker.js ← Model dropdown + selection            │   │
 │  │  thinking-level-picker.js ← Thinking level dropdown      │   │
 │  │  cost-monitor.js      ← Cost/token/context viz           │   │
-│  │  command-palette.js   ← Command palette                  │   │
+│  │  command-palette.js   ← Command palette (button + "/")   │   │
 │  │  tree-panel.js        ← Conversation tree                │   │
-│  │  prompt-autocomplete.js ← Slash autocomplete             │   │
+│  │  prompt-autocomplete.js ← Slash-command filtering        │   │
 │  │  panels.js            ← Side panels (settings, etc.)     │   │
 │  │  themes.js            ← No-op (VS Code theming)          │   │
 │  │  markdown.js          ← Markdown → HTML                  │   │
@@ -226,6 +232,7 @@ Full specification: `docs/ipc-protocol.md`
 | `editor_context` | Active file, selection, language, diagnostics from VS Code |
 | `add_context` | Context block from editor selection or file (right-click / Cmd+Shift+L) |
 | `prefill_input` | Prefill the chat input with text (Ask About Selection) |
+| `focus_input` | Focus the message input when the Phi view becomes visible |
 | `rpc_response` | Response to RPC commands (get_state, set_model, etc.) |
 | `accounts_list` | OAuth providers + discovered API-key providers with active status |
 | `tree_data` | Flat array of serialized session tree nodes + current leaf ID |
@@ -345,6 +352,10 @@ Full reference: `docs/pi-sdk.md`
     - `docs/TASKS.md` (add/check off task under Packaging & Local Install)
     - `docs/ROADMAP.md` (update SDK upgrade summary)
     - Build output: Run `pnpm run build` so `scripts/build-num.mjs` updates `src/version.ts` and `public/version.js` with the new Pi SDK version.
+
+27. **Every `<button>` inside the composer `<form>` needs an explicit `type`.** A `<button>` without `type` defaults to `type="submit"`, so it submits `#chat-form` and sends the drafted message. This bit us when the model/thinking dropdown triggers moved from the header into the composer. Same for inputs inside the form: pressing Enter can trigger implicit form submission, so their `keydown` handlers must `preventDefault()`. As a safety net, `ChatInput`'s submit handler ignores any submit whose `submitter` is not `#send-btn`, and only `#send-btn` may be `type="submit"`.
+
+28. **Icons never live in templates or components.** Every `<svg>` comes from `public/icons.js` (`icons.close(16)`, `icons.robot({ className: 'selector-icon' })`). Keep ids, classes, `type`, `aria-label`, `data-tooltip` and layout styling in the markup/CSS that owns them — the module is markup only, parameterised by size (and `pct` for the donut). The extension host imports it too, typed through `src/icons.d.ts`.
 
 ---
 

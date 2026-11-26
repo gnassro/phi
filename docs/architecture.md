@@ -30,6 +30,9 @@ Phi is a VS Code extension. It has two runtime environments that are completely 
 │  │  (no index.html — generated)    │                             │
 │  │  public/app.js    (coordinator) │                             │
 │  │  public/vscode-ipc.js           │                             │
+│  │  public/icons.js                │                             │
+│  │  public/dropdown-utils.js       │                             │
+│  │  public/tooltip-utils.js        │                             │
 │  │  public/chat-input.js           │                             │
 │  │  public/message-renderer.js     │                             │
 │  │  public/tool-card.js            │                             │
@@ -172,9 +175,25 @@ Slim orchestrator (~430 lines):
 - On load: sends `request_sync` to get current state
 - Handles `pi_event` messages from extension host
 - Delegates to extracted modules: `AttachmentManager`, `ModelPicker`, `ThinkingLevelPicker`, `CostMonitor`, `CommandPalette`, `TreePanel`, `PromptAutocomplete`, `Panels`
+- The model/thinking group lives in the input footer, left-aligned, at any sidebar width (context usage stays on the right)
+
+### `public/icons.js`
+Single source of the webview SVG markup: `icons.plus()`, `icons.send(20)`, `icons.robot({ className: 'selector-icon' })`, `icons.donut(pct)`… Every drawing uses `currentColor`, so VS Code theming keeps working. Only `size`/`className` (and `pct` for the donut) are parameters; ids, `type`, `aria-label`, `data-tooltip` and any layout styling stay with the markup/CSS that owns them. `panel-manager.ts` imports it as well (typed by `src/icons.d.ts`) so the host and the webview cannot drift apart.
+
+### `public/dropdown-utils.js`
+`clampMenuToViewport(menu)` nudges an open dropdown menu back inside the webview with a
+`translateX` (measured after layout), so trigger-aligned menus still fit when the sidebar is narrow.
+
+Both `*-utils.js` modules export plain functions and own no DOM.
+
+### `public/tooltip-utils.js`
+`initializeTooltipPlacement()` (called once from `app.js`) listens for `mouseover` on `.has-tooltip[data-tooltip]`, measures the rendered `::after` (width + padding + border) and sets `--tooltip-shift` so the centred tooltip is nudged back inside the webview when its trigger sits at an edge. It re-measures only when the trigger or the viewport width changes, and never alters layout.
+
+### `public/prompt-autocomplete.js`
+Owns the slash-command (`/`) behaviour of the composer: it filters `CommandPalette.commands` by the typed query and handles arrows/Enter/Escape. The rows are rendered by `CommandPalette.showSuggestions()` / `setActive()`, so there is a single command palette instead of a second popup. `CommandPalette.onOpen` / `onClose` keep its filtered state (and the `ChatInput` Enter guard) in sync whichever way the modal opens or closes.
 
 ### `public/thinking-level-picker.js`
-Manages the thinking-level dropdown used in the header and the Settings panel. Lists the levels supported by the active model, handles direct selection, and automatically disables itself when the model only supports `off`.
+Manages the thinking-level dropdown used in the composer footer and the Settings panel. Lists the levels supported by the active model, handles direct selection, and automatically disables itself when the model only supports `off`.
 
 ### `public/markdown.js`
 Renders assistant/user markdown into webview HTML. Fenced code blocks are routed through `syntax-highlighter.js`, then rendered with local copy buttons that use delegated `addEventListener` handlers instead of inline event attributes.

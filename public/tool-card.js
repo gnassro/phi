@@ -1,3 +1,4 @@
+import { icons } from './icons.js';
 /**
  * Tool Card - Renders and updates tool execution cards (collapsible)
  */
@@ -32,7 +33,7 @@ export class ToolCardRenderer {
 
     const chevron = document.createElement('span');
     chevron.className = 'tool-card-chevron' + (isExpanded ? ' expanded' : '');
-    chevron.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg>';
+    chevron.innerHTML = icons.caretRight();
     headerLeft.appendChild(chevron);
 
     const name = document.createElement('span');
@@ -56,7 +57,7 @@ export class ToolCardRenderer {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'tool-action-btn copy-output-btn';
     copyBtn.title = 'Copy output';
-    copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+    copyBtn.innerHTML = icons.copy();
     copyBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const output = card.querySelector('.tool-output');
@@ -232,7 +233,7 @@ export class ToolCardRenderer {
 
     const chevron = document.createElement('span');
     chevron.className = 'tool-card-chevron';
-    chevron.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg>';
+    chevron.innerHTML = icons.caretRight();
     headerLeft.appendChild(chevron);
 
     const name = document.createElement('span');
@@ -257,7 +258,7 @@ export class ToolCardRenderer {
     const copyBtn = document.createElement('button');
     copyBtn.className = 'tool-action-btn copy-output-btn';
     copyBtn.title = 'Copy output';
-    copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>';
+    copyBtn.innerHTML = icons.copy();
     copyBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const output = card.querySelector('.tool-output');

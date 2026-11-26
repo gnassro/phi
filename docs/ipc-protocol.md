@@ -229,6 +229,7 @@ type ExtensionMessage =
   | { type: "editor_context"; context: EditorContext }
   | { type: "add_context"; context: ContextBlock }
   | { type: "prefill_input"; text: string }
+  | { type: "focus_input" }
   | { type: "rpc_response"; command: string; success: boolean; data?: unknown; error?: string }
   | { type: "accounts_list"; providers: OAuthProviderStatus[]; apiKeyProviders: ApiKeyProviderStatus[] }
   | { type: "tree_data"; nodes: SerializedTreeNode[]; leafId: string | null; error?: string }
@@ -350,6 +351,14 @@ Prefills the chat input with text. Used by "Phi: Ask About Selection".
 
 ```typescript
 { type: "prefill_input", text: "In `src/app.ts` lines 42-58:\n```\ncode...\n```" }
+```
+
+### `focus_input`
+Asks the webview to focus the message input. Sent when the Phi view becomes
+visible (sidebar tab switch, `phi.openChat`, activity-bar click).
+
+```typescript
+{ type: "focus_input" }
 ```
 
 ### `rpc_response`

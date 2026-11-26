@@ -16,6 +16,8 @@ export class AttachmentManager {
   constructor(chatInput) {
     this.pendingImages = [];
     this.chatInput = chatInput;
+    /** Optional callback, fired whenever the pending attachments change */
+    this.onChange = null;
 
     // DOM refs
     this.imagePreviews = document.getElementById('image-previews');
@@ -121,6 +123,7 @@ export class AttachmentManager {
 
   _renderPreviews() {
     this.imagePreviews.innerHTML = '';
+    this.onChange?.();
     if (this.pendingImages.length === 0) {
       this.imagePreviews.classList.add('hidden');
       return;

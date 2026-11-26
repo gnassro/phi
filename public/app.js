@@ -21,6 +21,7 @@ import { CommandPalette } from './command-palette.js';
 import { TreePanel } from './tree-panel.js';
 import { PromptAutocomplete } from './prompt-autocomplete.js';
 import { PanelsManager } from './panels.js';
+import { initializeTooltipPlacement } from './tooltip-utils.js';
 
 // ─── Core instances ───────────────────────────────────────────────────────────
 
@@ -40,6 +41,9 @@ const modelPicker = new ModelPicker();
 const thinkingLevelPicker = new ThinkingLevelPicker('thinking-dropdown');
 const costMonitor = new CostMonitor();
 const treePanel = new TreePanel();
+
+// Keeps CSS tooltips inside a narrow sidebar
+initializeTooltipPlacement();
 
 const sidebar = new SessionSidebar(
   document.getElementById('session-list'),
@@ -75,6 +79,7 @@ panels.onSkillsUpdate = (skills) => {
 };
 
 const commandPalette = new CommandPalette({
+  chatInput,
   onCompact: () => VscodeIPC.send({ type: 'compact' }),
   onSessionStats: () => VscodeIPC.send({ type: 'get_session_stats' }),
   onOpenTree: () => treePanel.open(),
@@ -82,10 +87,7 @@ const commandPalette = new CommandPalette({
   onCollapseAllTools: () => toolCardRenderer.collapseAll(),
 });
 
-const autocomplete = new PromptAutocomplete(chatInput, {
-  getBaseCommands: () => commandPalette.getBaseCommands(),
-  getLoadedSkills: () => commandPalette.getLoadedSkills(),
-});
+const autocomplete = new PromptAutocomplete(chatInput, { palette: commandPalette });
 
 // Wire model picker context window changes to cost monitor
 modelPicker.onContextWindowChange = (size) => costMonitor.setContextWindowSize(size);
@@ -425,7 +427,7 @@ function formatToolOutput(result) {
 // ═══════════════════════════════════════
 
 /**
- * Apply thinking-level state to both pickers (header + Settings).
+ * Apply thinking-level state to both pickers (composer footer + Settings).
  * Either argument may be missing: the pickers ignore unknown values.
  */
 function applyThinkingState(availableLevels, level) {
@@ -662,6 +664,36 @@ function showNewMessageBadge() {
 }
 
 // ═══════════════════════════════════════
+// Focus handling
+// ═══════════════════════════════════════
+
+/** Overlays/panels that must keep the focus when they are open. */
+const FOCUS_BLOCKERS = [
+  '.settings-panel:not(.hidden)',
+  '.about-modal:not(.hidden)',
+  '.settings-overlay:not(.hidden)',
+  '.model-dropdown.open',
+].join(', ');
+
+/**
+ * Focus the message input. Called when the Phi view becomes visible.
+ * Skips when a panel/overlay is open or the input already has focus.
+ */
+function focusChatInput() {
+  if (document.activeElement === chatInput.element) return;
+  if (document.querySelector(FOCUS_BLOCKERS)) return;
+  chatInput.focus();
+}
+
+// The extension host tells us when the view becomes visible (tab switch, phi.openChat)
+VscodeIPC.on('focus_input', focusChatInput);
+// Fallbacks for browser focus (code-server runs the webview in an iframe)
+window.addEventListener('focus', focusChatInput);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) focusChatInput();
+});
+
+// ═══════════════════════════════════════
 // Keyboard shortcuts
 // ═══════════════════════════════════════
 
@@ -706,6 +738,17 @@ function updateUI() {
   abortBtn.classList.toggle('hidden', !streaming);
 }
 
+/**
+ * Send button is disabled until there is something to send
+ * (typed text, context chips or pending images).
+ */
+function updateSendButtonState() {
+  sendBtn.disabled = !(chatInput.hasContent() || attachmentManager.hasPending());
+}
+
+chatInput.onChange = updateSendButtonState;
+attachmentManager.onChange = updateSendButtonState;
+
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text || '';
@@ -727,16 +770,7 @@ VscodeIPC.on('add_context', (msg) => {
 VscodeIPC.on('editor_context', () => { /* future: editor context badge */ });
 VscodeIPC.on('set_theme', () => { /* no-op: VS Code handles theming */ });
 VscodeIPC.on('prefill_input', (msg) => {
-  if (msg.text) {
-    chatInput.setContent({ text: msg.text });
-    chatInput.element.focus();
-    const range = document.createRange();
-    range.selectNodeContents(chatInput.element);
-    range.collapse(false);
-    const sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  }
+  if (msg.text) chatInput.setText(msg.text);
 });
 
 VscodeIPC.on('rpc_response', (msg) => {
@@ -792,8 +826,12 @@ VscodeIPC.on('rpc_response', (msg) => {
 // Initialize
 // ═══════════════════════════════════════
 
+updateSendButtonState();
 VscodeIPC.send({ type: 'request_sync' });
 VscodeIPC.send({ type: 'get_state' });
 messageRenderer.renderWelcome();
+
+// If the view is already focused when we boot, put the caret in the input
+if (document.hasFocus()) focusChatInput();
 
 console.log('🚀 Phi initialized');

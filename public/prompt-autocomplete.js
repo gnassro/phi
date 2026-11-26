@@ -1,135 +1,84 @@
 /**
- * prompt-autocomplete.js — Prompt Autocomplete
+ * prompt-autocomplete.js — Slash-command filtering for the command palette
  *
- * Slash command autocomplete popup for the chat input.
+ * Owns the "/" behaviour of the composer: filters the palette's command list by the
+ * typed query and handles the keyboard (arrows, Enter, Escape). The list itself is
+ * rendered by CommandPalette (`showSuggestions`), so there is one command palette.
  */
 
 export class PromptAutocomplete {
-  constructor(chatInput, { getBaseCommands, getLoadedSkills }) {
+  constructor(chatInput, { palette }) {
     this.chatInput = chatInput;
-    this.getBaseCommands = getBaseCommands;
-    this.getLoadedSkills = getLoadedSkills;
+    this.palette = palette;
 
-    this.popup = document.getElementById('autocomplete-popup');
     this.index = -1;
     this.items = [];
 
-    this._init();
-  }
+    // The palette can be opened by the button or closed by its × / overlay / Escape:
+    // either way the filtered state and the Enter guard must go.
+    this.palette.onPick = (index) => this._execute(index);
+    this.palette.onOpen = () => this._reset();
+    this.palette.onClose = () => this._reset();
 
-  _init() {
     this.chatInput.element.addEventListener('input', () => this._update());
     this.chatInput.element.addEventListener('keydown', (e) => this._handleKeydown(e));
   }
 
-  isOpen() {
-    return !this.popup.classList.contains('hidden');
-  }
-
-  close() {
-    this.popup.classList.add('hidden');
-    this.chatInput.setAutocompleteActive(false);
+  _reset() {
+    this.items = [];
+    this.index = -1;
+    this.chatInput.setCommandsListActive(false);
   }
 
   _update() {
     const rawText = this.chatInput.element.textContent;
 
     if (!rawText.startsWith('/')) {
-      this.popup.classList.add('hidden');
-      this.chatInput.setAutocompleteActive(false);
+      this.palette.close();
       return;
     }
 
     const query = rawText.slice(1).toLowerCase();
-    const baseCommands = this.getBaseCommands();
-    const loadedSkills = this.getLoadedSkills();
-
-    const suggestions = [
-      ...baseCommands.map(cmd => ({ type: 'command', icon: cmd.icon, label: cmd.label, desc: cmd.desc, action: cmd.action })),
-      ...loadedSkills.map(skill => ({ type: 'skill', icon: '✨', label: `skill:${skill.name}`, desc: skill.description, skillName: skill.name }))
-    ].filter(cmd => cmd.label.toLowerCase().includes(query) || cmd.desc.toLowerCase().includes(query));
+    const suggestions = this.palette.commands.filter(cmd =>
+      cmd.label.toLowerCase().includes(query) || (cmd.desc || '').toLowerCase().includes(query)
+    );
 
     if (suggestions.length === 0) {
-      this.popup.classList.add('hidden');
-      this.chatInput.setAutocompleteActive(false);
+      this.palette.close();
       return;
     }
 
     this.items = suggestions;
     this.index = 0;
-
-    this.popup.innerHTML = suggestions.map((cmd, i) => `
-      <div class="autocomplete-item ${i === 0 ? 'selected' : ''}" data-index="${i}">
-        <div class="autocomplete-icon">${cmd.icon}</div>
-        <div class="autocomplete-label" style="font-weight: bold; color: var(--vscode-symbolIcon-functionForeground)">/${cmd.label}</div>
-        <div class="autocomplete-desc">${this._escapeHtml(cmd.desc)}</div>
-      </div>
-    `).join('');
-
-    this.popup.querySelectorAll('.autocomplete-item').forEach(el => {
-      el.addEventListener('click', () => this._execute(parseInt(el.dataset.index)));
-    });
-
-    this.popup.classList.remove('hidden');
-    this.chatInput.setAutocompleteActive(true);
+    this.palette.showSuggestions(suggestions, this.index);
+    this.chatInput.setCommandsListActive(true);
   }
 
   _execute(index) {
     if (index < 0 || index >= this.items.length) return;
     const item = this.items[index];
-
-    this.popup.classList.add('hidden');
-    this.chatInput.setAutocompleteActive(false);
-
-    if (item.type === 'command') {
-      this.chatInput.element.textContent = '';
-      item.action();
-    } else if (item.type === 'skill') {
-      this.chatInput.element.textContent = `/${item.label} `;
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(this.chatInput.element);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
+    this.palette.close(); // triggers onClose → _reset()
+    // Every command takes over the composer: skill rows insert `/skill:name ` themselves
+    this.chatInput.setText('');
+    item.action();
   }
 
   _handleKeydown(e) {
-    if (this.popup.classList.contains('hidden')) return;
+    if (!this.items.length || !this.palette.isOpen()) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       this.index = (this.index + 1) % this.items.length;
-      this._renderSelection();
+      this.palette.setActive(this.index);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       this.index = (this.index - 1 + this.items.length) % this.items.length;
-      this._renderSelection();
+      this.palette.setActive(this.index);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       this._execute(this.index);
     } else if (e.key === 'Escape') {
-      this.popup.classList.add('hidden');
-      this.chatInput.setAutocompleteActive(false);
+      this.palette.close();
     }
-  }
-
-  _renderSelection() {
-    const items = this.popup.querySelectorAll('.autocomplete-item');
-    items.forEach((item, i) => {
-      if (i === this.index) {
-        item.classList.add('selected');
-        item.scrollIntoView({ block: 'nearest' });
-      } else {
-        item.classList.remove('selected');
-      }
-    });
-  }
-
-  _escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text || '';
-    return div.innerHTML;
   }
 }

@@ -3,6 +3,7 @@
  */
 
 import { highlightRenderedCodeBlocks, renderMarkdown, renderUserMarkdown } from './markdown.js';
+import { icons } from './icons.js';
 
 export class MessageRenderer {
   constructor(container) {
@@ -63,7 +64,7 @@ export class MessageRenderer {
     }
 
     div.innerHTML = `
-      <button class="message-copy-btn" aria-label="Copy message"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <button class="message-copy-btn" aria-label="Copy message">${icons.copyMessage()}</button>
       <div class="message-content">${imagesHtml}${renderUserMarkdown(message.content)}</div>
     `;
     // Preserve the raw markdown so copy never falls back to rendered textContent
@@ -122,7 +123,7 @@ export class MessageRenderer {
     }
 
     const streamingClass = isStreaming ? ' streaming' : '';
-    const copyBtnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const copyBtnSvg = icons.copyMessage();
 
     if (isErrorOnly && !isStreaming) {
       // Error-only: single row with error text + copy button at right
@@ -172,12 +173,12 @@ export class MessageRenderer {
 
     const chevron = document.createElement('span');
     chevron.className = 'chevron';
-    chevron.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg>';
+    chevron.innerHTML = icons.caretRight();
     toggle.appendChild(chevron);
 
     const label = document.createElement('span');
     label.className = 'thinking-label';
-    label.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/><path d="M6.5 9h11"/><path d="M7 13h10"/></svg> Thinking';
+    label.innerHTML = `${icons.brain()} Thinking`;
     toggle.appendChild(label);
 
     const content = document.createElement('div');
@@ -209,12 +210,12 @@ export class MessageRenderer {
 
       const chevron = document.createElement('span');
       chevron.className = 'chevron';
-      chevron.innerHTML = '<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3z"/></svg>';
+      chevron.innerHTML = icons.caretRight();
       toggle.appendChild(chevron);
 
       const label = document.createElement('span');
       label.className = 'thinking-label';
-      label.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M12 5v13"/><path d="M6.5 9h11"/><path d="M7 13h10"/></svg> Thinking';
+      label.innerHTML = `${icons.brain()} Thinking`;
       toggle.appendChild(label);
 
       const content = document.createElement('div');
@@ -274,7 +275,7 @@ export class MessageRenderer {
     messageElement._rawMarkdown = rawText;
     delete messageElement.dataset.rawText;
     const isErrorOnly = errorMessage && !rawText.trim() && !thinking;
-    const copyBtnSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    const copyBtnSvg = icons.copyMessage();
 
     if (isErrorOnly) {
       // Replace entire message content with inline error row
@@ -333,7 +334,7 @@ export class MessageRenderer {
     if (!actionsRow.querySelector('.message-copy-btn')) {
       const btn = document.createElement('button');
       btn.className = 'message-copy-btn';
-      btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+      btn.innerHTML = icons.copyMessage();
       actionsRow.appendChild(btn);
       this._setupCopyBtn(messageElement);
     }

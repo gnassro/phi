@@ -4,6 +4,7 @@
  * Manages the model dropdown, search, and selection.
  */
 import { VscodeIPC } from './vscode-ipc.js';
+import { clampMenuToViewport } from './dropdown-utils.js';
 
 export class ModelPicker {
   constructor() {
@@ -82,16 +83,18 @@ export class ModelPicker {
   _updateLabel() {
     if (this.requiresLogin) {
       this.dropdownLabel.textContent = 'Login';
+      this.dropdownBtn.dataset.tooltip = 'Open Accounts';
       return;
     }
     const shortName = this.currentModelId.replace(/^claude-/, '').replace(/-\d{8}$/, '');
     this.dropdownLabel.textContent = shortName || 'model';
+    // Visible when the sidebar is too narrow for the label (see style.css)
+    this.dropdownBtn.dataset.tooltip = shortName || 'Select model';
   }
 
   _updateButtonState() {
     this.dropdown.classList.toggle('login-required', this.requiresLogin);
     this.dropdownBtn.setAttribute('aria-label', this.requiresLogin ? 'Open Accounts' : 'Switch model');
-    this.dropdownBtn.setAttribute('title', this.requiresLogin ? 'Open Accounts' : 'Switch model');
   }
 
   _openDropdown() {
@@ -135,11 +138,18 @@ export class ModelPicker {
     search.addEventListener('input', () => renderItems(search.value));
     search.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') { this.close(); e.stopPropagation(); }
-      if (e.key === 'Enter') { const first = itemsContainer.querySelector('.model-dropdown-item'); if (first) first.click(); }
+      if (e.key === 'Enter') {
+        // preventDefault: the search input lives inside the chat <form>, so Enter
+        // would otherwise trigger implicit form submission and send the message.
+        e.preventDefault();
+        const first = itemsContainer.querySelector('.model-dropdown-item');
+        if (first) first.click();
+      }
     });
 
     this.dropdownMenu.classList.remove('hidden');
     this.dropdown.classList.add('open');
+    clampMenuToViewport(this.dropdownMenu);
     requestAnimationFrame(() => search.focus());
   }
 }

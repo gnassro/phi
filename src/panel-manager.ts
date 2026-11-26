@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { getNonce } from './utils.js';
+import { icons } from '../public/icons.js';
 
 /**
  * PanelManager
@@ -55,6 +56,14 @@ class PhiChatViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((message: Record<string, unknown>) => {
       for (const handler of messageHandlers) {
         handler(message);
+      }
+    });
+
+    // Focus the chat input whenever the Phi view becomes visible
+    // (tab switch, phi.openChat, sidebar reveal).
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        void webviewView.webview.postMessage({ type: 'focus_input' });
       }
     });
 
@@ -118,17 +127,28 @@ export function onMessage(handler: MessageHandler): void {
 
 // ─── HTML builder ─────────────────────────────────────────────────────────────
 
-/** Thinking-level picker markup. Reused by the header and the Settings panel. */
+/** Thinking-level picker markup. Reused by the composer footer and the Settings panel. */
 function thinkingPickerHtml(id: string): string {
   return `
         <div class="model-dropdown thinking-dropdown" id="${id}">
-          <button class="model-dropdown-btn" title="Thinking level">
+          <button type="button" class="model-dropdown-btn has-tooltip has-tooltip-top">
+            ${icons.thinkingLevels({ className: 'selector-icon' })}
             <span class="model-dropdown-label">off</span>
-            <svg class="model-dropdown-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none">
-              <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            ${icons.chevronDown({ className: 'model-dropdown-chevron' })}
           </button>
           <div class="model-dropdown-menu hidden"></div>
+        </div>`;
+}
+
+/** Model picker markup. Lives in the input footer, next to the thinking picker. */
+function modelPickerHtml(): string {
+  return `
+        <div class="model-dropdown" id="model-dropdown">
+          <button type="button" class="model-dropdown-btn has-tooltip has-tooltip-top" id="model-dropdown-btn">
+            ${icons.robot({ className: 'selector-icon' })}
+            <span class="model-dropdown-label" id="model-dropdown-label">model</span>
+          </button>
+          <div class="model-dropdown-menu hidden" id="model-dropdown-menu"></div>
         </div>`;
 }
 
@@ -170,55 +190,24 @@ function buildWebviewHtml(
 
     <!-- ── Header ── -->
     <div class="header">
-      <div class="header-left">
-        <div class="model-dropdown" id="model-dropdown">
-          <button class="model-dropdown-btn" id="model-dropdown-btn" title="Switch model">
-            <span class="model-dropdown-label" id="model-dropdown-label">model</span>
-            <svg class="model-dropdown-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none">
-              <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-          <div class="model-dropdown-menu hidden" id="model-dropdown-menu"></div>
-        </div>
-        ${thinkingPickerHtml('thinking-dropdown')}
-      </div>
-
       <div class="header-right">
         <button class="icon-btn has-tooltip" id="new-chat-btn" aria-label="New Chat" data-tooltip="New Chat">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14"/><path d="M5 12h14"/>
-          </svg>
+          ${icons.plus()}
         </button>
         <button class="icon-btn has-tooltip" id="history-btn" aria-label="Session History" data-tooltip="History">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>
-          </svg>
+          ${icons.history()}
         </button>
         <button class="icon-btn has-tooltip" id="tree-btn" aria-label="Conversation Tree" data-tooltip="Tree">
-          <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z"></path>
-          </svg>
+          ${icons.tree()}
         </button>
         <button class="icon-btn has-tooltip" id="skills-btn" aria-label="Loaded Skills" data-tooltip="Skills">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5Z"></path>
-            <path d="m2 17 10 5 10-5"></path>
-            <path d="m2 12 10 5 10-5"></path>
-          </svg>
+          ${icons.skills()}
         </button>
         <button class="icon-btn has-tooltip" id="settings-btn" aria-label="Settings" data-tooltip="Settings">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
+          ${icons.settings()}
         </button>
         <button class="icon-btn has-tooltip" id="accounts-btn" aria-label="Accounts" data-tooltip="Accounts">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"/>
-            <path d="M12.1207 12.78C12.0507 12.77 11.9607 12.77 11.8807 12.78C10.1207 12.72 8.7207 11.28 8.7207 9.50998C8.7207 7.69998 10.1807 6.22998 12.0007 6.22998C13.8107 6.22998 15.2807 7.69998 15.2807 9.50998C15.2707 11.28 13.8807 12.72 12.1207 12.78Z"/>
-            <path d="M18.7398 19.3801C16.9598 21.0101 14.5998 22.0001 11.9998 22.0001C9.39977 22.0001 7.03977 21.0101 5.25977 19.3801C5.35977 18.4401 5.95977 17.5201 7.02977 16.8001C9.76977 14.9801 14.2498 14.9801 16.9698 16.8001C18.0398 17.5201 18.6398 18.4401 18.7398 19.3801Z"/>
-          </svg>
+          ${icons.accounts()}
         </button>
       </div>
     </div>
@@ -238,9 +227,7 @@ function buildWebviewHtml(
     <!-- ── Scroll to bottom ── -->
     <button class="scroll-bottom-btn hidden" id="scroll-bottom-btn">
       <span class="scroll-bottom-badge hidden" id="scroll-bottom-badge">New</span>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
-      </svg>
+      ${icons.arrowDown()}
     </button>
 
     <!-- ── Input area ── -->
@@ -248,51 +235,62 @@ function buildWebviewHtml(
       <div class="queued-messages hidden" id="queued-messages"></div>
       <div class="image-previews hidden" id="image-previews"></div>
       
-      <div id="autocomplete-popup" class="autocomplete-popup hidden"></div>
+      <!-- Commands modal: same shell as settings/skills, only the alignment differs -->
+      <div class="settings-overlay hidden" id="command-palette-overlay"></div>
+      <div class="settings-panel command-palette hidden" id="command-palette">
+        <div class="settings-header">
+          <h3>Commands</h3>
+          <button class="settings-close" id="command-palette-close">
+            ${icons.close()}
+          </button>
+        </div>
+        <div class="settings-body">
+          <div class="command-list" id="command-list"></div>
+        </div>
+      </div>
 
       <form id="chat-form">
-        <div class="input-left-actions">
-          <button type="button" class="input-icon-btn" id="command-btn"
-            title="Commands" aria-label="Open commands" tabindex="-1">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/>
-              <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>
-            </svg>
-          </button>
-          <button type="button" class="input-icon-btn" id="attach-btn"
-            title="Attach file" aria-label="Attach file" tabindex="-1">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-            </svg>
-          </button>
-          <input type="file" id="file-input" multiple style="display:none">
-        </div>
-
         <div class="input-bubble">
           <div id="message-input" contenteditable="true"
-            aria-placeholder="Message Pi… (Enter to send, Shift+Enter for newline)">
+            aria-placeholder="What should we build?">
           </div>
         </div>
 
-        <div class="input-actions">
-          <button type="submit" id="send-btn" title="Send message" tabindex="-1">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
-            </svg>
-          </button>
-          <button type="button" id="abort-btn" class="hidden" title="Abort (Esc)" tabindex="-1">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <rect x="4" y="4" width="16" height="16" rx="2"/>
-            </svg>
-          </button>
+        <div class="input-toolbar">
+          <div class="input-left-actions">
+            <button type="button" class="input-icon-btn has-tooltip has-tooltip-top" id="command-btn"
+              aria-label="Commands" data-tooltip="Commands" tabindex="-1">
+              ${icons.command()}
+            </button>
+            <button type="button" class="input-icon-btn has-tooltip has-tooltip-top" id="attach-btn"
+              aria-label="Attach file" data-tooltip="Attach file" tabindex="-1">
+              ${icons.paperclip()}
+            </button>
+            <input type="file" id="file-input" multiple style="display:none">
+          </div>
+
+          <div class="input-right-actions">
+            <button type="submit" id="send-btn" class="has-tooltip has-tooltip-top"
+              aria-label="Send message" data-tooltip="Send message" tabindex="-1">
+              ${icons.send()}
+            </button>
+            <button type="button" id="abort-btn" class="hidden has-tooltip has-tooltip-top"
+              aria-label="Abort (Esc)" data-tooltip="Abort (Esc)" tabindex="-1">
+              ${icons.abort()}
+            </button>
+          </div>
         </div>
       </form>
 
       <!-- Context usage footer -->
       <div class="input-footer">
         <div class="pill session-cost" id="session-cost" title="Session cost"></div>
+        <div class="model-selector-group">
+          ${modelPickerHtml()}
+          ${thinkingPickerHtml('thinking-dropdown')}
+        </div>
         <div class="input-footer-ctx" id="input-footer-ctx">
-          <button class="ctx-usage-btn" id="token-usage" title="Click for context breakdown"></button>
+          <button class="ctx-usage-btn" id="token-usage" aria-label="Context usage"></button>
           <div class="context-viz hidden" id="context-viz">
             <div class="context-viz-title">Context Window</div>
             <div class="context-bar" id="context-bar"></div>
@@ -314,9 +312,7 @@ function buildWebviewHtml(
     <div class="settings-header">
       <h3>Settings</h3>
       <button class="settings-close" id="settings-close">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+        ${icons.close()}
       </button>
     </div>
     <div class="settings-body">
@@ -350,7 +346,7 @@ function buildWebviewHtml(
         <div class="settings-row" style="cursor: pointer;" id="about-info-btn">
           <span class="settings-label">Extension Info</span>
           <span style="opacity: 0.5; font-size: 12px;">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            ${icons.chevronRight()}
           </span>
         </div>
       </div>
@@ -363,9 +359,7 @@ function buildWebviewHtml(
     <div class="settings-header">
       <h3>About Phi</h3>
       <button class="settings-close" id="about-close">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+        ${icons.close()}
       </button>
     </div>
     <div class="about-body">
@@ -380,11 +374,11 @@ function buildWebviewHtml(
       </div>
       <div class="about-links">
         <button class="about-link-btn" id="about-report-issue">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          ${icons.info()}
           Report Issue
         </button>
         <button class="about-link-btn" id="about-github">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
+          ${icons.github()}
           GitHub
         </button>
       </div>
@@ -397,16 +391,14 @@ function buildWebviewHtml(
     <div class="settings-header">
       <h3>Accounts</h3>
       <button class="settings-close" id="accounts-close">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+        ${icons.close()}
       </button>
     </div>
     <div class="settings-body" style="padding: 0;">
       <div id="accounts-list" class="accounts-list"></div>
       <div class="accounts-actions">
         <button class="accounts-action-btn" id="btn-login">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          ${icons.logIn()}
           Login / Setup
         </button>
       </div>
@@ -418,7 +410,7 @@ function buildWebviewHtml(
   <div class="settings-panel hidden" id="skills-panel">
     <div class="settings-header">
       <h3>Loaded Skills</h3>
-      <button class="icon-btn" id="close-skills-btn" title="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      <button class="icon-btn" id="close-skills-btn" title="Close">${icons.close(16)}</button>
     </div>
     <div class="settings-body" id="skills-list" style="padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
       <div style="opacity:0.5; text-align:center; padding: 20px 0;">Loading skills...</div>
@@ -431,9 +423,7 @@ function buildWebviewHtml(
     <div class="settings-header">
       <h3>Session History</h3>
       <button class="settings-close" id="history-close">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+        ${icons.close()}
       </button>
     </div>
     <div class="settings-body" style="padding: 0;">
@@ -452,9 +442,7 @@ function buildWebviewHtml(
     <div class="settings-header">
       <h3>Conversation Tree</h3>
       <button class="settings-close" id="tree-close">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
+        ${icons.close()}
       </button>
     </div>
     <div class="settings-body" style="padding: 0;">
@@ -473,11 +461,6 @@ function buildWebviewHtml(
   </div>
 
   <!-- ── Command Palette ── -->
-  <div class="command-palette-overlay hidden" id="command-palette-overlay"></div>
-  <div class="command-palette hidden" id="command-palette">
-    <div class="command-palette-header">Commands</div>
-    <div class="command-list" id="command-list"></div>
-  </div>
 
   <script type="module" nonce="${nonce}" src="${scriptUri}?v=${cacheBust}"></script>
 </body>

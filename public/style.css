@@ -52,22 +52,23 @@ body {
 
 .header {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   align-items: center;
-  padding: 0 8px;
-  height: 35px;
+  padding: 4px 8px;
   min-height: 35px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
   background: var(--vscode-editor-background);
-  gap: 6px;
+  gap: 4px;
 }
 
-.header-left,
 .header-right {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  justify-content: flex-start;
+  gap: 2px 4px;
 }
 
 /* Icon buttons — VS Code toolbar style */
@@ -104,7 +105,9 @@ body {
   position: absolute;
   top: calc(100% + 4px);
   left: 50%;
-  transform: translateX(-50%);
+  /* Keeps the centred alignment; --tooltip-shift nudges it back inside the sidebar
+     when the trigger sits at an edge (set by tooltip-utils.js on hover). */
+  transform: translateX(calc(-50% + var(--tooltip-shift, 0px)));
   z-index: 100;
   padding: 3px 7px;
   border-radius: 3px;
@@ -116,11 +119,24 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s 0.4s;
+  transition: opacity 0.1s;
+}
+
+/* No empty box while data-tooltip has not been set yet */
+.has-tooltip:not([data-tooltip])::after {
+  display: none;
+}
+
+/* Tooltips for elements at the bottom of the panel open upwards */
+.has-tooltip-top::after {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 
 .has-tooltip:hover::after {
   opacity: 1;
+  /* Delay before showing; the base rule has no delay, so it hides instantly */
+  transition-delay: 0.5s;
 }
 
 /* Model dropdown */
@@ -185,8 +201,10 @@ body {
   max-height: 320px;
   overflow-y: auto;
   z-index: 100;
-  background: var(--vscode-dropdown-background);
-  border: 1px solid var(--vscode-widget-border, var(--vscode-dropdown-border));
+  background: var(--vscode-menu-background, var(--vscode-dropdown-background));
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border, var(--vscode-dropdown-border)));
+  /* Native menus use a low-contrast grey outline — soften whatever the theme gives us */
+  border-color: color-mix(in srgb, var(--vscode-menu-border, var(--vscode-widget-border, currentColor)) 55%, transparent);
   border-radius: 3px;
   box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0,0,0,0.16));
   animation: fadeIn 0.1s ease;
@@ -194,10 +212,20 @@ body {
 
 .model-dropdown-search {
   width: 100%;
-  padding: 6px 8px;
+  padding: 9px 12px;
   border: none;
-  border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-dropdown-border));
-  background: var(--vscode-input-background);
+  background-color: var(--vscode-input-background);
+  /* Separator between the search field and the model list, inset from both edges */
+  background-image: linear-gradient(
+    to right,
+    transparent 8px,
+    var(--vscode-menu-separatorBackground, var(--vscode-widget-border, var(--vscode-dropdown-border))) 8px,
+    var(--vscode-menu-separatorBackground, var(--vscode-widget-border, var(--vscode-dropdown-border))) calc(100% - 8px),
+    transparent calc(100% - 8px)
+  );
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 100% 1px;
   color: var(--vscode-input-foreground);
   font-size: 12px;
   font-family: inherit;
@@ -211,21 +239,26 @@ body {
 .model-dropdown-items {
   max-height: 270px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0;
 }
 
 .model-dropdown-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 4px 8px;
+  padding: 7px 12px;
   font-size: 12px;
   cursor: pointer;
-  color: var(--vscode-foreground);
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
   transition: background 0.1s;
 }
 
 .model-dropdown-item:hover {
-  background: var(--vscode-list-hoverBackground);
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground));
+  color: var(--vscode-menu-selectionForeground, var(--vscode-list-hoverForeground, inherit));
 }
 
 .model-dropdown-item.active {
@@ -244,23 +277,9 @@ body {
   opacity: 0.5;
 }
 
-/* Thinking level dropdown — reuses the model-dropdown widget, differentiated by color */
-.thinking-dropdown .model-dropdown-btn {
-  background: var(--vscode-badge-background);
-  color: var(--vscode-badge-foreground);
-  border-color: var(--vscode-widget-border, var(--vscode-dropdown-border, transparent));
-}
-
-.thinking-dropdown .model-dropdown-btn:hover {
-  border-color: var(--vscode-focusBorder);
-}
-
+/* Thinking level dropdown — reuses the model-dropdown widget (same colors) */
 .thinking-dropdown .model-dropdown-label {
   text-transform: lowercase;
-}
-
-.thinking-dropdown.off .model-dropdown-btn {
-  opacity: 0.6;
 }
 
 /* Model has no thinking level to pick (only "off"): not selectable */
@@ -275,11 +294,36 @@ body {
 
 .thinking-dropdown .model-dropdown-menu {
   min-width: 120px;
+  /* Same breathing room as the model list (its items are direct children) */
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0;
 }
 
 .settings-row .model-dropdown-menu {
   left: auto;
   right: 0;
+}
+
+/* The Settings row has its own label — no icon and no tooltip there */
+.settings-row .thinking-dropdown .selector-icon,
+.settings-row .thinking-dropdown .has-tooltip::after {
+  display: none;
+}
+
+/* Settings thinking picker follows the composer look: borderless and compact */
+.settings-row .thinking-dropdown .model-dropdown-btn {
+  height: 22px;
+  padding: 1px 6px;
+  font-size: 11px;
+  border: none;
+  border-radius: 3px;
+}
+
+.settings-row .thinking-dropdown .model-dropdown-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -854,65 +898,137 @@ body.hide-thinking .thinking-block { display: none; }
 
 .input-area {
   flex-shrink: 0;
-  padding: 8px 12px 8px;
+  padding: 8px;
   border-top: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
   background: var(--vscode-panel-background, var(--vscode-editor-background));
   position: relative;
 }
 
-/* Autocomplete Popup */
-.autocomplete-popup {
-  position: absolute;
-  bottom: 100%;
-  left: 12px;
-  right: 12px;
-  background: var(--vscode-editorWidget-background);
-  border: 1px solid var(--vscode-editorWidget-border);
-  border-radius: 6px;
-  max-height: 200px;
-  overflow-y: auto;
-  z-index: 100;
-  box-shadow: 0 -4px 10px rgba(0,0,0,0.15);
-  margin-bottom: 8px;
-  display: flex;
-  flex-direction: column;
-}
-.autocomplete-popup.hidden {
-  display: none;
-}
-.autocomplete-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--vscode-foreground);
-  border-bottom: 1px solid var(--vscode-panel-border);
-}
-.autocomplete-item:last-child {
-  border-bottom: none;
-}
-.autocomplete-item.selected,
-.autocomplete-item:hover {
-  background: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground);
-}
-.autocomplete-icon { font-size: 14px; opacity: 0.8; }
-.autocomplete-desc { font-size: 11px; opacity: 0.6; margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50%; }
-
 #chat-form {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 6px;
 }
 
 .input-left-actions {
   display: flex;
+  align-items: center;
   gap: 2px;
   flex-shrink: 0;
-  padding-bottom: 4px;
 }
+
+.input-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+/* Model + thinking as one compact segmented group */
+.model-selector-group {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.model-selector-group .model-dropdown {
+  /* Only the model selector gives up width (its label ellipsizes) */
+  min-width: 0;
+}
+
+.model-selector-group .thinking-dropdown {
+  flex-shrink: 0;
+}
+
+.model-selector-group .model-dropdown-btn {
+  height: 22px;
+  padding: 1px 6px;
+  font-size: 11px;
+  gap: 3px;
+  border: none;
+  border-radius: 3px;
+  /* <button> sizes to its content by default and would overflow a narrower parent;
+     100% makes it follow the available width so the label can ellipsize. */
+  width: 100%;
+  min-width: 0;
+}
+
+.model-selector-group .model-dropdown-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.selector-icon {
+  display: block;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.model-selector-group .model-dropdown-label {
+  /* The base rule caps labels at 160px; here the button follows the content */
+  max-width: none;
+  /* Lets the label shrink below its text so text-overflow: ellipsis can run */
+  min-width: 0;
+}
+
+/* Tooltips on the selectors only matter once their label is hidden */
+.model-selector-group > .model-dropdown:not(.thinking-dropdown) .has-tooltip::after,
+.model-selector-group .thinking-dropdown .has-tooltip::after {
+  display: none;
+}
+
+/* Narrow sidebar: drop only the thinking-level label, keep the icon + tooltip.
+   The button then matches the composer icon buttons (26x26, 5px radius). */
+@media (max-width: 260px) {
+  .model-selector-group .thinking-dropdown .model-dropdown-label {
+    display: none;
+  }
+
+  .model-selector-group .thinking-dropdown .has-tooltip::after {
+    display: block;
+  }
+
+  .model-selector-group .thinking-dropdown .model-dropdown-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 5px;
+  }
+}
+
+/* Even narrower: only then drop the model label too (icon + tooltip, icon-sized button) */
+@media (max-width: 210px) {
+  .model-selector-group > .model-dropdown:not(.thinking-dropdown) .model-dropdown-label {
+    display: none;
+  }
+
+  .model-selector-group > .model-dropdown:not(.thinking-dropdown) .has-tooltip::after {
+    display: block;
+  }
+
+  .model-selector-group > .model-dropdown:not(.thinking-dropdown) .model-dropdown-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 5px;
+  }
+}
+
+.model-selector-group .model-dropdown-chevron {
+  display: none;
+}
+
 
 .input-icon-btn {
   width: 26px;
@@ -935,7 +1051,7 @@ body.hide-thinking .thinking-block { display: none; }
 }
 
 .input-bubble {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   display: flex;
   align-items: flex-end;
@@ -952,10 +1068,11 @@ body.hide-thinking .thinking-block { display: none; }
 
 #message-input {
   flex: 1;
-  min-height: 24px;
-  max-height: 200px;
+  /* line box + symmetric vertical padding: no phantom gap under a single line */
+  min-height: calc(1.5em + 16px);
+  max-height: 220px;
   overflow-y: auto;
-  padding: 6px 10px;
+  padding: 8px 10px;
   font-size: 13px;
   font-family: inherit;
   line-height: 1.5;
@@ -965,7 +1082,9 @@ body.hide-thinking .thinking-block { display: none; }
   word-break: break-word;
 }
 
-#message-input:empty::before {
+/* .is-empty is kept in sync by ChatInput: a contenteditable that still holds a stray
+   <br> after deleting everything is not :empty, but it is empty for the user. */
+#message-input.is-empty::before {
   content: attr(aria-placeholder);
   color: var(--vscode-input-placeholderForeground);
   pointer-events: none;
@@ -977,16 +1096,10 @@ body.hide-thinking .thinking-block { display: none; }
   border-radius: 2px;
 }
 
-.input-actions {
-  display: flex;
-  flex-shrink: 0;
-  padding-bottom: 4px;
-}
-
 #send-btn,
 #abort-btn {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   border: none;
   border-radius: 6px;
@@ -1006,6 +1119,18 @@ body.hide-thinking .thinking-block { display: none; }
   background: var(--vscode-button-hoverBackground);
 }
 
+#send-btn:disabled {
+  /* Faded via colours, not opacity: `opacity` would also fade the tooltip
+     pseudo-element, which must stay fully readable. */
+  background: color-mix(in srgb, var(--vscode-button-background) 45%, transparent);
+  color: color-mix(in srgb, var(--vscode-button-foreground) 55%, transparent);
+  cursor: default;
+}
+
+#send-btn:disabled:hover {
+  background: color-mix(in srgb, var(--vscode-button-background) 45%, transparent);
+}
+
 #abort-btn {
   background: var(--vscode-errorForeground, #f87171);
   color: #fff;
@@ -1016,12 +1141,43 @@ body.hide-thinking .thinking-block { display: none; }
 /* Input footer — cost + context */
 .input-footer {
   display: flex;
-  justify-content: space-between;
+  /* Room reserved for the floating context percentage (its own width, see .ctx-pct) */
+  --ctx-pct-space: 34px;
+  /* One line: a long model name ellipsizes instead of pushing the context usage down */
+  flex-wrap: nowrap;
   align-items: center;
+  gap: 6px;
   padding: 4px 2px 0;
   font-size: 10px;
   color: var(--vscode-descriptionForeground);
   position: relative;
+}
+
+/* Set by cost-monitor.js only when the floating percentage has no room next to the
+   donut: the thinking selector keeps just its icon and the group leaves the pill space. */
+.input-footer.ctx-pct-tight .thinking-dropdown .model-dropdown-label {
+  display: none;
+}
+
+.input-footer.ctx-pct-tight .model-selector-group {
+  margin-right: var(--ctx-pct-space);
+}
+
+/* Selector menus open upwards, aligned with their own trigger */
+.input-footer .model-dropdown-menu {
+  top: auto;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: auto;
+  min-width: 0;
+  width: min(240px, calc(100vw - 16px));
+  max-width: calc(100vw - 16px);
+}
+
+.input-footer .thinking-dropdown .model-dropdown-menu {
+  width: auto;
+  min-width: 0;
+  max-width: calc(100vw - 16px);
 }
 
 .pill {
@@ -1141,29 +1297,67 @@ body.hide-thinking .thinking-block { display: none; }
 }
 
 .ctx-usage-btn {
-  padding: 1px 6px;
+  padding: 1px 4px;
   border: none;
   border-radius: 8px;
   background: transparent;
   color: var(--vscode-descriptionForeground);
   font-size: 10px;
   font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   cursor: pointer;
   transition: background 0.1s;
   display: none;
+  align-items: center;
+  gap: 3px;
+  position: relative;
 }
 
-.ctx-usage-btn.visible { display: inline-block; }
-.ctx-usage-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
+.ctx-usage-btn.visible { display: inline-flex; }
+.ctx-usage-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  /* joined with the hover label on its left: one single pill */
+  border-radius: 0 8px 8px 0;
+}
 .ctx-usage-btn.warning { color: var(--vscode-editorWarning-foreground, #fbbf24); }
 .ctx-usage-btn.critical { color: var(--vscode-errorForeground, #f87171); }
+
+/* Context usage: donut icon, percentage only while hovering */
+.ctx-donut { display: block; flex-shrink: 0; }
+.ctx-donut-track { stroke-opacity: 0.25; }
+.ctx-pct {
+  /* Same background/radius as the button, flush against its left edge, so hovering
+     makes them read as ONE control (no divider, no gap, no layout impact). */
+  position: absolute;
+  right: 100%;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 3px 0 6px;
+  border-radius: 8px 0 0 8px;
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 101;
+}
+/* Hover only. When it does not fit, the footer gets .ctx-pct-tight (see below). */
+.ctx-usage-btn:hover .ctx-pct { opacity: 1; }
 
 /* Context visualizer popup */
 .context-viz {
   position: absolute;
   bottom: calc(100% + 4px);
   right: 0;
-  width: 280px;
+  /* Never wider than the sidebar, like the other popups */
+  width: min(280px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
   padding: 12px;
   background: var(--vscode-editorHoverWidget-background, var(--vscode-editor-background));
   border: 1px solid var(--vscode-widget-border);
@@ -1176,6 +1370,11 @@ body.hide-thinking .thinking-block { display: none; }
 .input-footer-ctx {
   position: relative;
   margin-left: auto;
+  /* Flex (not a bare inline-flex child): kills the strut/baseline gap that made the
+     donut ride above the taller selectors */
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .context-viz-title {
@@ -1392,6 +1591,11 @@ body.hide-thinking .thinking-block { display: none; }
   background: rgba(0, 0, 0, 0.4);
   z-index: 999;
   animation: fadeIn 0.1s ease;
+}
+
+/* Overlay that dims without blocking: the "/" list keeps the composer usable */
+.settings-overlay.passthrough {
+  pointer-events: none;
 }
 
 .settings-panel {
@@ -1704,41 +1908,29 @@ body.hide-thinking .thinking-block { display: none; }
    Command Palette
    ═══════════════════════════════════════════════════════ */
 
-.command-palette-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 1099;
-}
 
+/* Commands modal: reuses the settings/skills modal shell — the only difference
+   is the alignment: full sidebar width (minus the same 8px gutter), docked above
+   the message box, inside the chat. */
 .command-palette {
-  position: fixed;
-  top: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 280px;
-  z-index: 1100;
-  background: var(--vscode-quickInput-background, var(--vscode-editor-background));
-  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.2));
-  border-radius: 6px;
-  box-shadow: 0 4px 16px var(--vscode-widget-shadow, rgba(0,0,0,0.2));
-  overflow: hidden;
-  animation: fadeIn 0.1s ease;
+  position: absolute;
+  top: auto;
+  /* Same 8px side gutter as the other modals */
+  left: 8px;
+  right: 8px;
+  bottom: 100%;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  margin-bottom: 6px;
 }
 
-.command-palette-header {
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--vscode-descriptionForeground);
-  border-bottom: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.15));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.command-palette .settings-body {
+  padding: 0;
 }
 
 .command-list {
-  max-height: 300px;
+  max-height: min(300px, 45vh);
   overflow-y: auto;
 }
 
@@ -1753,6 +1945,12 @@ body.hide-thinking .thinking-block { display: none; }
 
 .command-item:hover {
   background: var(--vscode-list-hoverBackground);
+}
+
+/* Keyboard highlight (arrows) in the filtered commands list */
+.command-item.selected {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
 }
 
 .command-icon {
@@ -2012,6 +2210,8 @@ body.hide-thinking .thinking-block { display: none; }
 
 .context-ref svg {
   flex-shrink: 0;
+  margin-right: 3px;
+  opacity: 0.6;
 }
 
 /* Context ref rendered in user messages (inline code with file icon) */
@@ -2032,6 +2232,8 @@ code.context-ref-inline {
 
 code.context-ref-inline svg {
   flex-shrink: 0;
+  margin-right: 3px;
+  opacity: 0.6;
 }
 
 /* ═══════════════════════════════════════════════════════
